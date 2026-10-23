@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, SelectField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { useAppSelector } from "@renderer/hooks";
 import type {
   AchievementCustomNotificationPosition,
@@ -45,6 +46,8 @@ const buildForm = (preferences: UserPreferences | null) => ({
 export function SettingsContextNotifications() {
   const { t } = useTranslation("settings");
   const { updateUserPreferences } = useContext(settingsContext);
+  const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+  const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -138,40 +141,45 @@ export function SettingsContextNotifications() {
           }
         />
 
-        <CheckboxField
-          label={t("enable_friend_request_notifications")}
-          checked={form.friendRequestNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              friendRequestNotificationsEnabled:
-                !form.friendRequestNotificationsEnabled,
-            })
-          }
-        />
+        {accountFeaturesEnabled && (
+          <>
+            <CheckboxField
+              label={t("enable_friend_request_notifications")}
+              checked={form.friendRequestNotificationsEnabled}
+              onChange={() =>
+                handleChange({
+                  friendRequestNotificationsEnabled:
+                    !form.friendRequestNotificationsEnabled,
+                })
+              }
+            />
 
-        <CheckboxField
-          label={t("enable_friend_start_game_notifications")}
-          checked={form.friendStartGameNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              friendStartGameNotificationsEnabled:
-                !form.friendStartGameNotificationsEnabled,
-            })
-          }
-        />
+            <CheckboxField
+              label={t("enable_friend_start_game_notifications")}
+              checked={form.friendStartGameNotificationsEnabled}
+              onChange={() =>
+                handleChange({
+                  friendStartGameNotificationsEnabled:
+                    !form.friendStartGameNotificationsEnabled,
+                })
+              }
+            />
 
-        <CheckboxField
-          label={t("enable_chat_message_notifications")}
-          checked={form.chatMessageNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              chatMessageNotificationsEnabled:
-                !form.chatMessageNotificationsEnabled,
-            })
-          }
-        />
+            <CheckboxField
+              label={t("enable_chat_message_notifications")}
+              checked={form.chatMessageNotificationsEnabled}
+              onChange={() =>
+                handleChange({
+                  chatMessageNotificationsEnabled:
+                    !form.chatMessageNotificationsEnabled,
+                })
+              }
+            />
+          </>
+        )}
       </div>
 
+      {achievementsEnabled && (
       <div className="settings-context-panel__group">
         <h3>{t("achievement_notifications")}</h3>
 
@@ -257,6 +265,7 @@ export function SettingsContextNotifications() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

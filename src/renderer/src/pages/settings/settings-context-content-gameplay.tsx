@@ -13,6 +13,7 @@ import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
 
@@ -49,6 +50,8 @@ export function SettingsContextContentGameplay() {
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { hash } = useLocation();
+  const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
+  const steamIntegrationEnabled = isFeatureEnabled("STEAM_INTEGRATION");
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -166,16 +169,18 @@ export function SettingsContextContentGameplay() {
           }
         />
 
-        <CheckboxField
-          label={t("show_hidden_achievement_description")}
-          checked={form.showHiddenAchievementsDescription}
-          onChange={() =>
-            handleChange({
-              showHiddenAchievementsDescription:
-                !form.showHiddenAchievementsDescription,
-            })
-          }
-        />
+        {achievementsEnabled && (
+          <CheckboxField
+            label={t("show_hidden_achievement_description")}
+            checked={form.showHiddenAchievementsDescription}
+            onChange={() =>
+              handleChange({
+                showHiddenAchievementsDescription:
+                  !form.showHiddenAchievementsDescription,
+              })
+            }
+          />
+        )}
 
         <CheckboxField
           label={t("enable_new_download_options_badges")}
@@ -199,93 +204,98 @@ export function SettingsContextContentGameplay() {
         />
       </div>
 
-      <div className="settings-context-panel__group">
-        <h3>{t("gameplay_metadata")}</h3>
+      {(achievementsEnabled || steamIntegrationEnabled) && (
+        <div className="settings-context-panel__group">
+          <h3>{t("gameplay_metadata")}</h3>
 
-        <CheckboxField
-          label={
-            <GuideLink article="steam-achievements">
-              {t("enable_steam_achievements")}
-            </GuideLink>
-          }
-          checked={form.enableSteamAchievements}
-          onChange={() =>
-            handleChange({
-              enableSteamAchievements: !form.enableSteamAchievements,
-            })
-          }
-        />
-
-        {hasActiveSubscription ? (
-          <CheckboxField
-            id="achievement-souvenirs"
-            label={t("enable_achievement_souvenirs")}
-            checked={form.enableAchievementSouvenirs}
-            onChange={handleAchievementSouvenirsChange}
-          />
-        ) : (
-          <button
-            type="button"
-            className="settings-behavior__hydra-cloud-row"
-            onClick={() => showHydraCloudModal("achievements")}
-          >
+          {steamIntegrationEnabled && (
             <CheckboxField
-              id="achievement-souvenirs"
-              label={t("enable_achievement_souvenirs")}
-              checked={false}
-              disabled
-              readOnly
+              label={
+                <GuideLink article="steam-achievements">
+                  {t("enable_steam_achievements")}
+                </GuideLink>
+              }
+              checked={form.enableSteamAchievements}
+              onChange={() =>
+                handleChange({
+                  enableSteamAchievements: !form.enableSteamAchievements,
+                })
+              }
             />
+          )}
 
-            <span className="settings-behavior__hydra-cloud-badge">
-              Hydra Cloud
-            </span>
-          </button>
-        )}
+          {achievementsEnabled &&
+            (hasActiveSubscription ? (
+              <CheckboxField
+                id="achievement-souvenirs"
+                label={t("enable_achievement_souvenirs")}
+                checked={form.enableAchievementSouvenirs}
+                onChange={handleAchievementSouvenirsChange}
+              />
+            ) : (
+              <button
+                type="button"
+                className="settings-behavior__hydra-cloud-row"
+                onClick={() => showHydraCloudModal("achievements")}
+              >
+                <CheckboxField
+                  id="achievement-souvenirs"
+                  label={t("enable_achievement_souvenirs")}
+                  checked={false}
+                  disabled
+                  readOnly
+                />
 
-        <div className="settings-behavior__screenshots-directory">
-          <TextField
-            label={t("screenshots_directory")}
-            value={screenshotsPath}
-            readOnly
-            disabled
-            rightContent={
-              <>
-                <Button
-                  theme="outline"
-                  disabled={!canManageScreenshots}
-                  onClick={handleChooseScreenshotsPath}
-                >
-                  <FileDirectoryIcon size={14} />
-                  {t("change_screenshots_directory")}
-                </Button>
-                {hasCustomScreenshotsPath && (
+                <span className="settings-behavior__hydra-cloud-badge">
+                  Hydra Cloud
+                </span>
+              </button>
+            ))}
+
+          <div className="settings-behavior__screenshots-directory">
+            <TextField
+              label={t("screenshots_directory")}
+              value={screenshotsPath}
+              readOnly
+              disabled
+              rightContent={
+                <>
                   <Button
-                    className="settings-behavior__reset-screenshots-button"
                     theme="outline"
                     disabled={!canManageScreenshots}
-                    tooltip={t("reset_screenshots_directory")}
-                    aria-label={t("reset_screenshots_directory")}
-                    onClick={handleResetScreenshotsPath}
+                    onClick={handleChooseScreenshotsPath}
                   >
-                    <HistoryIcon size={14} />
+                    <FileDirectoryIcon size={14} />
+                    {t("change_screenshots_directory")}
                   </Button>
-                )}
-              </>
-            }
-          />
+                  {hasCustomScreenshotsPath && (
+                    <Button
+                      className="settings-behavior__reset-screenshots-button"
+                      theme="outline"
+                      disabled={!canManageScreenshots}
+                      tooltip={t("reset_screenshots_directory")}
+                      aria-label={t("reset_screenshots_directory")}
+                      onClick={handleResetScreenshotsPath}
+                    >
+                      <HistoryIcon size={14} />
+                    </Button>
+                  )}
+                </>
+              }
+            />
 
-          <Button
-            className="settings-behavior__open-screenshots-button"
-            theme="outline"
-            disabled={!canManageScreenshots}
-            onClick={handleOpenScreenshotsPath}
-          >
-            <FileDirectoryIcon size={14} />
-            {t("open_screenshots_directory")}
-          </Button>
+            <Button
+              className="settings-behavior__open-screenshots-button"
+              theme="outline"
+              disabled={!canManageScreenshots}
+              onClick={handleOpenScreenshotsPath}
+            >
+              <FileDirectoryIcon size={14} />
+              {t("open_screenshots_directory")}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="settings-context-panel__group">
         <h3>{t("library_appearance")}</h3>

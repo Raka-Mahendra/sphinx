@@ -1,5 +1,6 @@
 import "./notifications.scss";
 
+import { isFeatureEnabled } from "../../feature-flags";
 import { NotificationsAchievementsSection } from "./notifications-achievements-section";
 import { NotificationsLibrarySection } from "./notifications-library-section";
 import {
@@ -14,6 +15,9 @@ interface SettingsSectionProps {
 export function NotificationsSettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
+  const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+  const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
+
   return (
     <div
       className={
@@ -23,20 +27,27 @@ export function NotificationsSettingsSection({
       }
     >
       <NotificationsLibrarySection
-        lastItemDownTarget={{
-          type: "item",
-          itemId:
-            NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS.achievementNotificationsEnabled,
-        }}
+        lastItemDownTarget={
+          achievementsEnabled
+            ? {
+                type: "item",
+                itemId:
+                  NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS.achievementNotificationsEnabled,
+              }
+            : { type: "block" }
+        }
       />
 
-      <NotificationsAchievementsSection
-        firstItemUpTarget={{
-          type: "item",
-          itemId:
-            NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.friendStartGameNotificationsEnabled,
-        }}
-      />
+      {achievementsEnabled && (
+        <NotificationsAchievementsSection
+          firstItemUpTarget={{
+            type: "item",
+            itemId: accountFeaturesEnabled
+              ? NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.friendStartGameNotificationsEnabled
+              : NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.repackUpdatesNotificationsEnabled,
+          }}
+        />
+      )}
     </div>
   );
 }

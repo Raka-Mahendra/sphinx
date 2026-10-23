@@ -3,6 +3,7 @@ import "./notifications-library-section.scss";
 import { useEffect, useMemo, useState } from "react";
 
 import { Checkbox, VerticalFocusGroup } from "../../components";
+import { isFeatureEnabled } from "../../feature-flags";
 import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
@@ -80,7 +81,36 @@ export function NotificationsLibrarySection({
     await globalThis.window.electron.updateUserPreferences(values);
   };
 
+  const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+
   const items = useMemo<NotificationsLibraryItem[]>(() => {
+    const friendItems: NotificationsLibraryItem[] = accountFeaturesEnabled
+      ? [
+          {
+            id: "friend-request-notifications-enabled",
+            focusId:
+              NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.friendRequestNotificationsEnabled,
+            label: "Enable friend request notifications",
+            checked: form.friendRequestNotificationsEnabled,
+            onChange: (checked: boolean) =>
+              void updateUserPreferences({
+                friendRequestNotificationsEnabled: checked,
+              }),
+          },
+          {
+            id: "friend-start-game-notifications-enabled",
+            focusId:
+              NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.friendStartGameNotificationsEnabled,
+            label: "Enable friend start game notifications",
+            checked: form.friendStartGameNotificationsEnabled,
+            onChange: (checked: boolean) =>
+              void updateUserPreferences({
+                friendStartGameNotificationsEnabled: checked,
+              }),
+          },
+        ]
+      : [];
+
     return [
       {
         id: "download-notifications-enabled",
@@ -102,30 +132,9 @@ export function NotificationsLibrarySection({
             repackUpdatesNotificationsEnabled: checked,
           }),
       },
-      {
-        id: "friend-request-notifications-enabled",
-        focusId:
-          NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.friendRequestNotificationsEnabled,
-        label: "Enable friend request notifications",
-        checked: form.friendRequestNotificationsEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            friendRequestNotificationsEnabled: checked,
-          }),
-      },
-      {
-        id: "friend-start-game-notifications-enabled",
-        focusId:
-          NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.friendStartGameNotificationsEnabled,
-        label: "Enable friend start game notifications",
-        checked: form.friendStartGameNotificationsEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            friendStartGameNotificationsEnabled: checked,
-          }),
-      },
+      ...friendItems,
     ];
-  }, [form]);
+  }, [form, accountFeaturesEnabled]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
