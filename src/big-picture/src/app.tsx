@@ -36,8 +36,11 @@ import {
 } from "./stores";
 import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
+import { isFeatureEnabled } from "./feature-flags";
 
 import "./styles/globals.scss";
+
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
 
 export default function App() {
   ensureBigPictureI18nResources();
@@ -218,7 +221,7 @@ export default function App() {
           <InputModeProvider />
           <NavigationDiagnostics />
           <BigPictureToastHost />
-          <CloudGiftNotificationModal />
+          {accountFeaturesEnabled && <CloudGiftNotificationModal />}
         </div>
       </NavigationInputProvider>
     </Fragment>

@@ -14,6 +14,7 @@ import {
   useToast,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import i18n from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -252,11 +253,16 @@ export function App() {
   }, [dispatch, updateLibrary]);
 
   useEffect(() => {
+    if (!isFeatureEnabled("HYDRA_ACCOUNT_FEATURES")) return;
+
     let hasReceivedSyncState = false;
 
-    void window.electron.getRemoteLibrarySyncState().then((syncing) => {
-      if (!hasReceivedSyncState) dispatch(setLibrarySyncingRemote(syncing));
-    });
+    void window.electron
+      .getRemoteLibrarySyncState()
+      .then((syncing) => {
+        if (!hasReceivedSyncState) dispatch(setLibrarySyncingRemote(syncing));
+      })
+      .catch(() => undefined);
 
     return window.electron.onRemoteLibrarySyncStateChange((syncing) => {
       hasReceivedSyncState = true;
