@@ -5,6 +5,7 @@ import type { MouseEventHandler } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { logger } from "@renderer/logger";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 
 import { HomePageHero } from "./hero";
 import { useFeaturedGame } from "./hero/use-featured-game";
@@ -80,6 +81,8 @@ interface HomeCatalogMenuState {
   position: { x: number; y: number };
   restoreFocusId: string | null;
 }
+
+const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
 
 export default function Home() {
   const navigate = useNavigate();
@@ -297,7 +300,9 @@ export default function Home() {
         {
           onLaunchOrDownload: handleLaunchFromMenu,
           onToggleFavorite: toggleFavorite,
-          onViewAchievements: handleCatalogViewAchievementsFromMenu,
+          onViewAchievements: achievementsEnabled
+            ? handleCatalogViewAchievementsFromMenu
+            : undefined,
           onOptions: handleOpenGameSettingsFromMenu,
           onUninstall: handleRequestRemoveFilesFromMenu,
           onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
@@ -316,7 +321,9 @@ export default function Home() {
       onOpenDownloadOptions: handleOpenCatalogDownloadOptions,
       onAddToLibrary: handleAddCatalogGameToLibrary,
       onShare: handleCatalogShareFromMenu,
-      onViewAchievements: handleCatalogViewAchievementsFromMenu,
+      onViewAchievements: achievementsEnabled
+        ? handleCatalogViewAchievementsFromMenu
+        : undefined,
     });
   }, [
     addingCatalogKey,

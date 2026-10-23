@@ -24,7 +24,7 @@ interface CollectionsFilterProps {
   favoritesCollectionId: string;
   hiddenCollectionId: string;
   onSelect: (collectionId: string | null) => void;
-  onCreate: () => void;
+  onCreate?: () => void;
   onCollectionContextMenu: (
     event: React.MouseEvent<HTMLElement>,
     collection: GameCollection
@@ -149,20 +149,24 @@ export function CollectionsFilter({
             })}
           </div>
 
-          <DropdownMenuPrimitive.Separator className="collections-filter__separator" />
+          {onCreate && (
+            <>
+              <DropdownMenuPrimitive.Separator className="collections-filter__separator" />
 
-          <DropdownMenuPrimitive.Item
-            className="collections-filter__item"
-            onSelect={(event) => {
-              event.preventDefault();
-              onCreate();
-            }}
-          >
-            <PlusIcon size={16} />
-            <span className="collections-filter__item-label">
-              {t("create_collection", { ns: "sidebar" })}
-            </span>
-          </DropdownMenuPrimitive.Item>
+              <DropdownMenuPrimitive.Item
+                className="collections-filter__item"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  onCreate();
+                }}
+              >
+                <PlusIcon size={16} />
+                <span className="collections-filter__item-label">
+                  {t("create_collection", { ns: "sidebar" })}
+                </span>
+              </DropdownMenuPrimitive.Item>
+            </>
+          )}
         </DropdownMenuPrimitive.Content>
       </DropdownMenuPrimitive.Portal>
     </DropdownMenuPrimitive.Root>

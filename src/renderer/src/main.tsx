@@ -25,8 +25,8 @@ import resources from "@locales";
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import { clearStateFromPreviousSession } from "./session-state";
-import * as Sentry from "@sentry/react";
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
+import { isFeatureEnabled } from "./feature-flags";
 import { levelDBService } from "./services/leveldb.service";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
@@ -43,7 +43,6 @@ import { AchievementNotificationOverlay } from "./components/achievements/notifi
 import GameLauncher from "./pages/game-launcher/game-launcher";
 import FriendsWindow from "./pages/friends-window/friends-window";
 import ChatWindow from "./pages/chat-window/chat-window";
-import AuthWindow from "./pages/auth-window/auth-window";
 import RetroAchievementsConnectionWindow from "./pages/retroachievements-connection-window/retroachievements-connection-window";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
@@ -57,18 +56,6 @@ import BigPictureGameAchievements from "../../big-picture/src/pages/game-achieve
 import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
 
 console.log = logger.log;
-
-Sentry.init({
-  dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration(),
-  ],
-  tracesSampleRate: 0.5,
-  replaysSessionSampleRate: 0,
-  replaysOnErrorSampleRate: 0,
-  release: "hydra-launcher@" + (await globalThis.electron.getVersion()),
-});
 
 globalThis.addEventListener("unhandledrejection", (event) => {
   logger.error("Unhandled promise rejection", event.reason);
@@ -126,6 +113,9 @@ globalThis.electron.onUserPreferencesUpdated((preferences) => {
   }
 });
 
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
@@ -133,7 +123,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <HashRouter>
           <CollectionContextMenuProvider>
             <GameOptionsModalProvider>
-              <AchievementNotificationOverlay />
+              {achievementsEnabled && <AchievementNotificationOverlay />}
               <Routes>
                 <Route element={<App />}>
                   <Route path="/" element={<Home />} />
@@ -145,24 +135,38 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     element={<GameDetails />}
                   />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="/profile/:userId" element={<Profile />} />
-                  <Route path="/achievements" element={<Achievements />} />
-                  <Route path="/notifications" element={<Notifications />} />
+                  {accountFeaturesEnabled && (
+                    <Route path="/profile/:userId" element={<Profile />} />
+                  )}
+                  {achievementsEnabled && (
+                    <Route path="/achievements" element={<Achievements />} />
+                  )}
+                  {accountFeaturesEnabled && (
+                    <Route path="/notifications" element={<Notifications />} />
+                  )}
+                  <Route path="*" element={<Home />} />
                 </Route>
 
                 <Route path="/theme-editor" element={<ThemeEditor />} />
-                <Route
-                  path="/achievement-notification"
-                  element={<AchievementNotification />}
-                />
+                {achievementsEnabled && (
+                  <Route
+                    path="/achievement-notification"
+                    element={<AchievementNotification />}
+                  />
+                )}
                 <Route path="/game-launcher" element={<GameLauncher />} />
-                <Route path="/friends-window" element={<FriendsWindow />} />
-                <Route path="/chat-window" element={<ChatWindow />} />
-                <Route path="/auth-window" element={<AuthWindow />} />
-                <Route
-                  path="/retroachievements-connection"
-                  element={<RetroAchievementsConnectionWindow />}
-                />
+                {accountFeaturesEnabled && (
+                  <Route path="/friends-window" element={<FriendsWindow />} />
+                )}
+                {accountFeaturesEnabled && (
+                  <Route path="/chat-window" element={<ChatWindow />} />
+                )}
+                {achievementsEnabled && (
+                  <Route
+                    path="/retroachievements-connection"
+                    element={<RetroAchievementsConnectionWindow />}
+                  />
+                )}
 
                 <Route path="/big-picture" element={<BigPictureApp />}>
                   <Route index element={<BigPictureHome />} />
@@ -174,18 +178,23 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                   <Route path="downloads" element={<BigPictureDownloads />} />
                   <Route path="settings" element={<BigPictureSettings />} />
                   <Route path="library" element={<BigPictureLibrary />} />
-                  <Route
-                    path="profile/:userId?"
-                    element={<BigPictureProfile />}
-                  />
+                  {accountFeaturesEnabled && (
+                    <Route
+                      path="profile/:userId?"
+                      element={<BigPictureProfile />}
+                    />
+                  )}
                   <Route
                     path="game/:shop/:objectId"
                     element={<BigPictureGame />}
                   />
-                  <Route
-                    path="game/:shop/:objectId/achievements"
-                    element={<BigPictureGameAchievements />}
-                  />
+                  {achievementsEnabled && (
+                    <Route
+                      path="game/:shop/:objectId/achievements"
+                      element={<BigPictureGameAchievements />}
+                    />
+                  )}
+                  <Route path="*" element={<BigPictureHome />} />
                 </Route>
               </Routes>
             </GameOptionsModalProvider>

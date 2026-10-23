@@ -32,6 +32,7 @@ import {
 } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 import { EpicCloudSaveConflictModal } from "../modals/epic-cloud-save-conflict-modal";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -363,6 +364,7 @@ export function HeroPanelActions() {
           : t("epic_launch_failed")
       );
       if (
+        isFeatureEnabled("EPIC_INTEGRATION") &&
         member.shop === "epic" &&
         typeof window.electron.getEpicCloudSaveState === "function"
       ) {

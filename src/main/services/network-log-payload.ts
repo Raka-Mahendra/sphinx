@@ -23,7 +23,6 @@ const sensitiveKeys = new Set([
   "token",
   "uploadurl",
   "username",
-  "workwondersjwt",
   "x-amz-security-token",
 ]);
 

@@ -26,6 +26,8 @@ import type {
 } from "@types";
 import { getGameCatalogueIdentity } from "@shared";
 
+import { isFeatureEnabled } from "@renderer/feature-flags";
+
 import { GameArtworkPicker } from "./game-artwork-picker";
 
 import "./game-assets-settings.scss";
@@ -1235,7 +1237,9 @@ export function GameAssetsSettings({
 
         {renderImageSection(selectedAssetType)}
 
-        {!hasActiveSubscription && !isCustomGame(game) && (
+        {isFeatureEnabled("HYDRA_ACCOUNT_FEATURES") &&
+          !hasActiveSubscription &&
+          !isCustomGame(game) && (
           <button
             type="button"
             className="subscription-required-button"

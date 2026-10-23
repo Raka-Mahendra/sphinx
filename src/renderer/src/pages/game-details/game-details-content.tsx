@@ -23,7 +23,8 @@ import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
 import { SimilarGames } from "./similar-games/similar-games";
 
-import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
@@ -73,6 +74,9 @@ const getImageWithCustomPriority = (
 ) => {
   return customUrl || originalUrl || fallbackUrl || "";
 };
+
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
 
 export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
@@ -197,10 +201,7 @@ export function GameDetailsContent() {
   }, [aboutTheGame]);
 
   const handleLegacyCloudSaveButtonClick = () => {
-    if (!userDetails) {
-      globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
+    if (!cloudSaveEnabled || !userDetails) return;
 
     setGameOptionsInitialCategory("hydra_cloud_legacy");
     setShowGameOptionsModal(true);
@@ -212,6 +213,8 @@ export function GameDetailsContent() {
   };
 
   useEffect(() => {
+    if (!cloudSaveEnabled) return;
+
     getGameArtifacts();
   }, [getGameArtifacts]);
 
@@ -441,7 +444,9 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && cloudSaveVisibility?.hero === "legacy" && (
+                {cloudSaveEnabled &&
+                  game &&
+                  cloudSaveVisibility?.hero === "legacy" && (
                   <button
                     type="button"
                     className="game-details__cloud-sync-button"
@@ -458,9 +463,10 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && objectId && cloudSaveVisibility?.hero === "v2" && (
-                  <CloudSaveWidget />
-                )}
+                {cloudSaveEnabled &&
+                  game &&
+                  objectId &&
+                  cloudSaveVisibility?.hero === "v2" && <CloudSaveWidget />}
               </div>
             </div>
 
@@ -474,7 +480,7 @@ export function GameDetailsContent() {
           <div className="game-details__description-content">
             <DescriptionHeader />
 
-            {showPrompt && (
+            {accountFeaturesEnabled && showPrompt && (
               <ReviewPromptBanner
                 onYesClick={handleReviewPromptYes}
                 onLaterClick={handleReviewPromptLater}
@@ -520,7 +526,10 @@ export function GameDetailsContent() {
               />
             )}
 
-            {shop !== "custom" && shop && objectId && (
+            {accountFeaturesEnabled &&
+              shop !== "custom" &&
+              shop &&
+              objectId && (
               <div ref={reviewsRef}>
                 <GameReviews
                   shop={shop}

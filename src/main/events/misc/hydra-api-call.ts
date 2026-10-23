@@ -1,5 +1,8 @@
-import { registerEvent } from "../register-event";
+import { FeatureUnavailableError, isFeatureUnavailableError } from "@shared";
 import { HydraApi } from "@main/services";
+
+import { registerEvent } from "../register-event";
+import { logger } from "@main/services/logger";
 
 interface HydraApiCallPayload {
   method: "get" | "post" | "postResponse" | "put" | "patch" | "delete";
@@ -14,11 +17,52 @@ interface HydraApiCallPayload {
   };
 }
 
+const PUBLIC_GET_PREFIXES = [
+  "/catalogue",
+  "/badges",
+  "/features",
+  "/users",
+  "/games",
+] as const;
+
+const isPublicGetPath = (path: string): boolean =>
+  PUBLIC_GET_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+  );
+
+const isAllowedPublicRequest = (
+  method: HydraApiCallPayload["method"],
+  url: string
+) => {
+  const path = url.split("?")[0];
+
+  if (method === "get") {
+    return isPublicGetPath(path);
+  }
+
+  return method === "post" && path === "/catalogue/search";
+};
+
 const hydraApiCall = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: HydraApiCallPayload
 ) => {
   const { method, url, data, params, options } = payload;
+
+  if (options?.needsSubscription) {
+    logger.debug(
+      "[feature-flags] HYDRA_CLOUD_LEGACY is disabled; rejecting cloud API request"
+    );
+    throw new FeatureUnavailableError("HYDRA_CLOUD_LEGACY");
+  }
+
+  if (options?.needsAuth !== false || !isAllowedPublicRequest(method, url)) {
+    logger.debug(
+      `[feature-flags] HYDRA_ACCOUNT_FEATURES is disabled; rejecting ${method} ${url}`
+    );
+    throw new FeatureUnavailableError("HYDRA_ACCOUNT_FEATURES");
+  }
+
   const hydraApiOptions = {
     ...options,
     validateStatus: options?.acceptedStatuses
@@ -75,6 +119,8 @@ const hydraApiCall = async (
 
     return await request;
   } catch (error) {
+    if (isFeatureUnavailableError(error)) throw error;
+
     const errorMessage = getErrorMessage(error);
     throw new Error(errorMessage ?? "hydra-api-call-failed");
   }

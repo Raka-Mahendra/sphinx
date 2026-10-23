@@ -23,6 +23,7 @@ import {
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import type {
   EmulationCloudSave,
   EmulationSavePlatform,
@@ -99,6 +100,8 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     showSuccessToast(t("cloud_delete_success"));
     load();
   }, [deleteFor, showSuccessToast, t, load]);
+
+  if (!isFeatureEnabled("HYDRA_CLOUD_LEGACY")) return null;
 
   if (!hasActiveSubscription) {
     return (

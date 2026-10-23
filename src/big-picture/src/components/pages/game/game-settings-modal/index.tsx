@@ -37,6 +37,7 @@ import {
   GameCompatibilitySettingsTab,
   GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID,
 } from "./compatibility-tab";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import {
   shouldShowCloudSaveV2Tab,
   shouldShowLegacyCloudSaveTab,
@@ -134,18 +135,23 @@ export function GameSettingsModal({
   );
 
   const isSignedIn = userDetails !== null;
-  const shouldShowCloudV2Tab = shouldShowCloudSaveV2Tab(
-    game.shop,
-    isSignedIn,
-    hasActiveSubscription,
-    game.platform
-  );
-  const shouldShowLegacyCloudTab = shouldShowLegacyCloudSaveTab(
-    game.shop,
-    isSignedIn,
-    hasActiveSubscription,
-    game.platform
-  );
+  const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
+  const shouldShowCloudV2Tab =
+    cloudSaveEnabled &&
+    shouldShowCloudSaveV2Tab(
+      game.shop,
+      isSignedIn,
+      hasActiveSubscription,
+      game.platform
+    );
+  const shouldShowLegacyCloudTab =
+    cloudSaveEnabled &&
+    shouldShowLegacyCloudSaveTab(
+      game.shop,
+      isSignedIn,
+      hasActiveSubscription,
+      game.platform
+    );
 
   useEffect(() => {
     const isUnavailableTab =

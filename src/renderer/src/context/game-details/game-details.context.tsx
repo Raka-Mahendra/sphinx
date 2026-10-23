@@ -35,6 +35,7 @@ import {
   getGameExecutableFilters,
   SteamContentDescriptor,
 } from "@shared";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -146,7 +147,9 @@ export function GameDetailsContextProvider({
     const eligible = members.filter(
       (member) =>
         member.shop === "steam" ||
-        (member.shop === "epic" && member.hasActiveEpicImport)
+        (isFeatureEnabled("EPIC_INTEGRATION") &&
+          member.shop === "epic" &&
+          member.hasActiveEpicImport)
     );
     const key = JSON.stringify([
       userDetails?.id,
@@ -207,7 +210,11 @@ export function GameDetailsContextProvider({
           setIsLoading(false);
         }
 
-        if (userDetails && shop !== "custom") {
+        if (
+          isFeatureEnabled("ACHIEVEMENTS") &&
+          userDetails &&
+          shop !== "custom"
+        ) {
           const achievementUpdateCount = achievementUpdateCountRef.current;
           const isStaleAchievementResult = () =>
             abortController.signal.aborted ||

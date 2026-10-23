@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AuthPage } from "@shared";
 import type { GameCollection } from "@types";
 
 import { Button, Modal, TextField } from "@renderer/components";
@@ -84,7 +83,6 @@ export function CreateCollectionModal({
 
   const handleCreate = async () => {
     if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
       handleClose();
       return;
     }

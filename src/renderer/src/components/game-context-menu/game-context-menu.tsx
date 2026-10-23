@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AuthPage } from "@shared";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import {
   PlayIcon,
   DownloadIcon,
@@ -266,10 +266,7 @@ export function GameContextMenu({
       icon: <PlusIcon size={16} />,
       separator: collections.length > 0,
       onClick: () => {
-        if (!userDetails) {
-          window.electron.openAuthWindow(AuthPage.SignIn);
-          return;
-        }
+        if (!userDetails) return;
 
         setShowCreateCollectionModal(true);
       },
@@ -304,24 +301,29 @@ export function GameContextMenu({
           !isGameRunning &&
           (isDownloadDeleting || isGameDownloading)),
     },
-    {
-      id: "collection",
-      label: t("collection"),
-      icon: <FileDirectoryIcon size={16} />,
-      onClick: () => {
-        void loadCollections();
-      },
-      disabled: isDeleting || isFavoritePending || Boolean(pendingCollectionId),
-      submenu: isCollectionsLoading
-        ? [
-            {
-              id: "collection-loading",
-              label: t("loading"),
-              disabled: true,
+    ...(isFeatureEnabled("HYDRA_ACCOUNT_FEATURES")
+      ? [
+          {
+            id: "collection",
+            label: t("collection"),
+            icon: <FileDirectoryIcon size={16} />,
+            onClick: () => {
+              void loadCollections();
             },
-          ]
-        : collectionSubmenu,
-    },
+            disabled:
+              isDeleting || isFavoritePending || Boolean(pendingCollectionId),
+            submenu: isCollectionsLoading
+              ? [
+                  {
+                    id: "collection-loading",
+                    label: t("loading"),
+                    disabled: true,
+                  },
+                ]
+              : collectionSubmenu,
+          },
+        ]
+      : []),
     ...(game.executablePath
       ? [
           {

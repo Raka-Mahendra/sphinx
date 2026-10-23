@@ -50,6 +50,7 @@ import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import { gameDetailsContext } from "@renderer/context";
+import { isFeatureEnabled as isSphinxFeatureEnabled } from "@renderer/feature-flags";
 import {
   platformToRetroArchPlatform,
   platformToSystem,
@@ -446,6 +447,13 @@ export function DownloadSettingsModal({
         if (
           downloader === Downloader.AllDebrid &&
           !isFeatureEnabled(Feature.AllDebrid)
+        ) {
+          return false;
+        }
+
+        if (
+          downloader === Downloader.VikingFile &&
+          !isSphinxFeatureEnabled("HYDRA_ACCOUNT_FEATURES")
         ) {
           return false;
         }

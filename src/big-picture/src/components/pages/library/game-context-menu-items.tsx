@@ -121,7 +121,7 @@ export interface BuildCatalogGameContextMenuItemsArgs {
   isAddingToLibrary: boolean;
   onOpenDownloadOptions: () => void;
   onAddToLibrary: () => void | Promise<void>;
-  onViewAchievements: () => void;
+  onViewAchievements?: () => void;
   onShare: () => void;
 }
 
@@ -163,7 +163,7 @@ export function buildCatalogGameContextMenuItems(
     ((_catalogGame as { achievementCount?: number | null }).achievementCount ??
       0) > 0;
 
-  if (hasAchievements) {
+  if (hasAchievements && onViewAchievements) {
     nextItems.push({
       id: "view-achievements",
       label: "View Achievements",

@@ -103,7 +103,7 @@ import type {
   EpicLaunchOptions,
   EpicLinuxCompatibility,
 } from "@types";
-import type { AuthPage, Downloader } from "@shared";
+import type { Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -1926,23 +1926,6 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Auth */
-  getAuth: () => ipcRenderer.invoke("getAuth"),
-  signOut: () => ipcRenderer.invoke("signOut"),
-  openAuthWindow: (page: AuthPage) =>
-    ipcRenderer.invoke("openAuthWindow", page),
-  minimizeAuthWindow: () => ipcRenderer.invoke("minimizeAuthWindow"),
-  closeAuthWindow: () => ipcRenderer.invoke("closeAuthWindow"),
-  getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
-  onSignIn: (cb: () => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
-    ipcRenderer.on("on-signin", listener);
-    return () => ipcRenderer.removeListener("on-signin", listener);
-  },
-  onAccountUpdated: (cb: () => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
-    ipcRenderer.on("on-account-updated", listener);
-    return () => ipcRenderer.removeListener("on-account-updated", listener);
-  },
   onSteamConnected: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-steam-connected", listener);
@@ -1956,11 +1939,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-steam-connect-error", listener);
     return () => ipcRenderer.removeListener("on-steam-connect-error", listener);
   },
-  onSignOut: (cb: () => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
-    ipcRenderer.on("on-signout", listener);
-    return () => ipcRenderer.removeListener("on-signout", listener);
-  },
+
+  /* Removed account APIs. These stay callable only so older UI code fails
+     closed while the account surfaces are hidden by feature flags. */
+  openAuthWindow: () =>
+    Promise.reject(
+      Object.assign(new Error("feature_unavailable"), {
+        code: "feature_unavailable",
+      })
+    ),
+  minimizeAuthWindow: () => Promise.resolve(),
+  closeAuthWindow: () => Promise.resolve(),
+  signOut: () => Promise.resolve(),
+  onSignIn: (_cb: () => void) => () => {},
+  onAccountUpdated: (_cb: () => void) => () => {},
+  onSignOut: (_cb: () => void) => () => {},
 
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>

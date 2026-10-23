@@ -22,6 +22,7 @@ import {
   getSkuRegionFromSaveIdentity,
 } from "@renderer/helpers";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import type {
   EmulationCloudSave,
   EmulationSavePlatform,
@@ -61,9 +62,9 @@ export function GameEmulationSaves({
   objectId,
 }: Readonly<GameEmulationSavesProps>) {
   const { t } = useTranslation("settings");
-  const { t: tHydraCloud } = useTranslation("hydra_cloud");
   const { showSuccessToast, showErrorToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
+  const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
   const navigate = useNavigate();
 
   const [cloudSaves, setCloudSaves] = useState<EmulationCloudSave[]>([]);
@@ -76,7 +77,7 @@ export function GameEmulationSaves({
   const isMemoryCardPlatform = platform === "ps1" || platform === "ps2";
 
   const load = useCallback(async () => {
-    if (!hasActiveSubscription) {
+    if (!cloudSaveEnabled || !hasActiveSubscription) {
       setCloudSaves([]);
       setRecords([]);
       return;
@@ -92,7 +93,7 @@ export function GameEmulationSaves({
     } finally {
       setLoading(false);
     }
-  }, [hasActiveSubscription, platform, objectId]);
+  }, [cloudSaveEnabled, hasActiveSubscription, platform, objectId]);
 
   useEffect(() => {
     load();
@@ -160,16 +161,7 @@ export function GameEmulationSaves({
     load();
   }, [deleteFor, showSuccessToast, t, load]);
 
-  if (!hasActiveSubscription) {
-    return (
-      <div className="game-emulation-saves__upgrade">
-        <p>{tHydraCloud("hydra_cloud_feature_found")}</p>
-        <Button onClick={() => window.electron.openCheckout()}>
-          {tHydraCloud("learn_more")}
-        </Button>
-      </div>
-    );
-  }
+  if (!cloudSaveEnabled || !hasActiveSubscription) return null;
 
   return (
     <>

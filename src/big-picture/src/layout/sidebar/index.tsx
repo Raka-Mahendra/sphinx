@@ -11,7 +11,8 @@ import {
   SquaresFourIcon,
   StarIcon,
 } from "@phosphor-icons/react";
-import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import {
   type FocusEvent,
   forwardRef,
@@ -128,6 +129,8 @@ const SIDEBAR_LIBRARY_FILTER_FOCUS_IDS: Record<SidebarLibraryFilter, string> = {
 
 const SIDEBAR_LIBRARY_FILTER_STORAGE_KEY =
   "hydra:big-picture:sidebar-library-filter";
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
 
 function getInitialSidebarLibraryFilter(): SidebarLibraryFilter {
   try {
@@ -402,7 +405,11 @@ function SidebarRouter() {
       ...sidebarItemNavigationOverrides,
       up: previousRoute
         ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[previousRoute.key])
-        : getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+        : getItemFocusTarget(
+            accountFeaturesEnabled
+              ? BIG_PICTURE_SIDEBAR_PROFILE_ID
+              : BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID
+          ),
       down: nextRoute
         ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[nextRoute.key])
         : getItemFocusTarget(BIG_PICTURE_SIDEBAR_POWER_ID),
@@ -414,7 +421,11 @@ function SidebarRouter() {
     ...sidebarItemNavigationOverrides,
     up: lastRoute
       ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[lastRoute.key])
-      : getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+      : getItemFocusTarget(
+          accountFeaturesEnabled
+            ? BIG_PICTURE_SIDEBAR_PROFILE_ID
+            : BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID
+        ),
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID),
   };
 
@@ -792,10 +803,7 @@ function SidebarProfile({
     onNotificationsOpenChange(false);
   }, [onNotificationsOpenChange]);
   const handleProfileClick = useCallback(() => {
-    if (!userDetails?.id) {
-      void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
+    if (!userDetails?.id) return;
 
     const basePath = IS_DESKTOP ? "/big-picture" : "";
     navigate(`${basePath}/profile/${userDetails.id}`);
@@ -1099,15 +1107,21 @@ function Sidebar() {
           onFocusWithinChange={setSidebarFocusWithin}
           onHoverChange={setSidebarHovered}
         >
-          <SidebarProfile
-            library={library}
-            runningGamesById={runningGamesById}
-            notificationsOpen={notificationsOpen}
-            notificationsFocusable={sidebarExpanded}
-            onNotificationsOpenChange={setNotificationsOpen}
-            onNotificationsRestoringFocusChange={setRestoringNotificationsFocus}
-          />
-          <Divider />
+          {accountFeaturesEnabled && (
+            <>
+              <SidebarProfile
+                library={library}
+                runningGamesById={runningGamesById}
+                notificationsOpen={notificationsOpen}
+                notificationsFocusable={sidebarExpanded}
+                onNotificationsOpenChange={setNotificationsOpen}
+                onNotificationsRestoringFocusChange={
+                  setRestoringNotificationsFocus
+                }
+              />
+              <Divider />
+            </>
+          )}
           <SidebarRouter />
           <Divider />
           <SidebarLibrary
@@ -1127,7 +1141,9 @@ function Sidebar() {
         onClose={handleCloseContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={handleToggleFavorite}
-        onViewAchievements={handleViewAchievements}
+        onViewAchievements={
+          achievementsEnabled ? handleViewAchievements : undefined
+        }
         onOptions={handleOpenGameSettings}
         onUninstall={requestRemoveFiles}
         onRemoveFromLibrary={requestRemoveFromLibrary}

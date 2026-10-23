@@ -40,6 +40,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { useGameLinuxCompatibility } from "@renderer/hooks/use-game-linux-compatibility";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
@@ -110,10 +111,9 @@ export function GameOptionsModal({
   const epicGame = getOfficialStoreMembers(
     presentation?.members ?? [game]
   ).epic;
-  const showEpicCloudSettings = isEpicCloudSettingsAvailable(
-    epicGame,
-    globalThis.window.electron
-  );
+  const showEpicCloudSettings =
+    isFeatureEnabled("EPIC_INTEGRATION") &&
+    isEpicCloudSettingsAvailable(epicGame, globalThis.window.electron);
   const downloadGame = presentation?.downloadGame ?? game;
   const catalogueGame = getGameCatalogueIdentity(presentation ?? game);
   const { compatibility: linuxCompatibility, refresh: refreshCompatibility } =
@@ -267,12 +267,16 @@ export function GameOptionsModal({
     game.shop,
     game.platform
   ).settings;
-  const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
-  const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
-    cloudSaveSettings,
-    hasActiveSubscription,
-    artifacts.length
-  );
+  const { showV2, legacyPurpose } = cloudSaveSettings;
+  const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
+  const showCloudSaveV2Settings = cloudSaveEnabled && showV2;
+  const showLegacyCloudSaveSettings =
+    cloudSaveEnabled &&
+    isLegacyCloudSaveSettingsAvailable(
+      cloudSaveSettings,
+      hasActiveSubscription,
+      artifacts.length
+    );
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );

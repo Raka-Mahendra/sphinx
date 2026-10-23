@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { LibrarySelect } from "./library-select";
 import "./filter-options.scss";
 
@@ -32,7 +33,9 @@ export function FilterOptions({
           { value: "title_asc", label: t("sort_title_asc") },
           { value: "recently_played", label: t("recently_played") },
           { value: "most_played", label: t("sort_most_played") },
-          { value: "achievements", label: t("sort_achievements") },
+          ...(isFeatureEnabled("ACHIEVEMENTS")
+            ? [{ value: "achievements", label: t("sort_achievements") }]
+            : []),
           { value: "installed_first", label: t("sort_installed_first") },
           { value: "title_desc", label: t("sort_title_desc") },
         ]}

@@ -1,28 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CommentDiscussionIcon } from "@primer/octicons-react";
 
 import {
   useAppSelector,
   useDownload,
   useLibrary,
   useToast,
-  useUserDetails,
 } from "@renderer/hooks";
 
 import "./bottom-panel.scss";
 
 import { useNavigate } from "react-router-dom";
 
-const HYDRA_CLOUD_GRADIENT_START_COLOR = "#16b195";
-const HYDRA_CLOUD_GRADIENT_END_COLOR = "#3e62c0";
-
 export function BottomPanel() {
   const { t } = useTranslation(["bottom_panel", "sidebar"]);
 
   const navigate = useNavigate();
-
-  const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const { downloadLibrary: library } = useLibrary();
 
@@ -33,7 +26,6 @@ export function BottomPanel() {
   const extraction = useAppSelector((state) => state.download.extraction);
 
   const [version, setVersion] = useState("");
-  const [sessionHash, setSessionHash] = useState<null | string>("");
   const [commonRedistStatus, setCommonRedistStatus] = useState<string | null>(
     null
   );
@@ -64,10 +56,6 @@ export function BottomPanel() {
 
     return () => unlisten();
   }, [t, showSuccessToast]);
-
-  useEffect(() => {
-    window.electron.getSessionHash().then((result) => setSessionHash(result));
-  }, [userDetails?.id]);
 
   const status = useMemo(() => {
     if (commonRedistStatus) {
@@ -145,54 +133,9 @@ export function BottomPanel() {
 
   return (
     <footer className="bottom-panel">
-      <div className="bottom-panel__left">
-        {hasActiveSubscription && (
-          <button
-            type="button"
-            className="bottom-panel__help-button"
-            data-open-support-chat
-          >
-            <svg
-              width="0"
-              height="0"
-              aria-hidden="true"
-              className="bottom-panel__gradient-defs"
-            >
-              <defs>
-                <linearGradient
-                  id="hydra-cloud-gradient"
-                  x1="0%"
-                  y1="100%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop
-                    offset="0%"
-                    stopColor={HYDRA_CLOUD_GRADIENT_START_COLOR}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor={HYDRA_CLOUD_GRADIENT_END_COLOR}
-                  />
-                </linearGradient>
-              </defs>
-            </svg>
-            <CommentDiscussionIcon
-              size={14}
-              className="bottom-panel__help-icon"
-            />
-            <small>{t("need_help", { ns: "sidebar" })}</small>
-          </button>
-        )}
-      </div>
+      <div className="bottom-panel__left" />
 
-      <div
-        className={`bottom-panel__center${
-          !userDetails || !hasActiveSubscription
-            ? " bottom-panel__center--start"
-            : ""
-        }`}
-      >
+      <div className="bottom-panel__center bottom-panel__center--start">
         <button
           type="button"
           className="bottom-panel__downloads-button"
@@ -203,13 +146,8 @@ export function BottomPanel() {
       </div>
 
       <div className="bottom-panel__right">
-        <button
-          data-open-workwonders-changelog-mini
-          className="bottom-panel__version-button"
-        >
-          <small>
-            {sessionHash ? `${sessionHash} -` : ""} v{version}
-          </small>
+        <button className="bottom-panel__version-button">
+          <small>v{version}</small>
         </button>
       </div>
     </footer>

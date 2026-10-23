@@ -15,6 +15,7 @@ import {
   applyLibraryGroupAction,
   getLibraryCollectionIds as getNormalizedCollectionIds,
 } from "@shared";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { getLibraryGroupCollectionAssignments } from "../../../shared/library-group-actions";
 import { useLibrary } from "./use-library";
 
@@ -31,6 +32,10 @@ export function useGameCollections() {
   const { updateLibrary } = useLibrary();
 
   const loadCollections = useCallback(async () => {
+    if (!isFeatureEnabled("HYDRA_ACCOUNT_FEATURES")) {
+      return [];
+    }
+
     if (loadCollectionsRequestRef.current) {
       return loadCollectionsRequestRef.current;
     }

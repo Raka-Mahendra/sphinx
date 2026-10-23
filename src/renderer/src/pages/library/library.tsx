@@ -24,7 +24,8 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
+import { groupLibraryGames, removeDiacritics } from "@shared";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
@@ -96,13 +97,17 @@ const readStoredPlatforms = (): string[] => {
   }
 };
 
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
   "most_played",
-  "achievements",
   "installed_first",
   "title_desc",
+  ...(isFeatureEnabled("ACHIEVEMENTS")
+    ? (["achievements"] as SortOption[])
+    : []),
 ];
 
 export default function Library() {
@@ -441,10 +446,7 @@ export default function Library() {
   }, [updateLibrary]);
 
   const handleCreateCollectionButtonClick = useCallback(() => {
-    if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
+    if (!accountFeaturesEnabled || !userDetails) return;
 
     setShowCreateCollectionModal(true);
   }, [userDetails]);
@@ -602,7 +604,7 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
-      ...(userDetails
+      ...(accountFeaturesEnabled && userDetails
         ? [
             {
               id: HIDDEN_COLLECTION_ID,
@@ -611,12 +613,14 @@ export default function Library() {
             },
           ]
         : []),
-      ...collections.map((collection) => ({
-        ...collection,
-        gamesCount: groupedLibrary.filter((game) =>
-          getGameCollectionIds(game).includes(collection.id)
-        ).length,
-      })),
+      ...(accountFeaturesEnabled
+        ? collections.map((collection) => ({
+            ...collection,
+            gamesCount: groupedLibrary.filter((game) =>
+              getGameCollectionIds(game).includes(collection.id)
+            ).length,
+          }))
+        : []),
     ];
   }, [
     collections,
@@ -730,7 +734,11 @@ export default function Library() {
                 favoritesCollectionId={FAVORITES_COLLECTION_ID}
                 hiddenCollectionId={HIDDEN_COLLECTION_ID}
                 onSelect={handleCollectionSelect}
-                onCreate={handleCreateCollectionButtonClick}
+                onCreate={
+                  accountFeaturesEnabled
+                    ? handleCreateCollectionButtonClick
+                    : undefined
+                }
                 onCollectionContextMenu={openCollectionContextMenu}
               />
               {showSourceFilter && (

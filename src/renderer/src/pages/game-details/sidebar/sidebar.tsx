@@ -30,6 +30,7 @@ import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { ControllerSupportSection } from "./controller-support-section";
@@ -141,11 +142,13 @@ export function Sidebar() {
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
   const achievementsCount = achievements?.length ?? 0;
+  const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
   const shouldRenderAchievementsSection =
-    (!!userDetails && achievementsCount > 0) ||
-    (shop === "launchbox" &&
-      !!shopDetails?.retroAchievementsGameId &&
-      !userPreferences?.retroAchievementsWebApiKey);
+    achievementsEnabled &&
+    ((!!userDetails && achievementsCount > 0) ||
+      (shop === "launchbox" &&
+        !!shopDetails?.retroAchievementsGameId &&
+        !userPreferences?.retroAchievementsWebApiKey));
 
   useEffect(() => {
     if (objectId) {
@@ -205,7 +208,9 @@ export function Sidebar() {
         </Suspense>
       )}
 
-      {userDetails === null && !shouldRenderAchievementsSection && (
+      {achievementsEnabled &&
+        userDetails === null &&
+        !shouldRenderAchievementsSection && (
         <SidebarSection title={t("achievements")}>
           <div className="achievements-placeholder">
             <LockIcon size={36} />

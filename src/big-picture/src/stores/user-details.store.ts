@@ -1,9 +1,12 @@
 import type { UserDetails } from "@types";
 import { create } from "zustand";
+import { isFeatureEnabled } from "../feature-flags";
 
 const USER_DETAILS_STORAGE_KEY = "userDetails";
 
 function getCachedUserDetails() {
+  if (!isFeatureEnabled("HYDRA_ACCOUNT_FEATURES")) return null;
+
   try {
     const cachedUserDetails = globalThis.window.localStorage.getItem(
       USER_DETAILS_STORAGE_KEY

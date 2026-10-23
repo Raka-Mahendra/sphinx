@@ -13,6 +13,7 @@ import {
 import { useId, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import {
   ClassicsIcon,
   type LibraryCategory,
@@ -198,11 +199,15 @@ export function SidebarFilterMenu({
       label: t("sort_most_played", { ns: "library" }),
       icon: <HourglassIcon size={14} />,
     },
-    {
-      value: "achievements",
-      label: t("sort_achievements", { ns: "library" }),
-      icon: <TrophyIcon size={14} />,
-    },
+    ...(isFeatureEnabled("ACHIEVEMENTS")
+      ? [
+          {
+            value: "achievements" as const,
+            label: t("sort_achievements", { ns: "library" }),
+            icon: <TrophyIcon size={14} />,
+          },
+        ]
+      : []),
   ];
 
   return (

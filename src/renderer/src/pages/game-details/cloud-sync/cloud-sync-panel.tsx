@@ -32,6 +32,7 @@ import { orderBy } from "lodash-es";
 import { MoreVertical } from "lucide-react";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { Tooltip } from "react-tooltip";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 
 interface CloudSyncPanelProps {
   automaticCloudSync: boolean;
@@ -50,7 +51,6 @@ export function CloudSyncPanel({
   );
 
   const { t } = useTranslation("game_details");
-  const { t: tHydraCloud } = useTranslation("hydra_cloud");
   const { formatDate, formatDateTime } = useDate();
   const { formatNumber } = useFormat();
   const { hasActiveSubscription } = useUserDetails();
@@ -106,12 +106,19 @@ export function CloudSyncPanel({
     };
   }, [objectId, shop]);
 
+  const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
+
   useEffect(() => {
-    if (!hasActiveSubscription) return;
+    if (!cloudSaveEnabled || !hasActiveSubscription) return;
 
     getGameBackupPreview();
     getGameArtifacts();
-  }, [getGameArtifacts, getGameBackupPreview, hasActiveSubscription]);
+  }, [
+    getGameArtifacts,
+    getGameBackupPreview,
+    hasActiveSubscription,
+    cloudSaveEnabled,
+  ]);
 
   const handleBackupInstallClick = async (artifactId: string) => {
     setBackupDownloadProgress(null);
@@ -189,16 +196,7 @@ export function CloudSyncPanel({
   const disableActions =
     uploadingBackup || restoringBackup || deletingArtifact || freezingArtifact;
 
-  if (!hasActiveSubscription) {
-    return (
-      <div className="cloud-sync-panel__upgrade">
-        <p>{tHydraCloud("hydra_cloud_feature_found")}</p>
-        <Button onClick={() => window.electron.openCheckout()}>
-          {tHydraCloud("learn_more")}
-        </Button>
-      </div>
-    );
-  }
+  if (!cloudSaveEnabled || !hasActiveSubscription) return null;
 
   return (
     <>

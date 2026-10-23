@@ -15,6 +15,7 @@ import {
   resolveClassicsBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
@@ -100,7 +101,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const showSteamLibraryBadge =
     badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
-    userPreferences?.hideLibraryAchievementProgress ?? false;
+    !isFeatureEnabled("ACHIEVEMENTS") ||
+    (userPreferences?.hideLibraryAchievementProgress ?? false);
   const autoplayAnimatedArtwork =
     userPreferences?.autoplayAnimatedArtwork ?? false;
 
@@ -230,6 +232,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const previousAchievementGameKey = useRef(achievementGameKey);
 
   useEffect(() => {
+    if (!isFeatureEnabled("ACHIEVEMENTS")) return;
+
     const gameChanged =
       previousAchievementGameKey.current !== achievementGameKey;
     previousAchievementGameKey.current = achievementGameKey;

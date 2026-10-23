@@ -21,7 +21,6 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
-  workwondersJwt: string;
 }
 
 export interface User {

@@ -16,6 +16,7 @@ import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
+import { isFeatureEnabled } from "@main/feature-flags";
 import { abortAchievementMetadataExport } from "./achievements/metadata-export";
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
@@ -538,7 +539,12 @@ async function onOpenGame(game: Game, matchedPath: string) {
 
   if (game.shop === "custom") return;
 
-  AchievementWatcherManager.syncGameAchievementFiles(game.shop, game.objectId);
+  if (isFeatureEnabled("ACHIEVEMENTS")) {
+    AchievementWatcherManager.syncGameAchievementFiles(
+      game.shop,
+      game.objectId
+    );
+  }
 
   if (game.remoteId) {
     const deltaToSync = game.unsyncedDeltaPlayTimeInMilliseconds ?? 0;

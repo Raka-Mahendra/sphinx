@@ -6,6 +6,7 @@ import { INTERVALS } from "@main/constants";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import { logger } from "./logger";
 import { DownloadOrchestrator } from "./download-orchestrator";
+import { isFeatureEnabled } from "@main/feature-flags";
 
 const wrapInLoop = (fn: () => unknown, interval: number) => {
   const loop = async () => {
@@ -32,10 +33,12 @@ export const startMainLoop = async () => {
     () => DownloadOrchestrator.pollAwaitingDebridDownloads(),
     INTERVALS.debridReadinessWatcher
   );
-  wrapInLoop(
-    () => AchievementWatcherManager.watchAchievements(),
-    INTERVALS.achievementWatcher
-  );
+  if (isFeatureEnabled("ACHIEVEMENTS")) {
+    wrapInLoop(
+      () => AchievementWatcherManager.watchAchievements(),
+      INTERVALS.achievementWatcher
+    );
+  }
   wrapInLoop(
     () => DownloadManager.getSeedStatus(),
     INTERVALS.seedStatusWatcher

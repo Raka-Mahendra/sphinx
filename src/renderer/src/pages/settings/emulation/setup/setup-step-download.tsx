@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BookIcon, GlobeIcon, LinkExternalIcon } from "@primer/octicons-react";
+import { GlobeIcon, LinkExternalIcon } from "@primer/octicons-react";
 
 import type {
   EmulatorBinary,
@@ -29,14 +29,6 @@ const OFFICIAL_WEBSITES: Record<EmulatorBinary, string> = {
   rpcs3: "https://rpcs3.net/",
   ppsspp: "https://www.ppsspp.org/",
   dolphin: "https://dolphin-emu.org/",
-};
-
-const ARTICLE_KEYS: Partial<Record<EmulatorBinary, string>> = {
-  duckstation: "install-duckstation",
-  pcsx2: "install-pcsx2",
-  rpcs3: "install-rpcs3",
-  ppsspp: "install-ppsspp",
-  dolphin: "install-dolphin",
 };
 
 const SEMVER_RE = /v?\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;
@@ -266,30 +258,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
               />
             </span>
           </button>
-        )}
-
-        {ARTICLE_KEYS[binary] && (
-          <>
-            <hr className="setup-modal__download-divider" />
-
-            <button
-              type="button"
-              className="setup-modal__download-card setup-modal__download-card--guide"
-              data-open-article={ARTICLE_KEYS[binary]}
-            >
-              <div className="setup-modal__download-card-badge">
-                <BookIcon size={20} />
-              </div>
-              <div className="setup-modal__download-card-main">
-                <span className="setup-modal__download-card-title">
-                  {t("setup_install_guide_workwonders")}
-                </span>
-                <span className="setup-modal__download-card-desc">
-                  {t("setup_install_guide_desc", { name })}
-                </span>
-              </div>
-            </button>
-          </>
         )}
       </div>
     </>

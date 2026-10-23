@@ -30,16 +30,7 @@ import { launchGame, openClassicsGame } from "./helpers";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
-import {
-  closeSteamOpenIdWindow,
-  notifySteamConnectError,
-  notifySteamConnected,
-} from "./services/steam-integration/steam-store-session";
-import {
-  completeSteamOpenIdConnection,
-  parseSteamOpenIdReturn,
-} from "./services/steam-integration/steam-openid-return";
-import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
+import { isFeatureEnabled } from "./feature-flags";
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
@@ -174,16 +165,24 @@ const initializeApp = async () => {
   } catch (error) {
     logger.error("Failed to load app state during startup", error);
   }
-  // Optional integration failures must not interrupt launcher startup.
-  await initializeEpicIntegration().catch(() => {
-    logger.warn("Epic integration initialization unavailable");
-  });
+  if (isFeatureEnabled("EPIC_INTEGRATION")) {
+    // Optional integration failures must not interrupt launcher startup.
+    await initializeEpicIntegration().catch(() => {
+      logger.warn("Epic integration initialization unavailable");
+    });
+  }
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
-  powerMonitor.on("suspend", suspendEpicPlaytime);
+  if (isFeatureEnabled("EPIC_INTEGRATION")) {
+    powerMonitor.on("suspend", suspendEpicPlaytime);
+  }
   powerMonitor.on("resume", () => {
-    resumeEpicPlaytime();
-    SSEClient.reconnectNow();
+    if (isFeatureEnabled("EPIC_INTEGRATION")) {
+      resumeEpicPlaytime();
+    }
+    if (isFeatureEnabled("HYDRA_ACCOUNT_FEATURES")) {
+      SSEClient.reconnectNow();
+    }
     DownloadOrchestrator.onNetworkStatusChanged({
       online: true,
       switched: true,
@@ -301,48 +300,6 @@ const handleDeepLinkPath = (uri?: string) => {
       return;
     }
 
-    if (url.host === "install-source") {
-      WindowManager.redirect(`settings${url.search}`);
-      return;
-    }
-
-    if (url.host === "profile") {
-      const userId = url.searchParams.get("userId");
-
-      if (userId) {
-        WindowManager.redirect(`profile/${userId}`);
-      }
-
-      return;
-    }
-
-    if (url.host === "install-theme") {
-      const themeName = url.searchParams.get("theme");
-      const authorId = url.searchParams.get("authorId");
-      const authorName = url.searchParams.get("authorName");
-
-      if (themeName && authorId && authorName) {
-        WindowManager.redirect(
-          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
-        );
-      }
-
-      return;
-    }
-
-    if (url.host === "steam-connected") {
-      closeSteamOpenIdWindow();
-      const result = parseSteamOpenIdReturn(uri);
-      if (result?.kind === "error") {
-        notifySteamConnectError(result.code);
-        return;
-      }
-      completeSteamOpenIdConnection({
-        clearReconnectRequired: () =>
-          steamSyncOrchestrator.clearReconnectRequired(),
-        notifyConnected: notifySteamConnected,
-      });
-    }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
   }
@@ -393,18 +350,20 @@ app.on("before-quit", async (e) => {
     e.preventDefault();
     if (isAppClosing) return;
     isAppClosing = true;
-    try {
-      await shutdownEpicIntegration();
-    } catch {
-      isAppClosing = false;
-      logger.error(
-        "Epic operation shutdown is unconfirmed; application remains open"
-      );
-      dialog.showErrorBox(
-        i18n.t("settings.epic_games"),
-        i18n.t("settings.epic_shutdown_failed")
-      );
-      return;
+    if (isFeatureEnabled("EPIC_INTEGRATION")) {
+      try {
+        await shutdownEpicIntegration();
+      } catch {
+        isAppClosing = false;
+        logger.error(
+          "Epic operation shutdown is unconfirmed; application remains open"
+        );
+        dialog.showErrorBox(
+          i18n.t("settings.epic_games"),
+          i18n.t("settings.epic_shutdown_failed")
+        );
+        return;
+      }
     }
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();

@@ -12,6 +12,10 @@ import LibraryPage from "./pages/library/page";
 import Profile from "./pages/profile/profile";
 import Settings from "./pages/settings/settings";
 import { initializeBigPictureI18n } from "./i18n";
+import { isFeatureEnabled } from "./feature-flags";
+
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
 
 const rootElement = document.getElementById("root");
 
@@ -32,12 +36,17 @@ ReactDOM.createRoot(rootElement).render(
           <Route path="downloads" element={<Downloads />} />
           <Route path="settings" element={<Settings />} />
           <Route path="library" element={<LibraryPage />} />
-          <Route path="profile/:userId?" element={<Profile />} />
           <Route path="game/:shop/:objectId" element={<Game />} />
-          <Route
-            path="game/:shop/:objectId/achievements"
-            element={<GameAchievements />}
-          />
+          {accountFeaturesEnabled && (
+            <Route path="profile/:userId?" element={<Profile />} />
+          )}
+          {achievementsEnabled && (
+            <Route
+              path="game/:shop/:objectId/achievements"
+              element={<GameAchievements />}
+            />
+          )}
+          <Route path="*" element={<Home />} />
         </Route>
       </Routes>
     </BrowserRouter>

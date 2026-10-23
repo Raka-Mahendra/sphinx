@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { FolderOpen } from "@phosphor-icons/react";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { IS_DESKTOP } from "../../constants";
 import {
   buildLibraryToastOptions,
@@ -116,6 +117,8 @@ function getInitialLibraryStoredValue<TValue extends string>(
     return fallbackValue;
   }
 }
+
+const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
 
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
@@ -528,7 +531,9 @@ export default function LibraryPage() {
         onClose={handleCloseGameContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={toggleFavorite}
-        onViewAchievements={handleViewAchievements}
+        onViewAchievements={
+          achievementsEnabled ? handleViewAchievements : undefined
+        }
         onOptions={handleOpenGameSettingsFromContextMenu}
         onUninstall={requestRemoveFiles}
         onRemoveFromLibrary={requestRemoveFromLibrary}

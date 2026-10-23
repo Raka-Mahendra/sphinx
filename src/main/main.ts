@@ -43,6 +43,7 @@ import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automati
 import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
 import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
 import { UmuUpdater } from "./services/umu-updater";
+import { isFeatureEnabled } from "./feature-flags";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -67,8 +68,15 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 };
 
 export const loadState = async () => {
+  const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+  const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
+  const steamIntegrationEnabled = isFeatureEnabled("STEAM_INTEGRATION");
+  const epicIntegrationEnabled = isFeatureEnabled("EPIC_INTEGRATION");
+
   await Lock.acquireLock();
-  await clearLegacyAchievementPersistence();
+  if (achievementsEnabled) {
+    await clearLegacyAchievementPersistence();
+  }
   await migrateCloudSaveAutomaticSyncDefaults();
   await migrateEmulatorCloudSaveDefaults();
   await migrateGameVisibilityFields();
@@ -83,6 +91,13 @@ export const loadState = async () => {
   Wine.syncUserPreferences(userPreferences);
 
   await import("./events");
+
+  if (accountFeaturesEnabled) {
+    await import("./events/chat");
+    await import("./events/friends");
+  } else {
+    await import("./events/register-disabled-account-events");
+  }
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
@@ -119,25 +134,40 @@ export const loadState = async () => {
     void UmuUpdater.checkForUpdates();
   }
 
-  void watchSteamLibraries();
+  if (steamIntegrationEnabled) {
+    void watchSteamLibraries();
+  }
 
   await HydraApi.setupApi().then(async () => {
-    await initializeEpicIntegration();
-    uploadGamesBatch();
+    if (epicIntegrationEnabled) {
+      await initializeEpicIntegration();
+    }
+
     void migrateDownloadSources();
 
-    const { syncDownloadSourcesFromApi } = await import("./services/user");
-    void syncDownloadSourcesFromApi();
+    if (accountFeaturesEnabled) {
+      uploadGamesBatch();
 
-    // Check for new download options on startup (if enabled)
-    (async () => {
-      await DownloadSourcesChecker.checkForChanges();
-    })();
+      const { syncDownloadSourcesFromApi } = await import("./services/user");
+      void syncDownloadSourcesFromApi();
 
-    if (HydraApi.isLoggedIn()) {
+      // Check for new download options on startup (if enabled)
+      (async () => {
+        await DownloadSourcesChecker.checkForChanges();
+      })();
+
       SSEClient.connect();
+    }
+
+    if (achievementsEnabled) {
       void groupedSouvenirWorker.trigger();
+    }
+
+    if (steamIntegrationEnabled) {
       void startSteamSyncOnStartup();
+    }
+
+    if (epicIntegrationEnabled) {
       void startEpicSyncOnStartup();
     }
   });

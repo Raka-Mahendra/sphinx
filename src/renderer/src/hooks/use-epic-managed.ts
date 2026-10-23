@@ -4,12 +4,16 @@ import type {
   EpicCloudSaveState,
   EpicLocalOwner,
 } from "@types";
+import { isFeatureEnabled } from "@renderer/feature-flags";
+
+const epicIntegrationEnabled = isFeatureEnabled("EPIC_INTEGRATION");
 
 export function useEpicManagedConnection() {
   const [connection, setConnection] = useState<EpicConnectionState | null>(
     null
   );
   const available =
+    epicIntegrationEnabled &&
     typeof globalThis.window?.electron?.getEpicGameInstallOptions ===
       "function" &&
     typeof globalThis.window?.electron?.startEpicGameDownload === "function" &&
@@ -64,6 +68,7 @@ export function useEpicCloudSaves(
     generation.current++;
   }, []);
   const available =
+    epicIntegrationEnabled &&
     typeof globalThis.window?.electron?.getEpicCloudSaveState === "function" &&
     typeof globalThis.window?.electron?.setEpicCloudSaveSettings ===
       "function" &&

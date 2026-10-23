@@ -51,11 +51,13 @@ import {
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarGameListSkeleton } from "./sidebar-game-list-skeleton";
 import { SidebarProfile } from "./sidebar-profile";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
 const SIDEBAR_GAME_ITEM_HEIGHT = 42;
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
 
 const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
   "title_asc",
@@ -510,7 +512,7 @@ export function Sidebar() {
       )}
 
       <div className="sidebar__container">
-        <SidebarProfile />
+        {accountFeaturesEnabled && <SidebarProfile />}
 
         <div className="sidebar__content">
           <section className="sidebar__section">

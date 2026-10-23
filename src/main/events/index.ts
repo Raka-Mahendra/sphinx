@@ -7,16 +7,14 @@ import {
   getAchievementSouvenirSyncStatus,
   retryAchievementSouvenirSync,
 } from "@main/services/achievements/grouped-souvenir-worker";
+import { registerEvent } from "./register-event";
 
-import "./auth";
 import "./autoupdater";
 import "./big-picture";
 import "./catalogue";
-import "./chat";
 import "./cloud-save";
 import "./connectivity";
 import "./download-sources";
-import "./friends";
 import "./hardware";
 import "./library";
 import "./leveldb";
@@ -40,18 +38,18 @@ ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
 ipcMain.handle("getScreenshotsPath", () =>
   ScreenshotService.getScreenshotsPath()
 );
-ipcMain.handle("getAchievementSouvenirSyncStatus", () =>
+registerEvent("getAchievementSouvenirSyncStatus", () =>
   getAchievementSouvenirSyncStatus()
 );
-ipcMain.handle("getAchievementSouvenirSyncDetails", () =>
+registerEvent("getAchievementSouvenirSyncDetails", () =>
   getAchievementSouvenirSyncDetails()
 );
-ipcMain.handle("retryAchievementSouvenirSync", () =>
+registerEvent("retryAchievementSouvenirSync", () =>
   retryAchievementSouvenirSync()
 );
-ipcMain.handle("cleanupAchievementSouvenirSync", () =>
+registerEvent("cleanupAchievementSouvenirSync", () =>
   cleanupAchievementSouvenirSync()
 );
-ipcMain.handle("getCloudIframeUrl", () =>
+registerEvent("getCloudIframeUrl", () =>
   new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()
 );

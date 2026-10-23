@@ -15,6 +15,7 @@ import {
   resolveClassicsBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -63,7 +64,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const showSteamLibraryBadge =
     badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
-    userPreferences?.hideLibraryAchievementProgress ?? false;
+    !isFeatureEnabled("ACHIEVEMENTS") ||
+    (userPreferences?.hideLibraryAchievementProgress ?? false);
   const autoplayAnimatedArtwork =
     userPreferences?.autoplayAnimatedArtwork ?? false;
 

@@ -91,6 +91,7 @@ import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
 import { EpicCloudSaves } from "../../components/pages/game/epic-cloud-saves";
 import { EpicCloudSaveConflictModal } from "../../components/modals/epic-cloud-save-conflict-modal";
+import { isFeatureEnabled } from "@renderer/feature-flags";
 import { Button, Modal, HorizontalFocusGroup } from "../../components/common";
 import {
   canRetryEpicLaunchWithLocalSaves,
@@ -504,6 +505,10 @@ function SimilarGamesEmptyState({
   );
 }
 
+const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+const achievementsEnabled = isFeatureEnabled("ACHIEVEMENTS");
+const epicIntegrationEnabled = isFeatureEnabled("EPIC_INTEGRATION");
+
 export default function Game() {
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
@@ -662,6 +667,7 @@ export default function Game() {
             : t("epic_launch_failed", { ns: "game_details" })
         );
         if (
+          epicIntegrationEnabled &&
           member.shop === "epic" &&
           typeof window.electron.getEpicCloudSaveState === "function"
         ) {
@@ -1558,11 +1564,13 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
-        <EpicCloudSaveConflictModal
-          game={epicSaveConflict}
-          isGameRunning={isGameRunning}
-          onClose={() => setEpicSaveConflict(null)}
-        />
+        {epicIntegrationEnabled && (
+          <EpicCloudSaveConflictModal
+            game={epicSaveConflict}
+            isGameRunning={isGameRunning}
+            onClose={() => setEpicSaveConflict(null)}
+          />
+        )}
         <Modal
           visible={showStoreSelection}
           title={t("choose_game_store", { ns: "game_details" })}
@@ -1661,7 +1669,9 @@ export default function Game() {
             isGameRunning={isGameRunning}
             runningSessionDurationInMillis={runningSessionDurationInMillis}
           />
-          <EpicCloudSaves game={epicMember} isGameRunning={isGameRunning} />
+          {epicIntegrationEnabled && (
+            <EpicCloudSaves game={epicMember} isGameRunning={isGameRunning} />
+          )}
 
           <div className="game-page__main-layout">
             <div className="game-page__main-column">
@@ -1769,7 +1779,7 @@ export default function Game() {
                 </>
               ) : null}
 
-              {!isCustomGame && (
+              {accountFeaturesEnabled && !isCustomGame && (
                 <>
                   <Divider />
 
@@ -1868,7 +1878,7 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                {achievements.length > 0 && (
+                {achievementsEnabled && achievements.length > 0 && (
                   <AchievementsBox
                     achievements={achievements ?? []}
                     focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
