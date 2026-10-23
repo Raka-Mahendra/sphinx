@@ -49,4 +49,12 @@ On Windows x64 and Linux x64, the libtorrent bridge comes prebuilt from `native/
 
 ## License
 
-Hydra is licensed under the [MIT License](LICENSE).
+Sphinx Launcher is an independent fork of Hydra Launcher. It is not affiliated
+with, endorsed by, sponsored by, or otherwise connected to Hydra Launcher or
+Los Broxas.
+
+Sphinx Launcher is licensed under the [Apache License 2.0](LICENSE),
+Copyright 2026 Raka Mahendra. Hydra Launcher was distributed under the MIT
+License; its complete original license text is preserved verbatim at
+[LICENSES/MIT-hydra.txt](LICENSES/MIT-hydra.txt). See [NOTICE](NOTICE) for the
+required attribution.
