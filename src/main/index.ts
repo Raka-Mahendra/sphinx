@@ -7,7 +7,6 @@ import {
   powerMonitor,
   protocol,
 } from "electron";
-import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
@@ -51,16 +50,6 @@ import {
 crashReporter.start({
   uploadToServer: false,
 });
-
-const { autoUpdater } = updater;
-
-autoUpdater.setFeedURL({
-  provider: "github",
-  owner: "hydralauncher",
-  repo: "hydra",
-});
-
-autoUpdater.logger = logger;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
