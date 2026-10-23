@@ -254,6 +254,7 @@ async function fixture(
       CreateCollectionModal: stubComponent,
     },
     "@renderer/hooks": hooks,
+    "@renderer/feature-flags": { isFeatureEnabled: () => false },
     "@renderer/context": {
       useCollectionContextMenu: () => ({
         isCollectionContextMenuOrModalOpen: false,

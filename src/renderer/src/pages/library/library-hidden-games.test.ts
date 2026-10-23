@@ -133,6 +133,7 @@ async function renderLibrary(
         return virtualizer;
       },
     },
+    "@renderer/feature-flags": { isFeatureEnabled: () => false },
     "@renderer/hooks": {
       useLibrary: () => ({ library, updateLibrary }),
       useUserDetails: () => ({ userDetails }),

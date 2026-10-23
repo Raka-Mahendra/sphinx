@@ -43,6 +43,7 @@ function renderCard(
   const filename = path.join(rendererPath, `${layout.file}.tsx`);
   const source = fs.readFileSync(filename, "utf8");
   const stubs: Record<string, unknown> = {
+    "@renderer/feature-flags": { isFeatureEnabled: () => true },
     "@renderer/hooks": {
       useGameCard: () => ({
         formatPlayTime: () => "0 minutes",

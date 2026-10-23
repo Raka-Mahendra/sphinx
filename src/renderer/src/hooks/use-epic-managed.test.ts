@@ -51,7 +51,9 @@ function loadModule(filename: string, stubs: Record<string, unknown> = {}) {
       stubs[name] ??
       (name.endsWith("/epic-install-timing")
         ? epicInstallTimingModule
-        : requireModule(name))
+        : name === "@renderer/feature-flags"
+          ? { isFeatureEnabled: () => true }
+          : requireModule(name))
   );
   return exports;
 }

@@ -230,6 +230,7 @@ async function fixture(
   );
   const stubs: Record<string, unknown> = {
     "@renderer/features": { setHeaderTitle: (title: string) => ({ title }) },
+    "@renderer/feature-flags": { isFeatureEnabled: () => true },
     "@renderer/services/leveldb.service": {
       levelDBService: { values: async () => [] },
     },
