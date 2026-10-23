@@ -16,16 +16,16 @@ paths, library sync, and application lifecycle. A flag-only deletion of the
 
 The following assets are Epic-only:
 
-| Asset | Produced by | Consumed by | Evidence |
-| --- | --- | --- | --- |
-| `hydra-epic-process.exe` | `scripts/prepare-epic-process-supervisor.cjs` from `native/windows-epic-process/supervisor.cs` | `src/main/services/epic/windows-process-job.ts` | `prepare-epic-process-supervisor.cjs:9-10, 77`; `windows-process-job.ts:10-11` |
-| `hydra-epic-process.json` | same script (SHA-256 receipt) | same verifier | `prepare-epic-process-supervisor.cjs:10, 28-44` |
-| `native/windows-epic-process/` | source folder | only the supervisor build | `prepare-epic-process-supervisor.cjs:76-80`; no other importer |
-| `managed-legendary.pyz` | `scripts/legendary-managed-runtime.cjs` | `src/main/services/legendary.ts` | `legendary-managed-runtime.cjs:79-80, 162-165`; `legendary.ts:37-60` |
-| `managed.py` | template copied by `legendary-managed-runtime.cjs` | `legendary.ts` | `legendary-managed-runtime.cjs:151-165`; `legendary.ts:37, 55-60` |
-| `managed-runtime.json` | `legendary-managed-runtime.cjs` | `legendary.ts` capability/version check | `legendary.ts:19-42` |
-| `scripts/prepare-legendary.cjs` | build-time downloader | `scripts/legendary-before-pack.cjs`, `package.json` `prepare:legendary` | `legendary-before-pack.cjs:2, 12-16`; `package.json:26, 30` |
-| `legendary/` runtime tree | `prepare-legendary.cjs` | `Legendary.getBinaryPath()` | `electron-builder.yml:39-50, 100-115`; `legendary.ts:70-85` |
+| Asset                           | Produced by                                                                                    | Consumed by                                                             | Evidence                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `hydra-epic-process.exe`        | `scripts/prepare-epic-process-supervisor.cjs` from `native/windows-epic-process/supervisor.cs` | `src/main/services/epic/windows-process-job.ts`                         | `prepare-epic-process-supervisor.cjs:9-10, 77`; `windows-process-job.ts:10-11` |
+| `hydra-epic-process.json`       | same script (SHA-256 receipt)                                                                  | same verifier                                                           | `prepare-epic-process-supervisor.cjs:10, 28-44`                                |
+| `native/windows-epic-process/`  | source folder                                                                                  | only the supervisor build                                               | `prepare-epic-process-supervisor.cjs:76-80`; no other importer                 |
+| `managed-legendary.pyz`         | `scripts/legendary-managed-runtime.cjs`                                                        | `src/main/services/legendary.ts`                                        | `legendary-managed-runtime.cjs:79-80, 162-165`; `legendary.ts:37-60`           |
+| `managed.py`                    | template copied by `legendary-managed-runtime.cjs`                                             | `legendary.ts`                                                          | `legendary-managed-runtime.cjs:151-165`; `legendary.ts:37, 55-60`              |
+| `managed-runtime.json`          | `legendary-managed-runtime.cjs`                                                                | `legendary.ts` capability/version check                                 | `legendary.ts:19-42`                                                           |
+| `scripts/prepare-legendary.cjs` | build-time downloader                                                                          | `scripts/legendary-before-pack.cjs`, `package.json` `prepare:legendary` | `legendary-before-pack.cjs:2, 12-16`; `package.json:26, 30`                    |
+| `legendary/` runtime tree       | `prepare-legendary.cjs`                                                                        | `Legendary.getBinaryPath()`                                             | `electron-builder.yml:39-50, 100-115`; `legendary.ts:70-85`                    |
 
 `prepare-legendary.cjs` is **Epic-only build tooling**. Its only production
 caller is `scripts/legendary-before-pack.cjs`, which is registered as
@@ -78,17 +78,17 @@ subsystem, not a thin store adapter.
 
 These are the compile-time reasons the folder cannot simply be deleted:
 
-| Consumer | Import/call | Evidence |
-| --- | --- | --- |
-| Download manager | `getEpicDownloadService`, `epicManagedErrorCode` | `services/download/download-manager.ts:12-13` |
-| Disk-space calculation | `getReusableEpicDiskBytes` | `services/download/disk-space.ts:3` |
-| Cloud save | `runWithHydraSaveGuard` | `services/cloud-save/sync-game-cloud-save.ts:41` |
-| Cloud-save context | Epic Linux runtime | `services/cloud-save/cloud-save-game-context.ts:45` |
-| Process watcher | Epic session policy, exit sync, playtime | `services/process-watcher.ts:4-6, 72-73` |
-| Launch path | Epic launch/playtime integration | `services/epic/index.ts` and launch call sites |
-| Library sync | Epic library/install records | `services/library-sync/*` and `services/epic/installation.ts` |
-| Lifecycle | initialize/shutdown/suspend/resume | `src/main/index.ts:45-49, 189-201, 402-431` |
-| Downloader enum | `Downloader.Epic = 15` | `src/shared/constants.ts:16` |
+| Consumer               | Import/call                                      | Evidence                                                      |
+| ---------------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| Download manager       | `getEpicDownloadService`, `epicManagedErrorCode` | `services/download/download-manager.ts:12-13`                 |
+| Disk-space calculation | `getReusableEpicDiskBytes`                       | `services/download/disk-space.ts:3`                           |
+| Cloud save             | `runWithHydraSaveGuard`                          | `services/cloud-save/sync-game-cloud-save.ts:41`              |
+| Cloud-save context     | Epic Linux runtime                               | `services/cloud-save/cloud-save-game-context.ts:45`           |
+| Process watcher        | Epic session policy, exit sync, playtime         | `services/process-watcher.ts:4-6, 72-73`                      |
+| Launch path            | Epic launch/playtime integration                 | `services/epic/index.ts` and launch call sites                |
+| Library sync           | Epic library/install records                     | `services/library-sync/*` and `services/epic/installation.ts` |
+| Lifecycle              | initialize/shutdown/suspend/resume               | `src/main/index.ts:45-49, 189-201, 402-431`                   |
+| Downloader enum        | `Downloader.Epic = 15`                           | `src/shared/constants.ts:16`                                  |
 
 `Downloader.Epic` and the `epic` shop value must remain in types and local
 records even when the feature is disabled, so old library data remains

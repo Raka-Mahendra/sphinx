@@ -26,18 +26,18 @@ paths, direct renderer API proxies, and the removal/flag boundary required by
 
 ## 2. Auth and token storage
 
-| Item | Baseline behavior | Evidence |
-| --- | --- | --- |
-| Default auth | `needsAuth` defaults to `true` | `src/main/services/hydra-api.ts:634-640` |
-| Logged-in test | Non-empty in-memory access token | `hydra-api.ts:151-153` |
-| Token refresh | Refreshes before expiry, 20 s timeout, queues persistence | `hydra-api.ts:136-137, 489-557` |
-| Subscription test | `subscription.expiresAt > now` | `hydra-api.ts:155-158` |
-| Subscription gate | Refreshes user, then throws `SubscriptionRequiredError` | `hydra-api.ts:652-660` |
-| Token persistence | JSON record in LevelDB under `levelKeys.auth` | `hydra-api.ts:98-106`; `src/types/level.types.ts:20-23` |
-| Persisted fields | `accessToken`, `refreshToken`, `tokenExpirationTimestamp` | `src/types/level.types.ts:20-23` |
-| WorkWonders JWT | Persisted with auth and sent to the renderer | `hydra-api.ts:262-268` |
-| Encryption at rest | None; no `safeStorage` use in the baseline | source scan of `src/main` |
-| Login transport | Browser auth window + custom-protocol callback carrying base64 JSON | `hydra-api.ts:206-245`; `src/main/services/window-manager.ts:884-930` |
+| Item               | Baseline behavior                                                   | Evidence                                                              |
+| ------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Default auth       | `needsAuth` defaults to `true`                                      | `src/main/services/hydra-api.ts:634-640`                              |
+| Logged-in test     | Non-empty in-memory access token                                    | `hydra-api.ts:151-153`                                                |
+| Token refresh      | Refreshes before expiry, 20 s timeout, queues persistence           | `hydra-api.ts:136-137, 489-557`                                       |
+| Subscription test  | `subscription.expiresAt > now`                                      | `hydra-api.ts:155-158`                                                |
+| Subscription gate  | Refreshes user, then throws `SubscriptionRequiredError`             | `hydra-api.ts:652-660`                                                |
+| Token persistence  | JSON record in LevelDB under `levelKeys.auth`                       | `hydra-api.ts:98-106`; `src/types/level.types.ts:20-23`               |
+| Persisted fields   | `accessToken`, `refreshToken`, `tokenExpirationTimestamp`           | `src/types/level.types.ts:20-23`                                      |
+| WorkWonders JWT    | Persisted with auth and sent to the renderer                        | `hydra-api.ts:262-268`                                                |
+| Encryption at rest | None; no `safeStorage` use in the baseline                          | source scan of `src/main`                                             |
+| Login transport    | Browser auth window + custom-protocol callback carrying base64 JSON | `hydra-api.ts:206-245`; `src/main/services/window-manager.ts:884-930` |
 
 The auth tokens are bearer credentials. They are stored as ordinary LevelDB
 JSON, not with Electron `safeStorage` or an OS keychain. The migration removes
@@ -56,14 +56,14 @@ proxy.
 - **19** main-process call sites require a subscription, directly or through a
   shared options constant. Grouped by feature:
 
-| Group | HTTP calls | Evidence |
-| --- | ---: | --- |
-| Cloud-save v2 | 7 | `src/main/services/cloud-save/*` |
-| Emulation cloud saves | 6 | `src/main/services/emulators/emulation-cloud-saves.ts` |
-| Game artwork cloud | 4 | `src/main/services/game-artwork-cloud.ts:98-163` |
-| Achievement image presign | 1 | `src/main/services/achievements/achievement-image-service.ts` |
-| VikingFile hoster unlock | 1 | `src/main/services/hosters/vikingfile.ts` |
-| **Total** | **19** | |
+| Group                     | HTTP calls | Evidence                                                      |
+| ------------------------- | ---------: | ------------------------------------------------------------- |
+| Cloud-save v2             |          7 | `src/main/services/cloud-save/*`                              |
+| Emulation cloud saves     |          6 | `src/main/services/emulators/emulation-cloud-saves.ts`        |
+| Game artwork cloud        |          4 | `src/main/services/game-artwork-cloud.ts:98-163`              |
+| Achievement image presign |          1 | `src/main/services/achievements/achievement-image-service.ts` |
+| VikingFile hoster unlock  |          1 | `src/main/services/hosters/vikingfile.ts`                     |
+| **Total**                 |     **19** |                                                               |
 
 This corrects the PRD's 17: the source has six emulation calls and four artwork
 calls, not five and three. The exact count must be rechecked when the
@@ -71,24 +71,24 @@ calls, not five and three. The exact count must be rechecked when the
 
 ### 3.2 Public main-process calls (15)
 
-| Purpose | Endpoint / call | Evidence |
-| --- | --- | --- |
-| Game assets | `GET /games/:shop/:objectId/assets` | `events/catalogue/get-game-assets.ts` |
-| Game basic metadata | `GET /games/:shop/:objectId` | `events/catalogue/get-game-shop-details.ts` |
-| LaunchBox shop details | `POST /games/shop-details` | `events/catalogue/get-game-shop-details.ts` |
-| Epic shop details | `GET /games/epic/...` | `events/catalogue/get-game-shop-details.ts` |
-| Game stats | `GET /games/:shop/:objectId/stats` | `events/catalogue/get-game-stats.ts` |
-| Add download source | `POST /download-sources` | `events/download-sources/add-download-source.ts` |
-| Sync download sources | `POST /download-sources/sync` | `events/download-sources/sync-download-sources.ts` |
-| Decky release info | `GET /decky/release` | `events/misc/get-hydra-decky-plugin-info.ts` |
-| Queue download | `POST /games/:shop/:objectId/download` | `events/torrenting/add-game-to-queue.ts:92-97` |
-| Start download | `POST /games/:shop/:objectId/download` | `events/torrenting/start-game-download.ts:92-97` |
-| Migrate download source | `POST /download-sources` | `helpers/migrate-download-sources.ts:15` |
-| RPCS3 catalogue lookup | `POST /games/shop-details` | `services/cloud-save/rpcs3-game-identity.ts:20-27` |
-| LaunchBox metadata | `POST /games/shop-details` | `services/emulators/launchbox-shop-details.ts` |
-| RetroAchievements mapping | `GET /games/:shop/:objectId` | `services/retro-achievements/retro-achievements-sync.ts` |
-| RetroArch metadata | `POST /games/shop-details` | `services/retroarch/retroarch-shop-details.ts` |
-| Decky service info | `GET /decky/release` | `services/decky-plugin.ts` |
+| Purpose                   | Endpoint / call                        | Evidence                                                 |
+| ------------------------- | -------------------------------------- | -------------------------------------------------------- |
+| Game assets               | `GET /games/:shop/:objectId/assets`    | `events/catalogue/get-game-assets.ts`                    |
+| Game basic metadata       | `GET /games/:shop/:objectId`           | `events/catalogue/get-game-shop-details.ts`              |
+| LaunchBox shop details    | `POST /games/shop-details`             | `events/catalogue/get-game-shop-details.ts`              |
+| Epic shop details         | `GET /games/epic/...`                  | `events/catalogue/get-game-shop-details.ts`              |
+| Game stats                | `GET /games/:shop/:objectId/stats`     | `events/catalogue/get-game-stats.ts`                     |
+| Add download source       | `POST /download-sources`               | `events/download-sources/add-download-source.ts`         |
+| Sync download sources     | `POST /download-sources/sync`          | `events/download-sources/sync-download-sources.ts`       |
+| Decky release info        | `GET /decky/release`                   | `events/misc/get-hydra-decky-plugin-info.ts`             |
+| Queue download            | `POST /games/:shop/:objectId/download` | `events/torrenting/add-game-to-queue.ts:92-97`           |
+| Start download            | `POST /games/:shop/:objectId/download` | `events/torrenting/start-game-download.ts:92-97`         |
+| Migrate download source   | `POST /download-sources`               | `helpers/migrate-download-sources.ts:15`                 |
+| RPCS3 catalogue lookup    | `POST /games/shop-details`             | `services/cloud-save/rpcs3-game-identity.ts:20-27`       |
+| LaunchBox metadata        | `POST /games/shop-details`             | `services/emulators/launchbox-shop-details.ts`           |
+| RetroAchievements mapping | `GET /games/:shop/:objectId`           | `services/retro-achievements/retro-achievements-sync.ts` |
+| RetroArch metadata        | `POST /games/shop-details`             | `services/retroarch/retroarch-shop-details.ts`           |
+| Decky service info        | `GET /decky/release`                   | `services/decky-plugin.ts`                               |
 
 Some of these are account-adjacent in product terms (Decky, RetroAchievements)
 but their HTTP call is public at the API layer. They are not evidence that the
@@ -126,20 +126,20 @@ Probes were run on 2026-10-23 against
 `https://hydra-api-us-east-1.losbroxas.org` (the documented
 `hydra-api.hydralauncher.gg` host is NXDOMAIN). No credentials were sent.
 
-| Endpoint | Result | Interpretation |
-| --- | --- | --- |
-| `GET /games/steam/620/stats` | `200` | Public catalogue stats |
-| `GET /games/steam/620/assets` | `200` | Public assets |
-| `GET /games/steam/620` | `200` | Public game metadata |
-| `POST /games/shop-details` (valid JSON) | `200` | Public metadata |
-| `GET /decky/release` | `200` | Public release info |
-| `POST /download-sources/sync` (`{"ids":[]}`) | `400` | Public route, validation error |
-| `POST /download-sources` (`{}`) | `400` | Public route, `url` required |
-| `GET /profile/me` | `401` | Account required |
-| `GET /profile/download-sources` | `401` | Account required |
-| `GET /profile/cloud-saves/snapshots?...` | `401` | Account required |
-| `POST /auth/realtime` | `401` | Account required |
-| `GET /games/steam/620/artwork/grid` | `401` | Artwork endpoint is not public |
+| Endpoint                                     | Result | Interpretation                 |
+| -------------------------------------------- | ------ | ------------------------------ |
+| `GET /games/steam/620/stats`                 | `200`  | Public catalogue stats         |
+| `GET /games/steam/620/assets`                | `200`  | Public assets                  |
+| `GET /games/steam/620`                       | `200`  | Public game metadata           |
+| `POST /games/shop-details` (valid JSON)      | `200`  | Public metadata                |
+| `GET /decky/release`                         | `200`  | Public release info            |
+| `POST /download-sources/sync` (`{"ids":[]}`) | `400`  | Public route, validation error |
+| `POST /download-sources` (`{}`)              | `400`  | Public route, `url` required   |
+| `GET /profile/me`                            | `401`  | Account required               |
+| `GET /profile/download-sources`              | `401`  | Account required               |
+| `GET /profile/cloud-saves/snapshots?...`     | `401`  | Account required               |
+| `POST /auth/realtime`                        | `401`  | Account required               |
+| `GET /games/steam/620/artwork/grid`          | `401`  | Artwork endpoint is not public |
 
 Do not infer that every `needsAuth:false` route is anonymous-compatible. The
 marketplace artwork route in particular rejects anonymous callers. The
@@ -149,13 +149,13 @@ catalogue UI needs a fallback for missing artwork when no account exists.
 
 PRD v2.2 requires five parent flags in `src/shared/feature-flags.json`:
 
-| Flag | Feature slice | Baseline entry points |
-| --- | --- | --- |
-| `HYDRA_ACCOUNT_FEATURES` | Friends, chat, profile, reviews, library sync, download-source sync | `src/main/events/friends`, `events/chat`, `events/profile`, `events/notifications`, `services/friends*`, `services/chat*`, `services/library-sync`, `services/user`; renderer `friends-window`, `chat-window`, `profile`, `notifications`, profile sidebar, reviews in `src/big-picture/src/components/pages/game/game-reviews` |
-| `ACHIEVEMENTS` | Achievements, souvenir, RetroAchievements, achievement watcher/overlay | `src/main/services/achievements`, `events/user`, `events/notifications`, `renderer/pages/achievements`, achievement overlay, settings sections |
-| `STEAM_INTEGRATION` | Steam login, sync, library watcher, Steam store session, Steam achievements/playtime | `src/main/services/steam-integration`, `events/user` Steam channels, `events/library` Steam paths, Steam settings pages |
-| `EPIC_INTEGRATION` | Epic auth, Legendary runtime, Epic library/download/cloud sync | `src/main/services/epic`, `events/epic`, Epic settings and game-details paths |
-| `HYDRA_CLOUD_LEGACY` | Hydra API/S3 cloud saves, both legacy tar artifacts and v2 snapshots | `src/main/services/cloud-sync.ts`, `src/main/services/cloud-save/*`, `events/cloud-save/*` |
+| Flag                     | Feature slice                                                                        | Baseline entry points                                                                                                                                                                                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HYDRA_ACCOUNT_FEATURES` | Friends, chat, profile, reviews, library sync, download-source sync                  | `src/main/events/friends`, `events/chat`, `events/profile`, `events/notifications`, `services/friends*`, `services/chat*`, `services/library-sync`, `services/user`; renderer `friends-window`, `chat-window`, `profile`, `notifications`, profile sidebar, reviews in `src/big-picture/src/components/pages/game/game-reviews` |
+| `ACHIEVEMENTS`           | Achievements, souvenir, RetroAchievements, achievement watcher/overlay               | `src/main/services/achievements`, `events/user`, `events/notifications`, `renderer/pages/achievements`, achievement overlay, settings sections                                                                                                                                                                                  |
+| `STEAM_INTEGRATION`      | Steam login, sync, library watcher, Steam store session, Steam achievements/playtime | `src/main/services/steam-integration`, `events/user` Steam channels, `events/library` Steam paths, Steam settings pages                                                                                                                                                                                                         |
+| `EPIC_INTEGRATION`       | Epic auth, Legendary runtime, Epic library/download/cloud sync                       | `src/main/services/epic`, `events/epic`, Epic settings and game-details paths                                                                                                                                                                                                                                                   |
+| `HYDRA_CLOUD_LEGACY`     | Hydra API/S3 cloud saves, both legacy tar artifacts and v2 snapshots                 | `src/main/services/cloud-sync.ts`, `src/main/services/cloud-save/*`, `events/cloud-save/*`                                                                                                                                                                                                                                      |
 
 Important corrections:
 
@@ -181,19 +181,19 @@ When a flag is `false`, required behavior is:
 
 ## 6. Removal hazards
 
-| Hazard | Why it matters | Required handling |
-| --- | --- | --- |
-| `HydraApi` imported by public catalogue | Deleting the class breaks anonymous browsing | Split public client first; keep only explicit public methods |
-| `hydraApiCall` generic proxy | Bypasses any service-level removal | Remove or replace with an allowlisted catalogue RPC |
-| Auth deep link branch | `handleDeepLinkPath` handles `auth`, `steam-connected`, `update-account` | Keep `run`; remove auth branches and protocol registration tests |
-| `window-manager.ts` auth windows | Creates Hydra auth renderer/view | Delete auth window class and login callbacks |
-| `SSEClient` on login | Realtime chat/friends; `HydraApi.post("/auth/realtime")` | Do not start; remove account event handlers |
-| `workwondersJwt` | Persisted with auth; sent to renderer; SDK calls vendor | Remove from auth type and renderer initialization |
-| Sentry | Renderer init, tracing, replay | Remove dependency and DSN; keep `crashReporter` local-only until Electron removal |
-| LevelDB auth/user keys | Old tokens could remain after upgrade | New Sphinx data directory; if reusing, delete `levelKeys.auth`/`user` and remote IDs |
-| Big Picture reviews | Public-looking UI calls authenticated endpoints | Hide with account flag and remove vote calls |
-| Subscription checks | Many services silently return when unsubscribed | A flag check is not enough; remove or gate the API call itself |
-| Public artwork route | Returns 401 anonymously | Add fallback; do not surface a login prompt |
+| Hazard                                  | Why it matters                                                           | Required handling                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `HydraApi` imported by public catalogue | Deleting the class breaks anonymous browsing                             | Split public client first; keep only explicit public methods                         |
+| `hydraApiCall` generic proxy            | Bypasses any service-level removal                                       | Remove or replace with an allowlisted catalogue RPC                                  |
+| Auth deep link branch                   | `handleDeepLinkPath` handles `auth`, `steam-connected`, `update-account` | Keep `run`; remove auth branches and protocol registration tests                     |
+| `window-manager.ts` auth windows        | Creates Hydra auth renderer/view                                         | Delete auth window class and login callbacks                                         |
+| `SSEClient` on login                    | Realtime chat/friends; `HydraApi.post("/auth/realtime")`                 | Do not start; remove account event handlers                                          |
+| `workwondersJwt`                        | Persisted with auth; sent to renderer; SDK calls vendor                  | Remove from auth type and renderer initialization                                    |
+| Sentry                                  | Renderer init, tracing, replay                                           | Remove dependency and DSN; keep `crashReporter` local-only until Electron removal    |
+| LevelDB auth/user keys                  | Old tokens could remain after upgrade                                    | New Sphinx data directory; if reusing, delete `levelKeys.auth`/`user` and remote IDs |
+| Big Picture reviews                     | Public-looking UI calls authenticated endpoints                          | Hide with account flag and remove vote calls                                         |
+| Subscription checks                     | Many services silently return when unsubscribed                          | A flag check is not enough; remove or gate the API call itself                       |
+| Public artwork route                    | Returns 401 anonymously                                                  | Add fallback; do not surface a login prompt                                          |
 
 ## 7. Suggested implementation order (Fase 1, not done here)
 

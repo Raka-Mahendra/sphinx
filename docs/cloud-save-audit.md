@@ -30,14 +30,14 @@ engine, while the Hydra backend is disabled.
 
 ## 2. Legacy pipeline
 
-| Step | Behavior | Evidence |
-| --- | --- | --- |
-| Gate | Logged-in user with non-expired `subscription.expiresAt` | `src/main/services/cloud-sync.ts:92-101` |
-| Local backup | Ludusavi backs up game files to `backupsPath/<shop>-<objectId>` | `cloud-sync.ts:54-70` |
-| Archive | Tar created at `backupsPath/<uuid>.tar` | `cloud-sync.ts:72-83` |
-| Prepare | `POST /profile/games/artifacts` with size, shop, objectId, hostname, wine prefix, platform, label | `cloud-sync.ts:122-136` |
-| Upload | `axios.put(uploadUrl, fileBuffer)` with `application/tar` | `cloud-sync.ts:138-147` |
-| Cleanup | Tar deleted after upload | `cloud-sync.ts:155-162` |
+| Step         | Behavior                                                                                          | Evidence                                 |
+| ------------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Gate         | Logged-in user with non-expired `subscription.expiresAt`                                          | `src/main/services/cloud-sync.ts:92-101` |
+| Local backup | Ludusavi backs up game files to `backupsPath/<shop>-<objectId>`                                   | `cloud-sync.ts:54-70`                    |
+| Archive      | Tar created at `backupsPath/<uuid>.tar`                                                           | `cloud-sync.ts:72-83`                    |
+| Prepare      | `POST /profile/games/artifacts` with size, shop, objectId, hostname, wine prefix, platform, label | `cloud-sync.ts:122-136`                  |
+| Upload       | `axios.put(uploadUrl, fileBuffer)` with `application/tar`                                         | `cloud-sync.ts:138-147`                  |
+| Cleanup      | Tar deleted after upload                                                                          | `cloud-sync.ts:155-162`                  |
 
 The artifact endpoint returns a presigned S3 URL. There is no chunking,
 content-addressed dedupe, or native blob transfer in this path.
@@ -82,7 +82,7 @@ content-addressed dedupe, or native blob transfer in this path.
    `tempRoot/hydra-cloud-saves/<snapshotId>/<hash>.blob`; a `.part` file is
    written, flushed, synced, and atomically renamed
    (`native/hydra-native/src/cloud_save/restore/download_blob.rs:12-20,
-   34-101`).
+34-101`).
 5. Size is checked against `Content-Length` and the expected byte count during
    download (`download_blob.rs:45-88`).
 6. SHA-256 is verified after download by the native addon
@@ -108,15 +108,15 @@ Do not change these while replacing the remote provider.
 
 ### 3.4 Remote endpoints
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `POST` | `/profile/cloud-saves/prepare-snapshot` | Reserve blob uploads / skip existing |
-| `POST` | `/profile/cloud-saves/commit-snapshot` | Commit pending snapshot |
-| `GET` | `/profile/cloud-saves/snapshots` | List versions |
-| `GET` | `/profile/cloud-saves/snapshot-restore-manifest` | Fetch immutable manifest |
-| `GET` | `/profile/cloud-saves/snapshot-download-urls` | Presigned download URLs |
-| `DELETE` | `/profile/cloud-saves/snapshots?...` | Delete all versions for a game |
-| legacy `POST` | `/profile/games/artifacts` | Legacy tar upload |
+| Method        | Endpoint                                         | Purpose                              |
+| ------------- | ------------------------------------------------ | ------------------------------------ |
+| `POST`        | `/profile/cloud-saves/prepare-snapshot`          | Reserve blob uploads / skip existing |
+| `POST`        | `/profile/cloud-saves/commit-snapshot`           | Commit pending snapshot              |
+| `GET`         | `/profile/cloud-saves/snapshots`                 | List versions                        |
+| `GET`         | `/profile/cloud-saves/snapshot-restore-manifest` | Fetch immutable manifest             |
+| `GET`         | `/profile/cloud-saves/snapshot-download-urls`    | Presigned download URLs              |
+| `DELETE`      | `/profile/cloud-saves/snapshots?...`             | Delete all versions for a game       |
+| legacy `POST` | `/profile/games/artifacts`                       | Legacy tar upload                    |
 
 All v2 calls pass `{ needsAuth: true, needsSubscription: true }`; the legacy
 path checks subscription manually. There is no anonymous cloud save.
@@ -132,7 +132,7 @@ path checks subscription manually. There is no anonymous cloud save.
   destination selection, RetroArch battery selection, and artifact
   export/cancel.
 - The module is activated from `src/main/events/index.ts` (`import
-  "./cloud-save"`).
+"./cloud-save"`).
 - Renderer state and modals live under `src/renderer/src/context/cloud-sync`
   and the existing game-page cloud-save UI.
 
@@ -150,16 +150,16 @@ The baseline provides none of that.
 
 Required new pieces:
 
-| Piece | Why |
-| --- | --- |
-| Google OAuth desktop flow | No Google login exists; PRD requires system browser + PKCE/loopback |
-| Token storage | New refresh token; must use OS-protected storage, not LevelDB plaintext |
-| Drive HTTP client | `appDataFolder` list/create/update/delete; quota and 401/403/429 handling |
-| Blob naming | SHA-256 keyed filenames; dedupe per user, not global |
-| Manifest files | Immutable JSON per snapshot; version pointer/conflict model |
-| Provider adapter | Keep v2 snapshot/restore planner, swap Hydra prepare/commit/S3 for Drive |
-| Offline/queue behavior | Drive is user-owned and can be unavailable; Hydra retry policy is not sufficient |
-| GC | PRD retention: 3 versions/game (1-10), 24-hour grace, 100 MB confirmation |
+| Piece                     | Why                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| Google OAuth desktop flow | No Google login exists; PRD requires system browser + PKCE/loopback              |
+| Token storage             | New refresh token; must use OS-protected storage, not LevelDB plaintext          |
+| Drive HTTP client         | `appDataFolder` list/create/update/delete; quota and 401/403/429 handling        |
+| Blob naming               | SHA-256 keyed filenames; dedupe per user, not global                             |
+| Manifest files            | Immutable JSON per snapshot; version pointer/conflict model                      |
+| Provider adapter          | Keep v2 snapshot/restore planner, swap Hydra prepare/commit/S3 for Drive         |
+| Offline/queue behavior    | Drive is user-owned and can be unavailable; Hydra retry policy is not sufficient |
+| GC                        | PRD retention: 3 versions/game (1-10), 24-hour grace, 100 MB confirmation        |
 
 Critical semantic difference: Hydra's prepare/commit gives the server a
 transaction and an authoritative version. Google Drive `appDataFolder` does not
@@ -217,16 +217,16 @@ flag remains the Hydra off-switch.
 
 ## 7. Migration risks
 
-| Risk | Impact | Mitigation |
-| --- | --- | --- |
-| Gating only `CloudSync` | v2 still calls Hydra | Gate the provider, not one file |
-| Deleting 30 IPC channels | Drive UI loses its transport | Keep channels; replace backend |
-| Reusing Hydra version semantics | Drive writes can overwrite concurrent snapshots | Design manifest/revision conflict handling |
-| Storing Google refresh token in LevelDB | Credential theft | OS keychain/secret store |
-| Drive scope creep | Violates PRD and consent screen | Enforce exactly `drive.appdata` |
-| No quota handling | Sync fails opaquely | `about.get`, 403/quota errors, user-visible state |
-| Losing local-only behavior | Cloud save unusable without Google | Clear disabled/not-configured state |
-| Native temp cleanup | Orphaned blobs | Keep `finally` cleanup and test crash recovery |
+| Risk                                    | Impact                                          | Mitigation                                        |
+| --------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| Gating only `CloudSync`                 | v2 still calls Hydra                            | Gate the provider, not one file                   |
+| Deleting 30 IPC channels                | Drive UI loses its transport                    | Keep channels; replace backend                    |
+| Reusing Hydra version semantics         | Drive writes can overwrite concurrent snapshots | Design manifest/revision conflict handling        |
+| Storing Google refresh token in LevelDB | Credential theft                                | OS keychain/secret store                          |
+| Drive scope creep                       | Violates PRD and consent screen                 | Enforce exactly `drive.appdata`                   |
+| No quota handling                       | Sync fails opaquely                             | `about.get`, 403/quota errors, user-visible state |
+| Losing local-only behavior              | Cloud save unusable without Google              | Clear disabled/not-configured state               |
+| Native temp cleanup                     | Orphaned blobs                                  | Keep `finally` cleanup and test crash recovery    |
 
 ## 8. Verification required
 

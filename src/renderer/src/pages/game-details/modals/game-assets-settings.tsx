@@ -1240,15 +1240,15 @@ export function GameAssetsSettings({
         {isFeatureEnabled("HYDRA_ACCOUNT_FEATURES") &&
           !hasActiveSubscription &&
           !isCustomGame(game) && (
-          <button
-            type="button"
-            className="subscription-required-button"
-            onClick={() => showHydraCloudModal("customization")}
-          >
-            <AlertIcon size={14} />
-            <span>{t("custom_assets_not_sync")}</span>
-          </button>
-        )}
+            <button
+              type="button"
+              className="subscription-required-button"
+              onClick={() => showHydraCloudModal("customization")}
+            >
+              <AlertIcon size={14} />
+              <span>{t("custom_assets_not_sync")}</span>
+            </button>
+          )}
 
         {!isCustomGame(game) && (
           <GameArtworkPicker

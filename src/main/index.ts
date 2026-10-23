@@ -299,7 +299,6 @@ const handleDeepLinkPath = (uri?: string) => {
 
       return;
     }
-
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
   }

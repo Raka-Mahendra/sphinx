@@ -447,21 +447,21 @@ export function GameDetailsContent() {
                 {cloudSaveEnabled &&
                   game &&
                   cloudSaveVisibility?.hero === "legacy" && (
-                  <button
-                    type="button"
-                    className="game-details__cloud-sync-button"
-                    onClick={handleLegacyCloudSaveButtonClick}
-                  >
-                    <div className="game-details__cloud-icon-container">
-                      <img
-                        src={cloudIconAnimated}
-                        alt=""
-                        className="game-details__cloud-icon"
-                      />
-                    </div>
-                    {t("cloud_save")}
-                  </button>
-                )}
+                    <button
+                      type="button"
+                      className="game-details__cloud-sync-button"
+                      onClick={handleLegacyCloudSaveButtonClick}
+                    >
+                      <div className="game-details__cloud-icon-container">
+                        <img
+                          src={cloudIconAnimated}
+                          alt=""
+                          className="game-details__cloud-icon"
+                        />
+                      </div>
+                      {t("cloud_save")}
+                    </button>
+                  )}
 
                 {cloudSaveEnabled &&
                   game &&
@@ -530,18 +530,18 @@ export function GameDetailsContent() {
               shop !== "custom" &&
               shop &&
               objectId && (
-              <div ref={reviewsRef}>
-                <GameReviews
-                  shop={shop}
-                  objectId={objectId}
-                  game={game}
-                  userDetailsId={userDetails?.id}
-                  hasUserReviewed={hasUserReviewed}
-                  isCheckingUserReview={isCheckingUserReview}
-                  onUserReviewedChange={updateHasUserReviewed}
-                />
-              </div>
-            )}
+                <div ref={reviewsRef}>
+                  <GameReviews
+                    shop={shop}
+                    objectId={objectId}
+                    game={game}
+                    userDetailsId={userDetails?.id}
+                    hasUserReviewed={hasUserReviewed}
+                    isCheckingUserReview={isCheckingUserReview}
+                    onUserReviewedChange={updateHasUserReviewed}
+                  />
+                </div>
+              )}
           </div>
 
           {shop !== "custom" && <Sidebar />}

@@ -1,15 +1,15 @@
 # PRD — Sphinx Launcher (fork Hydra Launcher → Tauri)
 
-| Item | Isi |
-|---|---|
-| Versi dokumen | 2.2 (hasil audit baseline dan sesi grill-me Q1–Q14) |
-| Repo sumber | https://github.com/hydralauncher/hydra (MIT) |
-| Baseline | Hydra **4.1.6** + SHA commit upstream (diisi Fase 0 dari clone ulang). Tag `baseline-hydra` dipasang di commit upstream persis itu |
-| Repo proyek | `Raka-Mahendra/sphinx`, **publik**, bukan GitHub fork. `upstream` hanya referensi |
-| Produk | **Sphinx Launcher**, versi awal **0.1.0** |
-| Lisensi | **Apache-2.0**, `Copyright 2026 Raka Mahendra` |
-| Agent pelaksana | opencode, deepseek v4.1 flash 1017; skill `logo-design` dan skill pendukung (lihat PROMPT.md) |
-| Platform | Windows 10/11 x64 (prioritas); Linux opsional di Fase 9. macOS di luar cakupan |
+| Item            | Isi                                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Versi dokumen   | 2.2 (hasil audit baseline dan sesi grill-me Q1–Q14)                                                                                |
+| Repo sumber     | https://github.com/hydralauncher/hydra (MIT)                                                                                       |
+| Baseline        | Hydra **4.1.6** + SHA commit upstream (diisi Fase 0 dari clone ulang). Tag `baseline-hydra` dipasang di commit upstream persis itu |
+| Repo proyek     | `Raka-Mahendra/sphinx`, **publik**, bukan GitHub fork. `upstream` hanya referensi                                                  |
+| Produk          | **Sphinx Launcher**, versi awal **0.1.0**                                                                                          |
+| Lisensi         | **Apache-2.0**, `Copyright 2026 Raka Mahendra`                                                                                     |
+| Agent pelaksana | opencode, deepseek v4.1 flash 1017; skill `logo-design` dan skill pendukung (lihat PROMPT.md)                                      |
+| Platform        | Windows 10/11 x64 (prioritas); Linux opsional di Fase 9. macOS di luar cakupan                                                     |
 
 ---
 
@@ -31,6 +31,7 @@ Prinsip: perubahan minimal di luar daftar. Kalau ragu apakah sesuatu perlu diuba
 ## 2. Tujuan, non-tujuan, batasan
 
 ### Tujuan
+
 - Sphinx Launcher berjalan di Tauri v2 dengan tampilan identik Hydra (selain nama, logo, dan bagian akun/cloud yang berubah), termasuk jendela Big Picture.
 - Unduhan torrent/magnet tetap berjalan dengan engine bawaan dan setara baseline, juga dari installer di mesin bersih (tanpa Python).
 - Tidak ada Electron, Sentry, analytics, `workwonders-sdk`, atau login Hydra di build akhir.
@@ -40,9 +41,11 @@ Prinsip: perubahan minimal di luar daftar. Kalau ragu apakah sesuatu perlu diuba
 - Ukuran installer dan RAM idle **diukur** di Fase 8 (angka nyata, bukan perkiraan).
 
 ### Pernyataan penting
+
 **Node.js LTS adalah runtime yang sengaja dibundel; yang dihapus adalah Electron, bukan Node.** Python tidak lagi dibutuhkan di runtime, build, maupun CI.
 
 ### Non-tujuan (dilarang dikerjakan)
+
 - Mendesain ulang UI, menambah fitur baru, refactor besar yang tidak perlu, formatter massal, pindah/rename file besar-besaran.
 - Mengganti atau memodifikasi mesin torrent, `DownloadManager`, status, seeding.
 - Menulis ulang `src/main` ke Rust. Menulis ulang wrapper torrent ke Rust (jalur masa depan, lihat Backlog).
@@ -52,6 +55,7 @@ Prinsip: perubahan minimal di luar daftar. Kalau ragu apakah sesuatu perlu diuba
 - macOS, mobile, build portable.
 
 ### Batasan yang diketahui di v1 (ditulis juga di README)
+
 - **Fitur yang hilang**: achievement dan souvenir, koneksi/sync Steam, teman, chat, profil, ulasan, sync library, sync download sources, cloud save Hydra legacy (berlangganan), Epic/legendary, plugin decky. Penyebabnya: bergantung login/server Hydra. Daftar final dikonfirmasi audit Fase 0.
 - Definisi achievement berasal dari server Hydra, jadi **tidak ada achievement lokal** di v1.
 - Installer Windows **tidak ditandatangani** (setara baseline): SmartScreen/Smart App Control/Defender bisa memberi peringatan.
@@ -62,22 +66,22 @@ Prinsip: perubahan minimal di luar daftar. Kalau ragu apakah sesuatu perlu diuba
 
 ## 3. Keputusan arsitektur
 
-| # | Keputusan | Alasan |
-|---|---|---|
-| A1 | **Tauri shell + Node sidecar monolitik.** Rust mengurus jendela, tray, dialog, deep link, single instance, autostart, updater, keychain. `src/main` (1.074 file) berjalan sebagai sidecar Node dengan shim modul `electron`. | Perilaku identik tanpa menulis ulang. |
-| A2 | **Pakai ulang `src/preload/index.ts`** (hanya mengimpor `contextBridge` + `ipcRenderer` dari electron, plus `node:crypto`) dengan **shim `electron`** di sisi renderer yang berjalan di atas Tauri `invoke`/`listen`. | Menghindari menulis ulang 2.346 baris dan menjamin signature identik. |
-| A3 | Bundler renderer: **Vite biasa** (hapus `electron-vite`). Package manager tetap **yarn v1**. Big Picture (`src/big-picture`, aplikasi Vite terpisah) memakai bridge dan flag yang sama. | Perubahan minimum. |
-| A4 | **Mesin torrent = `hydra-native` (napi8, cdylib) + `torrent-bridge` (C++/CMake/vcpkg, prebuilt `x64-windows-static`)**, dipakai apa adanya. Hanya bisa dimuat proses Node, jadi dimuat sidecar. | Mesin nyata di baseline; risiko regresi terendah. |
-| A5 | Tidak ada build Python/PyInstaller. Yang dibuild: native addon + bridge bila perlu. | Python hanya dipakai legendary/Epic yang dipangkas. |
-| A6 | Identitas: data folder `sphinx-launcher`, bundle id `com.sphinxlauncher.app`, protokol `sphinx://` (hanya `sphinx://run` yang bertahan). Folder/crate `hydra-native` dan `torrent-bridge` **tidak di-rename**. | Tidak bentrok dengan Hydra; cherry-pick tetap mungkin. |
-| A7 | **Updater**: repo publik, draft-release lalu publish, UX dua tahap, Rust pemilik state. | Pola `tauri-action` standar. |
-| A8 | **Cloud save**: `GoogleDriveProvider` dengan **blob content-addressed + manifest immutable** di `appDataFolder`, scope `drive.appdata`. | Menjaga dedupe per file, snapshot berversi, varian. |
-| A9 | Ludusavi tetap dibundel (dipakai `getGameBackupPreview`, `selectGameBackupPath`, `getGameSaveFolder`). Arsip/snapshot dibuat pipeline native v2, bukan ludusavi. | Hasil audit baseline. |
-| A10 | Lisensi Apache-2.0 + `Copyright 2026 Raka Mahendra`; MIT Hydra disalin ke `LICENSES/MIT-hydra.txt`. | MIT kompatibel untuk relisensi; notice asli wajib dipertahankan. |
-| A11 | **Feature flag**: `src/shared/feature-flags.json`, satu sumber, build-time, tidak bisa diubah pengguna. | Satu nilai mengunci UI, service, dan kanal. |
-| A12 | **Allowlist IPC** di-generate saat build dari source; divalidasi di Rust dan diulang di sidecar. | Mencegah XSS di renderer berujung eksekusi penuh. |
-| A13 | **Model crash sidecar**: restart + recovery scan; game tidak boleh ikut mati. | Setara baseline, bukan lebih baik. |
-| A14 | **Upstream beku**, cherry-pick selektif. | Merge berkala tidak realistis setelah migrasi. |
+| #   | Keputusan                                                                                                                                                                                                                    | Alasan                                                                |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| A1  | **Tauri shell + Node sidecar monolitik.** Rust mengurus jendela, tray, dialog, deep link, single instance, autostart, updater, keychain. `src/main` (1.074 file) berjalan sebagai sidecar Node dengan shim modul `electron`. | Perilaku identik tanpa menulis ulang.                                 |
+| A2  | **Pakai ulang `src/preload/index.ts`** (hanya mengimpor `contextBridge` + `ipcRenderer` dari electron, plus `node:crypto`) dengan **shim `electron`** di sisi renderer yang berjalan di atas Tauri `invoke`/`listen`.        | Menghindari menulis ulang 2.346 baris dan menjamin signature identik. |
+| A3  | Bundler renderer: **Vite biasa** (hapus `electron-vite`). Package manager tetap **yarn v1**. Big Picture (`src/big-picture`, aplikasi Vite terpisah) memakai bridge dan flag yang sama.                                      | Perubahan minimum.                                                    |
+| A4  | **Mesin torrent = `hydra-native` (napi8, cdylib) + `torrent-bridge` (C++/CMake/vcpkg, prebuilt `x64-windows-static`)**, dipakai apa adanya. Hanya bisa dimuat proses Node, jadi dimuat sidecar.                              | Mesin nyata di baseline; risiko regresi terendah.                     |
+| A5  | Tidak ada build Python/PyInstaller. Yang dibuild: native addon + bridge bila perlu.                                                                                                                                          | Python hanya dipakai legendary/Epic yang dipangkas.                   |
+| A6  | Identitas: data folder `sphinx-launcher`, bundle id `com.sphinxlauncher.app`, protokol `sphinx://` (hanya `sphinx://run` yang bertahan). Folder/crate `hydra-native` dan `torrent-bridge` **tidak di-rename**.               | Tidak bentrok dengan Hydra; cherry-pick tetap mungkin.                |
+| A7  | **Updater**: repo publik, draft-release lalu publish, UX dua tahap, Rust pemilik state.                                                                                                                                      | Pola `tauri-action` standar.                                          |
+| A8  | **Cloud save**: `GoogleDriveProvider` dengan **blob content-addressed + manifest immutable** di `appDataFolder`, scope `drive.appdata`.                                                                                      | Menjaga dedupe per file, snapshot berversi, varian.                   |
+| A9  | Ludusavi tetap dibundel (dipakai `getGameBackupPreview`, `selectGameBackupPath`, `getGameSaveFolder`). Arsip/snapshot dibuat pipeline native v2, bukan ludusavi.                                                             | Hasil audit baseline.                                                 |
+| A10 | Lisensi Apache-2.0 + `Copyright 2026 Raka Mahendra`; MIT Hydra disalin ke `LICENSES/MIT-hydra.txt`.                                                                                                                          | MIT kompatibel untuk relisensi; notice asli wajib dipertahankan.      |
+| A11 | **Feature flag**: `src/shared/feature-flags.json`, satu sumber, build-time, tidak bisa diubah pengguna.                                                                                                                      | Satu nilai mengunci UI, service, dan kanal.                           |
+| A12 | **Allowlist IPC** di-generate saat build dari source; divalidasi di Rust dan diulang di sidecar.                                                                                                                             | Mencegah XSS di renderer berujung eksekusi penuh.                     |
+| A13 | **Model crash sidecar**: restart + recovery scan; game tidak boleh ikut mati.                                                                                                                                                | Setara baseline, bukan lebih baik.                                    |
+| A14 | **Upstream beku**, cherry-pick selektif.                                                                                                                                                                                     | Merge berkala tidak realistis setelah migrasi.                        |
 
 ## 4. Cakupan pekerjaan
 
@@ -106,6 +110,7 @@ sphinx/
 ```
 
 #### 4.A.2 Kontrak IPC dan allowlist
+
 - Renderer → sidecar: `window.electron.<fn>(...)` (dari preload yang dipakai ulang) → shim `ipcRenderer` → `invoke('ipc_invoke', { channel, args })` → Rust → stdin sidecar `{id, channel, args}` → handler lama → `{id, result|error}`. `ipcRenderer.send` → `ipc_send`.
 - Sidecar → renderer (`webContents.send`) → Rust `emit("sphinx:ipc-event", {channel, payload})` → listener di shim.
 - **RPC dua arah**: sidecar memanggil Rust (dialog, shell, keychain, path, updater) lewat `{id, method, params}`.
@@ -122,25 +127,26 @@ sphinx/
 
 #### 4.A.3 Padanan API Electron → Tauri (inventaris awal; Fase 0 melengkapi dari kode)
 
-| Electron | Padanan |
-|---|---|
-| `BrowserWindow` (utama, Big Picture, notifikasi, dll.) | `WebviewWindow`; jendela custom dipertahankan |
-| `ipcMain`/`ipcRenderer`/`webContents.send` | Shim + RPC sidecar + allowlist |
-| `app.getPath/getVersion/quit/isPackaged` | Command Rust, diteruskan ke sidecar |
-| `shell.*`, `dialog.*` | `tauri-plugin-opener`, `tauri-plugin-dialog` |
-| `Tray`, `Menu` | Tray bawaan Tauri |
-| `protocol.handle` (file lokal) | `register_uri_scheme_protocol`/asset protocol (cek nama protokol) |
-| `setAsDefaultProtocolClient`, `second-instance` | `tauri-plugin-deep-link` + `tauri-plugin-single-instance` |
-| `electron-updater` / `UpdateManager` | `tauri-plugin-updater` (4.E) |
-| `auto-launch` | `tauri-plugin-autostart` |
-| `Notification` | `tauri-plugin-notification` |
-| `crashReporter` | Hilang bersama Electron; pengganti: log lokal (lihat §9) |
-| `<webview>` (jika dipakai) | `iframe`/jendela anak (risiko R2) |
-| `session.webRequest`, `net` | Sidecar (Node fetch/proxy) atau `tauri-plugin-http` |
+| Electron                                                                               | Padanan                                                                                             |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `BrowserWindow` (utama, Big Picture, notifikasi, dll.)                                 | `WebviewWindow`; jendela custom dipertahankan                                                       |
+| `ipcMain`/`ipcRenderer`/`webContents.send`                                             | Shim + RPC sidecar + allowlist                                                                      |
+| `app.getPath/getVersion/quit/isPackaged`                                               | Command Rust, diteruskan ke sidecar                                                                 |
+| `shell.*`, `dialog.*`                                                                  | `tauri-plugin-opener`, `tauri-plugin-dialog`                                                        |
+| `Tray`, `Menu`                                                                         | Tray bawaan Tauri                                                                                   |
+| `protocol.handle` (file lokal)                                                         | `register_uri_scheme_protocol`/asset protocol (cek nama protokol)                                   |
+| `setAsDefaultProtocolClient`, `second-instance`                                        | `tauri-plugin-deep-link` + `tauri-plugin-single-instance`                                           |
+| `electron-updater` / `UpdateManager`                                                   | `tauri-plugin-updater` (4.E)                                                                        |
+| `auto-launch`                                                                          | `tauri-plugin-autostart`                                                                            |
+| `Notification`                                                                         | `tauri-plugin-notification`                                                                         |
+| `crashReporter`                                                                        | Hilang bersama Electron; pengganti: log lokal (lihat §9)                                            |
+| `<webview>` (jika dipakai)                                                             | `iframe`/jendela anak (risiko R2)                                                                   |
+| `session.webRequest`, `net`                                                            | Sidecar (Node fetch/proxy) atau `tauri-plugin-http`                                                 |
 | `sharp`, `hydra-native` (N-API), `classic-level`, `node-7z`, `winreg`, `detect-drives` | Tetap di sidecar; verifikasi di Node bundel (N-API ABI stabil; `classic-level` diverifikasi Fase 0) |
-| `electron-log` | Logger ke file + console |
+| `electron-log`                                                                         | Logger ke file + console                                                                            |
 
 #### 4.A.4 Sidecar dan siklus hidup
+
 - Bundle `src/main` + `src/sidecar` dengan esbuild; alias `electron` → `src/sidecar/electron-shim` (hanya API yang benar-benar dipakai; sisanya melempar `NotImplementedInShim: <api>`). Node LTS dipin dan dikemas sebagai `externalBin`.
 - **Shutdown bertahap**: Rust meminta sidecar shutdown bersih lewat RPC (termasuk `torrentShutdown` agar resume data tersimpan) dengan timeout, baru kill paksa.
 - **Heartbeat**: ping berkala dengan timeout dari Rust; sidecar yang menggantung di-kill lalu di-restart.
@@ -151,6 +157,7 @@ sphinx/
 - **Game tidak boleh ikut mati** saat sidecar crash, update, atau app ditutup normal: spawn game terlepas dari sidecar (job object/detached; **dibuktikan dengan tes**, termasuk perilaku plugin shell Tauri saat app keluar). Target = setara baseline Electron (audit Fase 0 mencatat perilaku baseline).
 
 #### 4.A.5 Konfigurasi dan keamanan
+
 - `tauri.conf.json`: `productName` "Sphinx Launcher", identifier `com.sphinxlauncher.app`, jendela sama dengan perilaku Electron lama. Capabilities minimal, CSP ketat yang tetap mengizinkan domain yang dipakai UI.
 - **Wajib dibuktikan di dokumentasi Tauri v2** (bukan diasumsikan): command kustom hanya bisa dipanggil jendela berizin; iframe/konten remote tidak bisa `invoke`; `remote.urls` tidak dibuka tanpa perlu.
 - Uji komponen berat terhadap WebView2/WebKitGTK: `hls.js`, Monaco, TipTap, `react-shadow`, `framer-motion`, drag-and-drop.
@@ -159,11 +166,13 @@ sphinx/
 ### 4.B Akun, pemangkasan fitur, Sentry/analytics
 
 #### 4.B.1 Inti yang dipertahankan (anonim) dan yang dipangkas
+
 - **Tetap**: katalog + detail/aset game, unduhan torrent + download sources, library lokal (tambah/hapus/favorit/koleksi/playtime), emulator/RetroArch/LaunchBox, pengaturan, tema, i18n, Big Picture, cloud save Google Drive (baru).
 - **Disembunyikan**: achievement + souvenir, koneksi/sync Steam, teman, chat, profil, ulasan, sync library, sync download sources, cloud save Hydra legacy, Epic/legendary, plugin decky.
 - Hasil audit: dari 251 call site `HydraApi` hanya 16 yang `needsAuth: false` (katalog, aset game, mulai unduhan, download sources, shop details retroarch/launchbox, decky info). Klasifikasi ini **heuristik**; diverifikasi runtime terhadap API nyata di Fase 0/1, dan jalur yang menolak anonim dicatat, bukan dipaksa.
 
 #### 4.B.2 Feature flag
+
 - `src/shared/feature-flags.json`: JSON (bukan modul TS), diimpor renderer, big-picture, dan sidecar, dan dibaca generator allowlist.
 - Flag per fitur dengan induk, maksimal sekitar 5–6: `HYDRA_ACCOUNT_FEATURES` (induk: teman, chat, profil, ulasan, sync library, sync download sources), `ACHIEVEMENTS`, `STEAM_INTEGRATION`, `EPIC_INTEGRATION`, `HYDRA_CLOUD_LEGACY`. Hubungan induk-anak di `docs/feature-flags.md`.
 - Flag hanya untuk fitur **disembunyikan tapi kodenya dipertahankan**. Login UI, Sentry, dan `workwonders-sdk` dihapus total tanpa flag.
@@ -177,6 +186,7 @@ sphinx/
 - Epic: pastikan dulu `hydra-epic-process.exe`, `windows-epic-process`, `managed-legendary.pyz`, `prepare-legendary.cjs` memang khusus Epic sebelum dikeluarkan dari bundel. Enum `shop` untuk Epic tetap ada. Runtime Python, legendary, `.pyz`, dan `hydra-epic-process.exe` tidak masuk installer.
 
 #### 4.B.3 Login, Sentry, analytics, workwonders
+
 - **Login**: hapus UI login, token akun, refresh token, dan cabang auth deep link (`window-manager.ts`, sekitar baris 884). Deep link `run` tetap; `auth`, `steam-connected`, `update-account` hilang bersama fitur yang dipangkas.
 - **Sentry**: hapus `@sentry/react`, init + tracing + replay di `src/renderer/src/main.tsx`, dan DSN `RENDERER_VITE_SENTRY_DSN`. Tidak ada upload sourcemap yang terlihat di baseline (verifikasi). `crashReporter.start({uploadToServer:false})` tidak mengirim apa pun; dibiarkan di Fase 1 dan hilang bersama Electron.
 - **`workwonders-sdk`**: dihapus beserta `workwondersJwt` dan seluruh koneksi ke `workwonders.app` (widget pihak ketiga yang butuh login Hydra).
@@ -190,6 +200,7 @@ sphinx/
 - Crate `hydra-native` dan folder `torrent-bridge` **tidak di-rename**.
 
 **Kriteria penerimaan torrent (setara baseline):**
+
 - Magnet dan `.torrent` mulai mengunduh ke folder pilihan; progres, kecepatan, peer/seed sama.
 - Jeda, lanjut, batal, hapus dengan/tanpa file; pilih sebagian file.
 - Restart app dan kill sidecar: unduhan lanjut tanpa duplikasi/korupsi (hash recheck boleh).
@@ -201,9 +212,11 @@ sphinx/
 ### 4.D Branding
 
 #### 4.D.1 Logo memakai skill `logo-design`
+
 Agent membuat logo sendiri dengan skill `logo-design` (jika skill tidak ditemukan: berhenti dan lapor). Alur skill: brief → riset konvensi → konsep → audit → **checkpoint** (berhenti, tunggu pilihan pengguna) → kit.
 
 Brief:
+
 - **Merek**: Sphinx Launcher, aplikasi desktop open-source untuk mengelola library game dan mengunduh game.
 - **Karakter**: misterius, percaya diri, modern, presisi ("penjaga teka-teki", bukan gurun/piramida).
 - **Jenis tanda**: simbol pictorial/abstrak yang mengacu ke sphinx (siluet kepala/profil, pose duduk, bentuk teka-teki) + wordmark "Sphinx"; terbaca di 16 px.
@@ -215,6 +228,7 @@ Brief:
 Aturan: 8–12 ide → 3 konsep SVG → `svg_audit.py`, `concept_sheet.py`, `preview_sheet.py` → **berhenti di checkpoint** → setelah dipilih: SVG master, satu warna, terbalik, PNG 1024, `export_variants.py --web-icons`, lalu `yarn tauri icon`. Jika model tidak bisa melihat gambar, jangan mengaku sudah memeriksa visual; pengguna menilai di checkpoint. Simpan di `branding/` + `branding/README.md` (proses, skill, pernyataan tidak menyalin referensi, dibuat oleh agen AI).
 
 #### 4.D.2 Penggantian aset dan nama
+
 - Aset: `resources/icon.png`, tray, splash/loading, favicon, komponen logo UI, gambar installer, logo README.
 - Teks tampilan dan **semua locale i18n**: "Hydra" → "Sphinx" pada string terlihat (sesuaikan tata bahasa); "Hydra Cloud" → "Cloud Save (Google Drive)".
 - Identitas teknis: `name`/`productName`/`description`/`author`, nama executable/installer, `appId`, folder data, kunci registri/shortcut, protokol `sphinx://`.
@@ -237,10 +251,12 @@ Aturan: 8–12 ide → 3 konsep SVG → `svg_audit.py`, `concept_sheet.py`, `pre
 ### 4.F Cloud save Google Drive
 
 #### 4.F.1 Perilaku
+
 - Settings (di tempat Hydra Cloud berada): **Hubungkan / Putuskan Google Drive**. Halaman game memakai ulang UI backup/cloud save yang ada: unggah, daftar versi, pulihkan, hapus versi. Pengaturan backup otomatis dan cek versi cloud saat game dibuka mengikuti yang sudah ada di Hydra.
 - **Pipeline v2 dipakai ulang** (`cloud_save/{hashing,local_snapshot,manifest,restore,upload}`, `upload-local-game-snapshot.ts`, `create-remote-snapshot-from-local-state.ts`): hashing native, snapshot lokal, manifest, restore, `SnapshotVariant`, `baseVersion`. `GoogleDriveProvider` **hanya mengganti tujuan upload/restore** (sebelumnya presigned URL ke Hydra API). Jalur legacy `SubscriptionRequiredError` dihapus.
 
 #### 4.F.2 OAuth dan scope
+
 - Scope tunggal: **`https://www.googleapis.com/auth/drive.appdata`**. Dilarang menambah scope tanpa persetujuan pemilik proyek. Terverifikasi: `about.get` menerima `drive.appdata`, jadi nama/email dan `storageQuota` tidak butuh scope tambahan (ketersediaan field diverifikasi runtime).
 - Authorization Code + **PKCE (S256)** + redirect **loopback** `http://127.0.0.1:<port acak>/callback`, `state`, `access_type=offline`, di **browser sistem**. Server loopback hanya hidup selama login.
 - Refresh token di **keychain OS** lewat command Rust (crate `keyring`) yang dipanggil sidecar via RPC; tidak pernah di file biasa/log. Tanpa keychain: token hanya di memori dan pengguna diberi tahu di UI.
@@ -249,6 +265,7 @@ Aturan: 8–12 ide → 3 konsep SVG → `svg_audit.py`, `concept_sheet.py`, `pre
 - `docs/google-drive-setup.md`: proyek Google Cloud, Drive API, consent screen External, scope `drive.appdata`, client tipe **Desktop app**, terbitkan ke **Production** (status Testing membuat refresh token kedaluwarsa 7 hari), hasil verifikasi dokumentasi Google (brand verification, batas pengguna, layar "unverified app", kewajiban privacy policy/homepage) dan angka kuota Drive API dari konsol.
 
 #### 4.F.3 Model penyimpanan di Drive
+
 - **Blob content-addressed**: satu file per hash unik, `<gameKey>/<hash>`. **Manifest immutable** per versi snapshot: `<gameKey>/snapshots/<version>.json` (files, variants, parent). **Tanpa `index.json` mutable.**
 - `appProperties` sebagai indeks cepat: `app=sphinx`, `schema=1`, `gameKey`, `hash`/`version`/`parent`, `deviceId` (UUID acak per instalasi), `createdAt`. Batas ukuran `appProperties` diverifikasi ke dokumentasi.
 - `gameKey` **generik** terhadap nilai `shop` (tanpa daftar toko hardcoded); enum `shop` dipertahankan.
@@ -257,6 +274,7 @@ Aturan: 8–12 ide → 3 konsep SVG → `svg_audit.py`, `concept_sheet.py`, `pre
 - **GC mark-and-sweep**: hapus blob hanya jika tidak dirujuk manifest mana pun **dan** lebih tua dari masa tenggang (usul 24 jam); dijalankan hanya setelah retensi memangkas manifest. Retensi menghitung **versi**, bukan blob (default 3 per game, rentang 1–10).
 
 #### 4.F.4 Hemat kuota
+
 - Dedupe per hash; unggah hanya blob baru.
 - Ambang konfirmasi ukuran (default 100 MB, dapat diatur) dihitung dari **byte baru setelah dedupe**.
 - Konkurensi unggah 3–4 (bukan 8 seperti baseline) dengan backoff adaptif (verifikasi batas laju tulis Drive); backoff eksponensial + jitter untuk 429, 403 `rateLimitExceeded`, dan 5xx; pesan jelas untuk `storageQuotaExceeded`.
@@ -265,9 +283,11 @@ Aturan: 8–12 ide → 3 konsep SVG → `svg_audit.py`, `concept_sheet.py`, `pre
 - Tampilkan pemakaian cloud save (blob yang masih dirujuk) dan sisa kuota Drive (`about.get`).
 
 #### 4.F.5 Konflik
+
 Simpan hash sinkron terakhir per game. Bila cloud lebih baru **dan** save lokal berubah sejak sinkron terakhir (atau ditemukan manifest kembar) → dialog: pakai cloud / pakai lokal / simpan keduanya (backup lokal dibuat dulu). Pakai dialog Hydra yang ada bila tersedia.
 
 #### 4.F.6 Kriteria penerimaan
+
 - Login Google di browser sistem; URL otorisasi hanya berisi scope `drive.appdata`.
 - Unggah, daftar, pulihkan, hapus versi bekerja; blob identik tidak diunggah ulang; retensi dan GC bekerja aman; varian (RetroArch) tetap utuh.
 - File tidak tampak di Drive biasa, hanya di data aplikasi.
@@ -275,6 +295,7 @@ Simpan hash sinkron terakhir per game. Bila cloud lebih baru **dan** save lokal 
 - Tes otomatis terhadap mock Drive (multipart/resumable, 401→refresh, 429 backoff, pruning, dedupe, GC, manifest kembar) dan untuk PKCE/loopback.
 
 ### 4.G Lisensi
+
 - **Langkah pertama**: salin `LICENSE` MIT asli ke `LICENSES/MIT-hydra.txt` (verbatim, hak cipta asli Hydra) sebelum menggantinya.
 - `LICENSE` baru = Apache License 2.0, `Copyright 2026 Raka Mahendra`.
 - `NOTICE` dan README: nama + tahun, atribusi Hydra Launcher (MIT), pernyataan fork independen/tidak berafiliasi.
@@ -283,6 +304,7 @@ Simpan hash sinkron terakhir per game. Bila cloud lebih baru **dan** save lokal 
 - Catatan: panduan teknis, bukan nasihat hukum.
 
 ### 4.H Hubungan dengan upstream (beku)
+
 - `baseline-hydra` adalah titik akhir sinkronisasi. Tanpa merge berkala; cherry-pick selektif (`git cherry-pick -x`) dicatat di `docs/upstream-policy.md`.
 - **Ambil**: keamanan, crash, kompatibilitas API dan format data, perbaikan modul yang tidak kita ubah (`hydra-native`, `torrent-bridge`, unduhan). **Tolak**: fitur yang dimatikan flag; perubahan Electron/updater/Sentry/login.
 - Agar cherry-pick tetap mungkin: tanpa formatter massal, tanpa rename/pindah file besar, kode baru di file baru, perubahan file upstream minimal, commit per topik.
@@ -292,22 +314,23 @@ Simpan hash sinkron terakhir per game. Bila cloud lebih baru **dan** save lokal 
 
 Fase selesai hanya jika acceptance criteria terbukti lewat perintah/hasil nyata dan dicatat di `docs/MIGRATION_LOG.md`.
 
-| Fase | Isi | Acceptance criteria |
-|---|---|---|
-| 0 | Clone penuh → push ke `Raka-Mahendra/sphinx`; tag `baseline-hydra`; diff terhadap direktori kerja; audit lengkap; klasifikasi `needsAuth` + verifikasi runtime jalur anonim; verifikasi `hydra-native`/`sharp`/`classic-level` di Node; catat perilaku baseline (app ditutup/crash saat game berjalan; opsi NSIS) | Build Electron asli sukses; semua dokumen audit terisi (ipc-inventory, electron-api-usage, torrent-audit, account-dependent-features, cloud-save-audit, network-calls, epic-audit, baseline-behavior) |
-| 1 | Di atas Electron: hapus login/Sentry/workwonders; feature flag JSON + sembunyikan fitur (UI, service, handler); nonaktifkan updater Electron; lisensi Apache-2.0 + NOTICE | App jalan sebagai pengguna anonim tanpa layar login; nol request telemetry/workwonders/endpoint flag; tes per-flag lulus; `LICENSE`, `NOTICE`, `LICENSES/MIT-hydra.txt` benar |
-| 2 | Branding: nama, i18n, identitas, **logo lewat skill** (berhenti di checkpoint); generator allowlist dari source (sadar flag) + tes paritas | Logo disetujui; app Electron bernama dan berlogo Sphinx; allowlist `grep hydra`; generator menghasilkan daftar dan tes gagal bila ada kanal baru |
-| 3 | Kerangka Tauri: `src-tauri`, Vite renderer + big-picture, jendela utama | `yarn tauri dev` menampilkan UI |
-| 4 | Sidecar + shim electron (preload dipakai ulang) + bridge + allowlist (Rust + sidecar) + 4 tes crash | Semua kanal terdaftar; library, katalog, pengaturan, Big Picture bekerja seperti baseline; tes crash lulus: kill sidecar saat game berjalan (game hidup, playtime lanjut), saat unduhan (lanjut tanpa duplikasi), kill paksa lalu LevelDB terbuka lagi, sidecar menggantung terdeteksi dan di-restart |
-| 5 | Fitur platform; updater Tauri + workflow draft-release; uji Windows 10 & 11 bersih | Checklist platform lulus; update `v0.0.1`→`v0.0.2` (repo uji) sukses tanpa file terkunci dan tanpa proses tersisa; SmartScreen (unduhan browser vs update mandiri), Smart App Control, dan Defender dicatat terpisah; `SHA256SUMS` benar |
-| 6 | Torrent native di Tauri: path resource, spawn/shutdown, engine tunggal, tanpa Python | Acceptance 4.C lulus di mesin bersih; nol proses sisa |
-| 7 | Cloud save Google Drive | Acceptance 4.F.6 lulus |
-| 8 | Pembersihan dan paket: hapus Electron, `yarn tauri build`, dokumen; ukur installer dan RAM idle | Installer terbentuk; `grep` electron/sentry/analytics bersih (Node diizinkan); tidak ada Python/legendary/`.pyz`/`hydra-epic-process.exe` di installer; DoD terpenuhi |
-| 9 | (Opsional, hanya jika diminta) Linux | `.deb`/`.AppImage` jalan; `latest.json` menyusul |
+| Fase | Isi                                                                                                                                                                                                                                                                                                               | Acceptance criteria                                                                                                                                                                                                                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Clone penuh → push ke `Raka-Mahendra/sphinx`; tag `baseline-hydra`; diff terhadap direktori kerja; audit lengkap; klasifikasi `needsAuth` + verifikasi runtime jalur anonim; verifikasi `hydra-native`/`sharp`/`classic-level` di Node; catat perilaku baseline (app ditutup/crash saat game berjalan; opsi NSIS) | Build Electron asli sukses; semua dokumen audit terisi (ipc-inventory, electron-api-usage, torrent-audit, account-dependent-features, cloud-save-audit, network-calls, epic-audit, baseline-behavior)                                                                                                 |
+| 1    | Di atas Electron: hapus login/Sentry/workwonders; feature flag JSON + sembunyikan fitur (UI, service, handler); nonaktifkan updater Electron; lisensi Apache-2.0 + NOTICE                                                                                                                                         | App jalan sebagai pengguna anonim tanpa layar login; nol request telemetry/workwonders/endpoint flag; tes per-flag lulus; `LICENSE`, `NOTICE`, `LICENSES/MIT-hydra.txt` benar                                                                                                                         |
+| 2    | Branding: nama, i18n, identitas, **logo lewat skill** (berhenti di checkpoint); generator allowlist dari source (sadar flag) + tes paritas                                                                                                                                                                        | Logo disetujui; app Electron bernama dan berlogo Sphinx; allowlist `grep hydra`; generator menghasilkan daftar dan tes gagal bila ada kanal baru                                                                                                                                                      |
+| 3    | Kerangka Tauri: `src-tauri`, Vite renderer + big-picture, jendela utama                                                                                                                                                                                                                                           | `yarn tauri dev` menampilkan UI                                                                                                                                                                                                                                                                       |
+| 4    | Sidecar + shim electron (preload dipakai ulang) + bridge + allowlist (Rust + sidecar) + 4 tes crash                                                                                                                                                                                                               | Semua kanal terdaftar; library, katalog, pengaturan, Big Picture bekerja seperti baseline; tes crash lulus: kill sidecar saat game berjalan (game hidup, playtime lanjut), saat unduhan (lanjut tanpa duplikasi), kill paksa lalu LevelDB terbuka lagi, sidecar menggantung terdeteksi dan di-restart |
+| 5    | Fitur platform; updater Tauri + workflow draft-release; uji Windows 10 & 11 bersih                                                                                                                                                                                                                                | Checklist platform lulus; update `v0.0.1`→`v0.0.2` (repo uji) sukses tanpa file terkunci dan tanpa proses tersisa; SmartScreen (unduhan browser vs update mandiri), Smart App Control, dan Defender dicatat terpisah; `SHA256SUMS` benar                                                              |
+| 6    | Torrent native di Tauri: path resource, spawn/shutdown, engine tunggal, tanpa Python                                                                                                                                                                                                                              | Acceptance 4.C lulus di mesin bersih; nol proses sisa                                                                                                                                                                                                                                                 |
+| 7    | Cloud save Google Drive                                                                                                                                                                                                                                                                                           | Acceptance 4.F.6 lulus                                                                                                                                                                                                                                                                                |
+| 8    | Pembersihan dan paket: hapus Electron, `yarn tauri build`, dokumen; ukur installer dan RAM idle                                                                                                                                                                                                                   | Installer terbentuk; `grep` electron/sentry/analytics bersih (Node diizinkan); tidak ada Python/legendary/`.pyz`/`hydra-epic-process.exe` di installer; DoD terpenuhi                                                                                                                                 |
+| 9    | (Opsional, hanya jika diminta) Linux                                                                                                                                                                                                                                                                              | `.deb`/`.AppImage` jalan; `latest.json` menyusul                                                                                                                                                                                                                                                      |
 
 ## 6. Pengujian
 
 ### 6.1 Checklist manual (Windows 10 dan 11 bersih)
+
 - **Platform**: start, kontrol jendela custom, tray, single instance, deep link `sphinx://run`, autostart, notifikasi, ikon/nama di Taskbar/Start Menu/Add-Remove Programs.
 - **Fitur inti** (bandingkan dengan baseline Electron): library, tambah game, katalog dan pencarian, halaman game, unduhan, pengaturan, ganti bahasa, tema, Big Picture. Tidak ada layar/tombol login dan fitur yang dipangkas.
 - **Torrent**: seluruh daftar 4.C dari installer di mesin bersih. **Cloud save**: 4.F.6. **Update**: 4.E.
@@ -316,33 +339,35 @@ Fase selesai hanya jika acceptance criteria terbukti lewat perintah/hasil nyata 
 - **Distribusi**: SmartScreen, Smart App Control, Defender (false positive untuk paket berisi `node.exe`, addon native, engine torrent).
 
 ### 6.2 Otomatis
+
 - Pertahankan `yarn test`, `typecheck`, `lint`, `format-check`; jalankan typecheck/lint untuk flag `true` **dan** `false`.
 - Tambah: generator allowlist vs source; protokol RPC + allowlist (Rust dan sidecar); spawn/shutdown engine native dan resolusi path resource; empat skenario crash; per-flag (handler/service tidak aktif, kanal tidak di allowlist, UI tidak dirender di renderer dan big-picture, nol request jaringan); `GoogleDriveProvider` (mock Drive); PKCE/loopback; konsistensi versi tiga berkas vs tag.
 
 ## 7. Risiko dan mitigasi
 
-| ID | Risiko | Mitigasi |
-|---|---|---|
-| R1 | Perbedaan WebView2/WebKitGTK vs Chromium | Uji komponen berat; perbaikan tertarget |
-| R2 | `<webview>`, modifikasi header, CORS longgar bergantung Electron | Inventaris Fase 0; iframe/jendela anak, proxy sidecar, `tauri-plugin-http` |
-| R3 | Shim `electron` tidak lengkap; tanpa isolated world | `NotImplementedInShim`; allowlist Rust |
-| R4 | Tanpa login, jalur `needsAuth:false` ternyata menolak anonim | Verifikasi runtime; catat, jangan paksa |
-| R5 | API backend Hydra berubah/dibatasi memutus katalog/aset/download sources | Endpoint konfigurabel; pantau upstream; pesan error jelas |
-| R6 | Loader `.node`, path resource bridge, atau dua engine torrent | Fase 6; env resource dari Rust; supervisor menunggu proses lama mati |
-| R7 | Installer unsigned: SmartScreen/Smart App Control/Defender | Uji Fase 5; SHA256SUMS; gerbang keputusan signing |
-| R8 | Modul native non-N-API (mis. `classic-level`) bermasalah di Node bundel | Verifikasi Fase 0; versi Node dipin |
-| R9 | Kebocoran flag (fitur mati tetap jalan lewat kanal lain) | Allowlist dari flag + tes per-flag |
-| R10 | OAuth berstatus Testing (token 7 hari) atau consent screen belum siap | `docs/google-drive-setup.md`; Production |
-| R11 | Client secret terbaca dari binary | Wajar untuk desktop; PKCE; scope `drive.appdata` saja |
-| R12 | Kunci minisign hilang/bocor | Secret Actions + cadangan offline; dokumentasi rotasi |
-| R13 | Semantik konkurensi Drive (ETag belum terbukti), batas laju | Manifest immutable; konkurensi rendah; bukti dokumentasi |
-| R14 | Model flash tidak bisa menilai logo secara visual | Audit/preview skill; pengguna menilai di checkpoint |
-| R15 | Kuota Drive pengguna penuh | Pesan jelas; retensi kecil; dedupe |
-| R16 | Kehilangan state saat sidecar crash | Recovery scan; celah playtime didokumentasikan |
-| R17 | File terkunci saat update atau game ikut mati | Shutdown bertahap; tes mesin bersih; job object terbukti |
-| R18 | Kewajiban lisensi dependensi | Bagian 4.G |
+| ID  | Risiko                                                                   | Mitigasi                                                                   |
+| --- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| R1  | Perbedaan WebView2/WebKitGTK vs Chromium                                 | Uji komponen berat; perbaikan tertarget                                    |
+| R2  | `<webview>`, modifikasi header, CORS longgar bergantung Electron         | Inventaris Fase 0; iframe/jendela anak, proxy sidecar, `tauri-plugin-http` |
+| R3  | Shim `electron` tidak lengkap; tanpa isolated world                      | `NotImplementedInShim`; allowlist Rust                                     |
+| R4  | Tanpa login, jalur `needsAuth:false` ternyata menolak anonim             | Verifikasi runtime; catat, jangan paksa                                    |
+| R5  | API backend Hydra berubah/dibatasi memutus katalog/aset/download sources | Endpoint konfigurabel; pantau upstream; pesan error jelas                  |
+| R6  | Loader `.node`, path resource bridge, atau dua engine torrent            | Fase 6; env resource dari Rust; supervisor menunggu proses lama mati       |
+| R7  | Installer unsigned: SmartScreen/Smart App Control/Defender               | Uji Fase 5; SHA256SUMS; gerbang keputusan signing                          |
+| R8  | Modul native non-N-API (mis. `classic-level`) bermasalah di Node bundel  | Verifikasi Fase 0; versi Node dipin                                        |
+| R9  | Kebocoran flag (fitur mati tetap jalan lewat kanal lain)                 | Allowlist dari flag + tes per-flag                                         |
+| R10 | OAuth berstatus Testing (token 7 hari) atau consent screen belum siap    | `docs/google-drive-setup.md`; Production                                   |
+| R11 | Client secret terbaca dari binary                                        | Wajar untuk desktop; PKCE; scope `drive.appdata` saja                      |
+| R12 | Kunci minisign hilang/bocor                                              | Secret Actions + cadangan offline; dokumentasi rotasi                      |
+| R13 | Semantik konkurensi Drive (ETag belum terbukti), batas laju              | Manifest immutable; konkurensi rendah; bukti dokumentasi                   |
+| R14 | Model flash tidak bisa menilai logo secara visual                        | Audit/preview skill; pengguna menilai di checkpoint                        |
+| R15 | Kuota Drive pengguna penuh                                               | Pesan jelas; retensi kecil; dedupe                                         |
+| R16 | Kehilangan state saat sidecar crash                                      | Recovery scan; celah playtime didokumentasikan                             |
+| R17 | File terkunci saat update atau game ikut mati                            | Shutdown bertahap; tes mesin bersih; job object terbukti                   |
+| R18 | Kewajiban lisensi dependensi                                             | Bagian 4.G                                                                 |
 
 ## 8. Definition of Done
+
 1. `yarn tauri build` menghasilkan installer NSIS Windows yang terpasang dan berjalan; ukuran installer dan RAM idle terukur dan dicatat.
 2. Checklist 6.1 lulus; tidak ada regresi dibanding baseline kecuali yang tercatat sebagai batasan di §2.
 3. Acceptance 4.C (torrent), 4.E (update), 4.F.6 (cloud save) lulus.
@@ -356,54 +381,40 @@ Fase selesai hanya jika acceptance criteria terbukti lewat perintah/hasil nyata 
 
 ## 9. Keputusan default dan butir kecil
 
-| Hal | Keputusan |
-|---|---|
-| Platform | Windows dulu; Linux opsional Fase 9 |
-| Repo | `Raka-Mahendra/sphinx` publik; bukan fork; upstream beku |
-| Versi | 0.1.0 (numerik murni) |
-| Hak cipta | 2026 Raka Mahendra (Apache-2.0) |
-| Feature flag | JSON build-time, satu sumber |
-| Installer | NSIS saja, tanpa portable, unsigned v1 |
-| Folder data | `sphinx-launcher`; tanpa migrasi dari Hydra |
-| `crashReporter` | Dibiarkan di Fase 1 (tidak mengirim apa pun) dan hilang bersama Electron; pengganti: log lokal (sidecar menulis uncaught exception ke file log; Rust menulis panic ke log). Minidump bisa jadi backlog |
-| Ledger LevelDB `HYDRA_CLOUD_LEGACY` | Dibiarkan (data pengguna tidak dihapus); sidecar tidak menjalankan kode legacy-nya |
-| Retensi cloud save | 3 versi/game (1–10); GC masa tenggang 24 jam; konfirmasi ukuran 100 MB |
-| Bundle id | `com.sphinxlauncher.app` |
+| Hal                                 | Keputusan                                                                                                                                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Platform                            | Windows dulu; Linux opsional Fase 9                                                                                                                                                                    |
+| Repo                                | `Raka-Mahendra/sphinx` publik; bukan fork; upstream beku                                                                                                                                               |
+| Versi                               | 0.1.0 (numerik murni)                                                                                                                                                                                  |
+| Hak cipta                           | 2026 Raka Mahendra (Apache-2.0)                                                                                                                                                                        |
+| Feature flag                        | JSON build-time, satu sumber                                                                                                                                                                           |
+| Installer                           | NSIS saja, tanpa portable, unsigned v1                                                                                                                                                                 |
+| Folder data                         | `sphinx-launcher`; tanpa migrasi dari Hydra                                                                                                                                                            |
+| `crashReporter`                     | Dibiarkan di Fase 1 (tidak mengirim apa pun) dan hilang bersama Electron; pengganti: log lokal (sidecar menulis uncaught exception ke file log; Rust menulis panic ke log). Minidump bisa jadi backlog |
+| Ledger LevelDB `HYDRA_CLOUD_LEGACY` | Dibiarkan (data pengguna tidak dihapus); sidecar tidak menjalankan kode legacy-nya                                                                                                                     |
+| Retensi cloud save                  | 3 versi/game (1–10); GC masa tenggang 24 jam; konfirmasi ukuran 100 MB                                                                                                                                 |
+| Bundle id                           | `com.sphinxlauncher.app`                                                                                                                                                                               |
 
 ## 10. Butir wajib dibuktikan (bukan diasumsikan)
 
 **Tauri**
+
 1. Capability + command kustom: hanya jendela berizin; iframe/konten remote tidak bisa `invoke`; `remote.urls` minimal.
 2. `on_before_exit`; `download()`/`install()` terpisah; perilaku Windows saat install.
 3. Opsi `tauri-action` untuk draft → publish; validasi `latest.json` seluruh platform.
 4. Opsi NSIS (per-user/per-machine, oneClick), `installMode`, target bundle, batasan format versi MSI/WiX, `signCommand`.
 5. Modul native di Node bundel: `hydra-native`, `sharp`, `classic-level`.
 
-**Windows**
-6. Job object/detached spawn: game selamat dari crash sidecar, update, dan penutupan app; perilaku plugin shell Tauri saat app keluar.
-7. Perilaku baseline Electron saat app ditutup/crash dengan game berjalan + cara `watchProcesses()` memulihkan playtime (target = setara).
-8. SmartScreen (unduhan browser vs update mandiri) dan Smart App Control di Windows 11.
-9. False positive Defender untuk paket berisi `node.exe`, addon native, engine torrent.
+**Windows** 6. Job object/detached spawn: game selamat dari crash sidecar, update, dan penutupan app; perilaku plugin shell Tauri saat app keluar. 7. Perilaku baseline Electron saat app ditutup/crash dengan game berjalan + cara `watchProcesses()` memulihkan playtime (target = setara). 8. SmartScreen (unduhan browser vs update mandiri) dan Smart App Control di Windows 11. 9. False positive Defender untuk paket berisi `node.exe`, addon native, engine torrent.
 
-**Drive / Google**
-10. `ETag`/`If-Match` pada `files.update`.
-11. Batas ukuran `appProperties`.
-12. Batas laju tulis dan konkurensi aman.
-13. Ketersediaan field `about.get` (email/nama) dengan `drive.appdata`.
-14. Brand verification / batas pengguna / layar unverified / privacy policy untuk scope non-sensitif di Production.
-15. Angka kuota Drive API dari konsol.
+**Drive / Google** 10. `ETag`/`If-Match` pada `files.update`. 11. Batas ukuran `appProperties`. 12. Batas laju tulis dan konkurensi aman. 13. Ketersediaan field `about.get` (email/nama) dengan `drive.appdata`. 14. Brand verification / batas pengguna / layar unverified / privacy policy untuk scope non-sensitif di Production. 15. Angka kuota Drive API dari konsol.
 
-**Baseline dan kode**
-16. Klaim `needsAuth:false` terhadap API nyata.
-17. `hydra-epic-process.exe`, `windows-epic-process`, `managed-legendary.pyz`, `prepare-legendary.cjs` khusus Epic (jangan buang yang dipakai bersama).
-18. Python hanya dipakai legendary (sebelum dihapus dari CI).
-19. Apakah ludusavi mengunduh manifest dari internet.
+**Baseline dan kode** 16. Klaim `needsAuth:false` terhadap API nyata. 17. `hydra-epic-process.exe`, `windows-epic-process`, `managed-legendary.pyz`, `prepare-legendary.cjs` khusus Epic (jangan buang yang dipakai bersama). 18. Python hanya dipakai legendary (sebelum dihapus dari CI). 19. Apakah ludusavi mengunduh manifest dari internet.
 
-**Rilis**
-20. Kunci minisign: cadangan offline, penyimpanan terpisah dari Authenticode; pemegang kunci = pemilik repo.
-21. Celah playtime saat crash terdokumentasi dan diterima.
+**Rilis** 20. Kunci minisign: cadangan offline, penyimpanan terpisah dari Authenticode; pemegang kunci = pemilik repo. 21. Celah playtime saat crash terdokumentasi dan diterima.
 
 ## 11. Backlog pasca-migrasi
+
 1. **Achievement Lokal**: sumber definisi (Steam Web API / file lokal / lain) dan mekanisme deteksi unlock saat ini.
 2. **Epic Lokal**: autentikasi legendary tanpa server Hydra, lokasi penyimpanan status koneksi, apakah Python tetap dibundel.
 3. **Pensiun sidecar**: torrent ke Rust memakai C++ bridge yang sama (wrapper N-API → command Rust).

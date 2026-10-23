@@ -31,14 +31,14 @@ libtorrent
 
 Evidence:
 
-| Layer | Evidence |
-| --- | --- |
-| `TorrentService` adapter | `src/main/services/torrent-service.ts:4-8` |
+| Layer                                | Evidence                                               |
+| ------------------------------------ | ------------------------------------------------------ |
+| `TorrentService` adapter             | `src/main/services/torrent-service.ts:4-8`             |
 | `TorrentClient` methods and timeouts | `src/main/services/torrent-client.ts:1-3, 6-8, 39-113` |
-| Native addon resolution | `src/main/services/native-addon.ts:242-261` |
-| Torrent N-API exports | `src/main/services/native-addon.ts:226-236` |
-| C ABI bridge | `native/torrent-bridge/bridge.cpp:1-70` |
-| Rust binding/validation | `native/hydra-native/src/torrent/` |
+| Native addon resolution              | `src/main/services/native-addon.ts:242-261`            |
+| Torrent N-API exports                | `src/main/services/native-addon.ts:226-236`            |
+| C ABI bridge                         | `native/torrent-bridge/bridge.cpp:1-70`                |
+| Rust binding/validation              | `native/hydra-native/src/torrent/`                     |
 
 The port number **5881 is the BitTorrent listen port**, not a local HTTP
 control port. Control calls go through the N-API `torrentInitialize`,
@@ -57,15 +57,15 @@ control port. Control calls go through the N-API `torrentInitialize`,
 `action` payloads used by the baseline
 (`src/main/services/download/download-manager.ts`):
 
-| Action | Evidence | Purpose |
-| --- | --- | --- |
-| `start` | `:398, 2349, 2370-2497, 3191-3194` | Add/start a torrent, including selective files |
-| `pause` | `:1501` | Pause active download |
-| `cancel` | `:1611, 1631, 3153` | Remove/cancel a torrent |
-| `resume_seeding` | `:1639` | Resume seeding after completion |
-| `pause_seeding` | `:1649` | Pause seeding |
-| `set_download_limit` | `:443-447` | Apply speed limit |
-| `set_network_interface` | `:487-491` | Apply interface binding |
+| Action                  | Evidence                           | Purpose                                        |
+| ----------------------- | ---------------------------------- | ---------------------------------------------- |
+| `start`                 | `:398, 2349, 2370-2497, 3191-3194` | Add/start a torrent, including selective files |
+| `pause`                 | `:1501`                            | Pause active download                          |
+| `cancel`                | `:1611, 1631, 3153`                | Remove/cancel a torrent                        |
+| `resume_seeding`        | `:1639`                            | Resume seeding after completion                |
+| `pause_seeding`         | `:1649`                            | Pause seeding                                  |
+| `set_download_limit`    | `:443-447`                         | Apply speed limit                              |
+| `set_network_interface` | `:487-491`                         | Apply interface binding                        |
 
 The request wrapper serializes parameters with `JSON.stringify` and parses a
 `{ result }` or `{ error: { code, message } }` response
@@ -104,15 +104,15 @@ Consequences:
 
 ## 4. Timeouts and lifecycle
 
-| Item | Value | Evidence |
-| --- | ---: | --- |
-| Default request timeout | 10 s | `torrent-client.ts:2` |
-| Minimum request timeout | 1 s | `torrent-client.ts:3` |
-| Normal torrent start | 10 s | `download-manager.ts:107` |
-| Selective torrent start | 60 s | `download-manager.ts:108` |
-| Initialize | `TorrentClient.initialize` | `torrent-client.ts:39-49` |
-| Shutdown | marks closing, rejects pending, awaits backend | `torrent-client.ts:101-113` |
-| Quit integration | `TorrentService.shutdown()` in `before-quit` | `src/main/index.ts:427-432` |
+| Item                    |                                          Value | Evidence                    |
+| ----------------------- | ---------------------------------------------: | --------------------------- |
+| Default request timeout |                                           10 s | `torrent-client.ts:2`       |
+| Minimum request timeout |                                            1 s | `torrent-client.ts:3`       |
+| Normal torrent start    |                                           10 s | `download-manager.ts:107`   |
+| Selective torrent start |                                           60 s | `download-manager.ts:108`   |
+| Initialize              |                     `TorrentClient.initialize` | `torrent-client.ts:39-49`   |
+| Shutdown                | marks closing, rejects pending, awaits backend | `torrent-client.ts:101-113` |
+| Quit integration        |   `TorrentService.shutdown()` in `before-quit` | `src/main/index.ts:427-432` |
 
 `DownloadManager.initializeTorrentService` initializes the service, applies the
 network interface, resumes seeding downloads, and starts a pending download
@@ -177,7 +177,7 @@ the Tauri rewrite and must remain in the Node sidecar.
 - [ ] Run a real magnet download, pause/resume, selective download, completion,
       and seeding cycle against the baseline.
 - [ ] Confirm the effective listen socket with `Get-NetTCPConnection -LocalPort
-      5881` and with a configured interface.
+5881` and with a configured interface.
 - [ ] Confirm shutdown does not leave a listening socket or child process.
 - [ ] Record results in `docs/MIGRATION_LOG.md` before claiming Fase 0
       torrent verification.

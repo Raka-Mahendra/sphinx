@@ -211,35 +211,35 @@ export function Sidebar() {
       {achievementsEnabled &&
         userDetails === null &&
         !shouldRenderAchievementsSection && (
-        <SidebarSection title={t("achievements")}>
-          <div className="achievements-placeholder">
-            <LockIcon size={36} />
-            <h3>{t("sign_in_to_see_achievements")}</h3>
-          </div>
-          <ul className="list achievements-placeholder__blur">
-            {achievementsPlaceholder.map((achievement) => (
-              <li key={achievement.name}>
-                <div className="list__item">
-                  <img
-                    className={`list__item-image achievements-placeholder__blur ${
-                      achievement.unlocked ? "" : "list__item-image--locked"
-                    }`}
-                    src={achievement.icon}
-                    alt={achievement.displayName}
-                  />
-                  <div>
-                    <p>{achievement.displayName}</p>
-                    <small>
-                      {achievement.unlockTime != null &&
-                        formatDateTime(achievement.unlockTime)}
-                    </small>
+          <SidebarSection title={t("achievements")}>
+            <div className="achievements-placeholder">
+              <LockIcon size={36} />
+              <h3>{t("sign_in_to_see_achievements")}</h3>
+            </div>
+            <ul className="list achievements-placeholder__blur">
+              {achievementsPlaceholder.map((achievement) => (
+                <li key={achievement.name}>
+                  <div className="list__item">
+                    <img
+                      className={`list__item-image achievements-placeholder__blur ${
+                        achievement.unlocked ? "" : "list__item-image--locked"
+                      }`}
+                      src={achievement.icon}
+                      alt={achievement.displayName}
+                    />
+                    <div>
+                      <p>{achievement.displayName}</p>
+                      <small>
+                        {achievement.unlockTime != null &&
+                          formatDateTime(achievement.unlockTime)}
+                      </small>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </SidebarSection>
-      )}
+                </li>
+              ))}
+            </ul>
+          </SidebarSection>
+        )}
 
       {shouldRenderAchievementsSection && (
         <SidebarSection

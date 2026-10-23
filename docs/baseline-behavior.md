@@ -199,13 +199,13 @@ Registered scheme: `hydralauncher` (`src/main/index.ts:81-105`).
 
 Handled hosts (`src/main/index.ts:295-360`):
 
-| Deep link | Behavior |
-| --- | --- |
-| `hydralauncher://run?shop=&objectId=` | Launch game; may create main window |
-| `hydralauncher://install-source?...` | Redirect to Settings with query |
-| `hydralauncher://profile?userId=` | Redirect to profile |
-| `hydralauncher://install-theme?theme=&authorId=&authorName=` | Redirect to theme install |
-| `hydralauncher://steam-connected?...` | Complete Steam OpenID connection |
+| Deep link                                                    | Behavior                            |
+| ------------------------------------------------------------ | ----------------------------------- |
+| `hydralauncher://run?shop=&objectId=`                        | Launch game; may create main window |
+| `hydralauncher://install-source?...`                         | Redirect to Settings with query     |
+| `hydralauncher://profile?userId=`                            | Redirect to profile                 |
+| `hydralauncher://install-theme?theme=&authorId=&authorName=` | Redirect to theme install           |
+| `hydralauncher://steam-connected?...`                        | Complete Steam OpenID connection    |
 
 Second launch (`src/main/index.ts:362-386`):
 
@@ -260,17 +260,17 @@ it in the migration.
 
 Local data (`src/main/constants.ts:27-71`):
 
-| Data | Path |
-| --- | --- |
-| LevelDB | `<userData>/hydra-db` |
-| Logs | `<userData>/logs` |
-| Backups / legacy cloud-save tar | `<userData>/Backups` |
-| Assets | `<userData>/Assets` |
-| Themes | `<userData>/themes` |
-| Common redistributables | `<userData>/CommonRedist` |
-| Screenshots | `<userData>/Screenshots` |
-| Crash dumps | `app.getPath("crashDumps")` (logged at startup) |
-| v2 cloud-save temp blobs | `<temp>/hydra-cloud-saves/<snapshotId>/<hash>.blob` |
+| Data                            | Path                                                |
+| ------------------------------- | --------------------------------------------------- |
+| LevelDB                         | `<userData>/hydra-db`                               |
+| Logs                            | `<userData>/logs`                                   |
+| Backups / legacy cloud-save tar | `<userData>/Backups`                                |
+| Assets                          | `<userData>/Assets`                                 |
+| Themes                          | `<userData>/themes`                                 |
+| Common redistributables         | `<userData>/CommonRedist`                           |
+| Screenshots                     | `<userData>/Screenshots`                            |
+| Crash dumps                     | `app.getPath("crashDumps")` (logged at startup)     |
+| v2 cloud-save temp blobs        | `<temp>/hydra-cloud-saves/<snapshotId>/<hash>.blob` |
 
 The LevelDB is a single `ClassicLevel` database opened at module load
 (`src/main/level/level.ts:4-6`). A DB-open failure happens before the app's
@@ -298,6 +298,7 @@ Google tokens or Drive URLs.
   - custom `installer.nsh`.
 
   Evidence: `electron-builder.yml:60-67`.
+
 - Portable: `${name}-${version}-portable.${ext}`, `unpackDirName: false`
   (`electron-builder.yml:68-70`).
 - `npmRebuild: false` and an Electron download mirror at
@@ -319,19 +320,19 @@ userData location.
 
 ## 9. Sphinx migration requirements
 
-| Baseline behavior | Requirement |
-| --- | --- |
-| Single instance via Electron lock | Reimplement one-instance guard and deep-link forwarding in Tauri |
-| Tray always created; close destroys window but keeps process | Preserve background downloads/seeding; document close vs quit |
+| Baseline behavior                                                       | Requirement                                                                               |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Single instance via Electron lock                                       | Reimplement one-instance guard and deep-link forwarding in Tauri                          |
+| Tray always created; close destroys window but keeps process            | Preserve background downloads/seeding; document close vs quit                             |
 | Close while game running allowed; playtime flush + cloud save scheduled | Preserve game-continues behavior; make cloud-save completion explicit or document the gap |
-| Crash leaves game running, no flush | Keep restart recovery; do not claim playtime/cloud-save durability on crash |
-| `hydralauncher://` deep links | Register equivalent scheme(s) and validate every field |
-| `shell.openExternal` accepts any URL | Restrict schemes/hosts |
-| 50-minute GitHub update check | New Sphinx feed + signing; no Hydra feed |
-| Logs in `<userData>/logs`, DB in `<userData>/hydra-db` | Keep paths/format or provide migration; no silent data loss |
-| NSIS per-user assisted install, desktop shortcut always | Confirm Sphinx product name, shortcut, install scope |
-| Uninstall retains userData | Decide explicitly; do not change without notice |
-| Portable build still uses userData | Document or implement true portable mode |
+| Crash leaves game running, no flush                                     | Keep restart recovery; do not claim playtime/cloud-save durability on crash               |
+| `hydralauncher://` deep links                                           | Register equivalent scheme(s) and validate every field                                    |
+| `shell.openExternal` accepts any URL                                    | Restrict schemes/hosts                                                                    |
+| 50-minute GitHub update check                                           | New Sphinx feed + signing; no Hydra feed                                                  |
+| Logs in `<userData>/logs`, DB in `<userData>/hydra-db`                  | Keep paths/format or provide migration; no silent data loss                               |
+| NSIS per-user assisted install, desktop shortcut always                 | Confirm Sphinx product name, shortcut, install scope                                      |
+| Uninstall retains userData                                              | Decide explicitly; do not change without notice                                           |
+| Portable build still uses userData                                      | Document or implement true portable mode                                                  |
 
 ## 10. Runtime verification required
 

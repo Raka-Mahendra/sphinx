@@ -180,91 +180,94 @@ export function SettingsContextNotifications() {
       </div>
 
       {achievementsEnabled && (
-      <div className="settings-context-panel__group">
-        <h3>{t("achievement_notifications")}</h3>
+        <div className="settings-context-panel__group">
+          <h3>{t("achievement_notifications")}</h3>
 
-        <CheckboxField
-          label={t("enable_achievement_notifications")}
-          checked={form.achievementNotificationsEnabled}
-          onChange={async () => {
-            await handleChange({
-              achievementNotificationsEnabled:
-                !form.achievementNotificationsEnabled,
-            });
+          <CheckboxField
+            label={t("enable_achievement_notifications")}
+            checked={form.achievementNotificationsEnabled}
+            onChange={async () => {
+              await handleChange({
+                achievementNotificationsEnabled:
+                  !form.achievementNotificationsEnabled,
+              });
 
-            window.electron.updateAchievementCustomNotificationWindow();
-          }}
-        />
+              window.electron.updateAchievementCustomNotificationWindow();
+            }}
+          />
 
-        <CheckboxField
-          label={t("enable_achievement_custom_notifications")}
-          checked={form.achievementCustomNotificationsEnabled}
-          disabled={!form.achievementNotificationsEnabled}
-          onChange={async () => {
-            await handleChange({
-              achievementCustomNotificationsEnabled:
-                !form.achievementCustomNotificationsEnabled,
-            });
+          <CheckboxField
+            label={t("enable_achievement_custom_notifications")}
+            checked={form.achievementCustomNotificationsEnabled}
+            disabled={!form.achievementNotificationsEnabled}
+            onChange={async () => {
+              await handleChange({
+                achievementCustomNotificationsEnabled:
+                  !form.achievementCustomNotificationsEnabled,
+              });
 
-            window.electron.updateAchievementCustomNotificationWindow();
-          }}
-        />
+              window.electron.updateAchievementCustomNotificationWindow();
+            }}
+          />
 
-        {form.achievementNotificationsEnabled &&
-          form.achievementCustomNotificationsEnabled && (
-            <>
-              <SelectField
-                className="settings-general__achievement-custom-notification-position__select-variation"
-                label={t("achievement_custom_notification_position")}
-                value={form.achievementCustomNotificationPosition}
-                onChange={handleChangeAchievementCustomNotificationPosition}
-                options={achievementCustomNotificationPositionOptions}
-              />
+          {form.achievementNotificationsEnabled &&
+            form.achievementCustomNotificationsEnabled && (
+              <>
+                <SelectField
+                  className="settings-general__achievement-custom-notification-position__select-variation"
+                  label={t("achievement_custom_notification_position")}
+                  value={form.achievementCustomNotificationPosition}
+                  onChange={handleChangeAchievementCustomNotificationPosition}
+                  options={achievementCustomNotificationPositionOptions}
+                />
 
-              <Button
-                className="settings-general__test-achievement-notification-button"
-                onClick={() =>
-                  window.electron.showAchievementTestNotification()
-                }
-              >
-                {t("test_notification")}
-              </Button>
-            </>
-          )}
-
-        {form.achievementNotificationsEnabled && (
-          <div className="settings-general__volume-control">
-            <label htmlFor="achievement-volume">
-              {t("achievement_sound_volume")}
-            </label>
-            <div className="settings-general__volume-slider-wrapper">
-              <UnmuteIcon size={16} className="settings-general__volume-icon" />
-              <input
-                id="achievement-volume"
-                type="range"
-                min="0"
-                max="100"
-                value={form.achievementSoundVolume}
-                onChange={(e) => {
-                  const volumePercent = parseInt(e.target.value, 10);
-                  if (!isNaN(volumePercent)) {
-                    handleVolumeChange(volumePercent);
+                <Button
+                  className="settings-general__test-achievement-notification-button"
+                  onClick={() =>
+                    window.electron.showAchievementTestNotification()
                   }
-                }}
-                className="settings-general__volume-slider"
-                style={
-                  {
-                    "--volume-percent": `${form.achievementSoundVolume}%`,
-                  } as React.CSSProperties
-                }
-              />
-              <span className="settings-general__volume-value">
-                {form.achievementSoundVolume}%
-              </span>
+                >
+                  {t("test_notification")}
+                </Button>
+              </>
+            )}
+
+          {form.achievementNotificationsEnabled && (
+            <div className="settings-general__volume-control">
+              <label htmlFor="achievement-volume">
+                {t("achievement_sound_volume")}
+              </label>
+              <div className="settings-general__volume-slider-wrapper">
+                <UnmuteIcon
+                  size={16}
+                  className="settings-general__volume-icon"
+                />
+                <input
+                  id="achievement-volume"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={form.achievementSoundVolume}
+                  onChange={(e) => {
+                    const volumePercent = parseInt(e.target.value, 10);
+                    if (!isNaN(volumePercent)) {
+                      handleVolumeChange(volumePercent);
+                    }
+                  }}
+                  className="settings-general__volume-slider"
+                  style={
+                    {
+                      "--volume-percent": `${form.achievementSoundVolume}%`,
+                    } as React.CSSProperties
+                  }
+                />
+                <span className="settings-general__volume-value">
+                  {form.achievementSoundVolume}%
+                </span>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
     </div>
   );
