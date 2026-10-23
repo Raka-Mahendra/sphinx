@@ -1,0 +1,386 @@
+# summary
+Ôä╣ tests 130
+Ôä╣ suites 16
+Ôä╣ pass 107
+Ôä╣ fail 21
+Ôä╣ cancelled 0
+Ôä╣ skipped 2
+Ôä╣ todo 0
+Ôä╣ duration_ms 19130.6606
+
+Ô£û failing tests:
+
+test at src\main\services\cloud-save\custom-path-approval-selection.test.ts:8:1
+Ô£û binds a remote file to an existing file with a different name (32.4988ms)
+  Error: cloud_save_custom_path_must_be_local_absolute
+      at assertAbsolutePath (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.ts:249:15)
+      at encodeCloudSaveCustomPath (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.ts:526:5)
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path-approval-selection.test.ts:12:25)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at src\main\services\cloud-save\custom-path-approval-selection.test.ts:24:1
+Ô£û rejects choosing a file for a directory snapshot (20.9278ms)
+  Error: cloud_save_custom_path_must_be_local_absolute
+      at assertAbsolutePath (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.ts:249:15)
+      at encodeCloudSaveCustomPath (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.ts:526:5)
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path-approval-selection.test.ts:30:25)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at src\main\services\cloud-save\custom-path.test.ts:235:5
+Ô£û canonicalizes an existing selected directory (25.3208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'C:/Users/Raka Mahendra/AppData/Local/Temp/hydra-custom-path-iveRIL'
+  - 'C:/Users/RAKAMA~1/AppData/Local/Temp/hydra-custom-path-iveRIL'
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.test.ts:247:20)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'C:/Users/Raka Mahendra/AppData/Local/Temp/hydra-custom-path-iveRIL',
+    expected: 'C:/Users/RAKAMA~1/AppData/Local/Temp/hydra-custom-path-iveRIL',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\cloud-save\custom-path.test.ts:254:5
+Ô£û keeps an approved missing destination valid when its parent is writable (12.5986ms)
+  Error: cloud_save_custom_path_symlink_ancestor
+      at assertNoSymlinkAncestor (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.ts:627:19)
+      at async validateBoundCloudSaveCustomPathForRestore (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.ts:634:5)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/custom-path.test.ts:266:32)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at src\main\services\cloud-save\emulator-destination-store.test.ts:47:5
+Ô£û requires an existing real directory and rejects symlinks (36.4502ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-destination-sqGBFe\saves' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-destination-sqGBFe\link'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/emulator-destination-store.test.ts:53:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-destination-sqGBFe\\saves',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-destination-sqGBFe\\link'
+  }
+
+test at src\main\services\cloud-save\emulator-manual-file-eligibility.test.ts:36:5
+Ô£û allows an explicitly selected N64 Transfer Pak .sav with an arbitrary GB name (35.0265ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-transfer-pak-gvKOO0\Pokemon Red.sav' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-transfer-pak-gvKOO0\linked.sav'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/emulator-manual-file-eligibility.test.ts:48:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-transfer-pak-gvKOO0\\Pokemon Red.sav',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-transfer-pak-gvKOO0\\linked.sav'
+  }
+
+test at src\main\services\cloud-save\retroarch-safe-move.test.ts:317:9
+Ô£û rejects a symlink in selected files without modifying its referent (38.6172ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\retroarch-battery-rSuxrS\outside.rtc' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\retroarch-battery-rSuxrS\chosen\Mario_USA.rtc'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/retroarch-safe-move.test.ts:328:17)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\retroarch-battery-rSuxrS\\outside.rtc',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\retroarch-battery-rSuxrS\\chosen\\Mario_USA.rtc'
+  }
+
+test at src\main\services\cloud-save\retroarch-safe-move.test.ts:317:9
+Ô£û rejects a symlink in old files without modifying its referent (21.9075ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\retroarch-battery-8BuJMk\outside.rtc' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\retroarch-battery-8BuJMk\active\Mario_EUROPE.rtc'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/retroarch-safe-move.test.ts:328:17)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\retroarch-battery-8BuJMk\\outside.rtc',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\retroarch-battery-8BuJMk\\active\\Mario_EUROPE.rtc'
+  }
+
+test at src\main\services\cloud-save\retroarch-save-config.test.ts:15:5
+Ô£û resolves content and sorted save directories (2.8617ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'C:\\home\\user\\saves\\mGBA'
+  - '\\home\\user\\saves\\mGBA'
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/retroarch-save-config.test.ts:25:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1889:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'C:\\home\\user\\saves\\mGBA',
+    expected: '\\home\\user\\saves\\mGBA',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\cloud-save\retroarch-save-config.test.ts:36:5
+Ô£û resolves state settings independently of battery saves (0.7441ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'C:\\home\\user\\saves'
+  - '\\home\\user\\saves'
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/retroarch-save-config.test.ts:44:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'C:\\home\\user\\saves',
+    expected: '\\home\\user\\saves',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\cloud-save\retroarch-save-config.test.ts:140:5
+Ô£û uses RetroArch's rgui_config_directory for overrides (15.6854ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'C:\\home\\user\\custom-config'
+  - '\\home\\user\\custom-config'
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/retroarch-save-config.test.ts:143:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'C:\\home\\user\\custom-config',
+    expected: '\\home\\user\\custom-config',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\cloud-save\rpcs3-config-root.test.ts:49:5
+Ô£û deduplicates symlinks and binds the selected root (10.9508ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-rpcs3-config-dr5Ecn\actual' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-rpcs3-config-dr5Ecn\alias'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/rpcs3-config-root.test.ts:53:9
+      at async withFixture (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/rpcs3-config-root.test.ts:12:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-rpcs3-config-dr5Ecn\\actual',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-rpcs3-config-dr5Ecn\\alias'
+  }
+
+test at src\main\services\cloud-save\rpcs3-save-layout.test.ts:28:5
+Ô£û resolves the default and custom VFS mounts (17.1464ms)
+  Error [YAMLParseError]: Invalid escape sequence \p at line 1, column 26:
+  
+  "$(EmulatorDir)": "\rpcs3\portable/"
+                           ^
+  
+      at Composer.onError (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\composer.js:70:34)
+      at _onError (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\resolve-flow-scalar.js:10:42)
+      at doubleQuotedValue (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\resolve-flow-scalar.js:153:17)
+      at Object.resolveFlowScalar (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\resolve-flow-scalar.js:22:21)
+      at Object.composeScalar (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\compose-scalar.js:11:29)
+      at composeNode (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\compose-node.js:26:34)
+      at Object.resolveBlockMap (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\resolve-block-map.js:85:19)
+      at resolveCollection (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\compose-collection.js:13:27)
+      at Object.composeCollection (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\compose-collection.js:59:16)
+      at Object.composeNode (C:\Users\Raka Mahendra\Dokumen\Projects\sphinx\node_modules\yaml\dist\compose\compose-node.js:34:42) {
+    code: 'BAD_DQ_ESCAPE',
+    pos: [ 25, 26 ],
+    linePos: [ { line: 1, col: 26 }, { line: 1, col: 27 } ]
+  }
+
+test at src\main\services\cloud-save\rpcs3-save-scanner.test.ts:201:5
+Ô£û keeps invalid and symlinked state roots partial (5.1671ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-rpcs3-l2qf9d\outside' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-rpcs3-l2qf9d\savestates'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/rpcs3-save-scanner.test.ts:214:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-rpcs3-l2qf9d\\outside',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-rpcs3-l2qf9d\\savestates'
+  }
+
+test at src\main\services\cloud-save\rpcs3-savestate-restore.test.ts:28:5
+Ô£û rejects a symlinked state directory or destination (8.5933ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-rpcs3-XBRahd\outside' -> 'C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-rpcs3-XBRahd\savestates'
+      at async Object.symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/cloud-save/rpcs3-savestate-restore.test.ts:34:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-rpcs3-XBRahd\\outside',
+    dest: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-rpcs3-XBRahd\\savestates'
+  }
+
+test at src\main\services\notifications\notification-icon.test.ts:22:1
+Ô£û C:\Users\Raka Mahendra\Dokumen\Projects\sphinx-baseline-hydra\src\main\services\notifications\notification-icon.test.ts (1.1723ms)
+  Error: EPERM, Permission denied: \\?\C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-notification-icon-test-mXj0jg '\\?\C:\Users\RAKAMA~1\AppData\Local\Temp\hydra-notification-icon-test-mXj0jg'
+      at Object.rmSync (node:fs:1283:18)
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/notifications/notification-icon.test.ts:23:8)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1397:25)
+      at TestHook.run (node:internal/test_runner/test:1741:18)
+      at TestHook.run (node:internal/util:581:20)
+      at Test.runHook (node:internal/test_runner/test:1284:20)
+      at after (node:internal/test_runner/test:1337:20)
+      at Test.run (node:internal/test_runner/test:1423:13) {
+    errno: 1,
+    code: 'EPERM',
+    path: '\\\\?\\C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-notification-icon-test-mXj0jg',
+    syscall: 'rm'
+  }
+
+test at src\main\services\retroarch\retroarch-config-paths.test.ts:6:5
+Ô£û finds the macOS config subfolder for standalone and Steam builds (13.7697ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(retroArchConfigCandidates("/Games/RetroArch/retroarch", "darwin", home).includes("/Games/RetroArch/config/retroarch.cfg"))
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/retroarch/retroarch-config-paths.test.ts:11:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at node:internal/test_runner/test:1887:71
+      at node:internal/per_context/primordials:504:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:478:3)
+      at node:internal/per_context/primordials:504:9
+      at Array.map (<anonymous>) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src\main\services\retroarch\rom-archive.test.ts:98:5
+Ô£û reads a real zip archive without extracting files (99.3998ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   name: 'nested\\Game [USA] ├®.NES',
+  -   name: 'nested/Game [USA] ├®.NES',
+      platform: 'nes',
+      size: 25
+    }
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/retroarch/rom-archive.test.ts:116:20)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { name: 'nested\\Game [USA] ├®.NES', size: 25, platform: 'nes' },
+    expected: { name: 'nested/Game [USA] ├®.NES', size: 25, platform: 'nes' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\retroarch\rom-archive.test.ts:98:5
+Ô£û reads a real 7z archive without extracting files (68.7176ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   name: 'nested\\Game [USA] ├®.NES',
+  -   name: 'nested/Game [USA] ├®.NES',
+      platform: 'nes',
+      size: 25
+    }
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/retroarch/rom-archive.test.ts:116:20)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { name: 'nested\\Game [USA] ├®.NES', size: 25, platform: 'nes' },
+    expected: { name: 'nested/Game [USA] ├®.NES', size: 25, platform: 'nes' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\steam-integration\steam-installation.test.ts:64:1
+Ô£û derives the Steam Proton prefix from the app installation (2.6668ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '\\mnt\\steam\\steamapps\\compatdata\\620\\pfx'
+  - '/mnt/steam/steamapps/compatdata/620/pfx'
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/steam-integration/steam-installation.test.ts:65:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '\\mnt\\steam\\steamapps\\compatdata\\620\\pfx',
+    expected: '/mnt/steam/steamapps/compatdata/620/pfx',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src\main\services\wine.test.ts:46:5
+Ô£û resolves the active profile from user.reg (12.0149ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      name: 'other-user',
+  +   path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-wine-prefix-Oq1jUG\\prefix\\drive_c\\users\\other-user',
+  -   path: 'C:\\Users\\Raka Mahendra\\AppData\\Local\\Temp\\hydra-wine-prefix-Oq1jUG\\prefix\\drive_c\\users\\other-user',
+      windowsPath: 'C:/users/other-user'
+    }
+  
+      at TestContext.<anonymous> (file:///C:/Users/Raka%20Mahendra/Dokumen/Projects/sphinx-baseline-hydra/src/main/services/wine.test.ts:58:16)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { name: 'other-user', path: 'C:\\Users\\RAKAMA~1\\AppData\\Local\\Temp\\hydra-wine-prefix-Oq1jUG\\prefix\\drive_c\\users\\other-user', windowsPath: 'C:/users/other-user' },
+    expected: { name: 'other-user', path: 'C:\\Users\\Raka Mahendra\\AppData\\Local\\Temp\\hydra-wine-prefix-Oq1jUG\\prefix\\drive_c\\users\\other-user', windowsPath: 'C:/users/other-user' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

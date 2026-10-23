@@ -50,6 +50,11 @@ diubah.
   terpisah agar tidak ada klaim baseline yang keliru.
 - Tag `v4.1.6` bukan `be492f5` dan bukan `a47faed`. Jarak tag `v4.1.6` ke clone
   HEAD adalah 352 commit (`git describe` = `v4.1.4-352-ga47faed27`).
+- Branch `baseline-hydra` dihapus (2026-10-23) agar tidak ada branch dan tag
+  bernama sama; tag `baseline-hydra` tetap menunjuk `be492f5`. Bukti:
+  `git rev-parse refs/tags/baseline-hydra` = `be492f5e3...`, sedangkan
+  `git show-ref --heads baseline-hydra` kosong dan `git branch` hanya memuat
+  `main` dan `sphinx/tauri-migration`.
 
 ## Selisih direktori kerja vs upstream
 
@@ -208,10 +213,15 @@ diverifikasi atau dijalankan.
   eksplisit sebelum dijalankan.
 - **Diputuskan (2026-10-23):** baseline final adalah `be492f5` (tag dan branch
   `baseline-hydra`). Opsi `a47faed` dan `v4.1.6` tidak dipakai.
-- **Keputusan:** arsitektur cloud save Google Drive vs kelanjutan Hydra API;
-  lihat `docs/cloud-save-audit.md`.
-- **Keputusan:** apakah Sphinx mempertahankan pipeline native v2 dan hanya
-  mengganti provider remote, atau membangun ulang cloud save.
+- **Diputuskan (2026-10-23): cloud save memakai Google Drive, bukan kelanjutan
+  Hydra API.** Ini **bukan keputusan terbuka**: arsitekturnya sudah ditetapkan di
+  `PRD.md` §4.F, khususnya §4.F.3 (blob content-addressed `<gameKey>/<hash>` +
+  manifest immutable `<gameKey>/snapshots/<version>.json`, tanpa `index.json`
+  mutable, indeks cepat lewat `appProperties`, GC mark-and-sweep, retensi per
+  versi). Pipeline native v2 dipertahankan utuh dan `GoogleDriveProvider`
+  **hanya mengganti tujuan upload/restore** (`PRD.md` §4.F.1); jalur legacy
+  `SubscriptionRequiredError` dihapus. `docs/cloud-save-audit.md` tetap berlaku
+  sebagai potret baseline, bukan sebagai pembuka pilihan.
 - **Keputusan:** apakah installer Sphinx tetap menyimpan userData saat
   uninstall seperti baseline.
 - **Catatan:** auto-update masih menunjuk `hydralauncher/hydra`; harus diganti
@@ -249,7 +259,17 @@ Sisa 22 kegagalan `yarn test` bersifat lingkungan Windows dan sudah ada sebelum
 Fase 1: symlink `EPERM` dan pemisah/casing path di `cloud-save/*`, `retroarch/*`,
 `steam-installation`, `umu-launch-monitor`, `wine`, dan `notification-icon`.
 Tidak ada kegagalan yang terkait feature flag. Suite Epic (`services/epic`)
-dikecualikan karena Linux-only.
+dikecualikan karena Linux-only. Daftar lengkap per tes, per penyebab, dan bukti
+reproduksi di baseline ada di `docs/windows-environmental-test-failures.md`.
+
+Bukti bahwa ini bukan regresi: worktree bersih di commit baseline `be492f5`
+(tag `baseline-hydra`) menjalankan 16 file tes yang sama dan menghasilkan
+**130 tes: 107 lulus, 21 gagal, 2 skip**, dengan 21 lokasi kegagalan yang
+identik dengan kondisi sekarang. Satu-satunya selisih adalah
+`umu-launch-monitor.test.ts:120:5` yang bersifat flake bergantung beban
+(lulus 6/6 saat dijalankan sendiri, dan lulus di batch baseline). Output mentah:
+`docs/evidence/baseline-hydra-failing-tests.txt` dan
+`docs/evidence/fase1-full-suite-failing-tests.txt`.
 
 ### Jalankan aplikasi secara anonim
 
@@ -268,14 +288,65 @@ dikecualikan karena Linux-only.
 - `src/main/constants.ts` masih gagal dengan `TypeError` jika
   `MAIN_VITE_API_URL` tidak diisi; `.env` lokal (git-ignored) diperlukan untuk
   menjalankan `yarn dev`.
-- Temuan supply-chain renderer remote (`window-manager.ts`) masih terbuka.
-- Keputusan arsitektur cloud save Google Drive masih terbuka.
+- Keputusan arsitektur cloud save Google Drive **bukan** keputusan terbuka;
+  sudah ditetapkan di `PRD.md` §4.F.3.
+- Temuan supply-chain renderer remote (`window-manager.ts`) masih terbuka; opsi
+  dan rekomendasi dicatat di bagian "Remote renderer dan trust removal" di
+  bawah, dan **belum diimplementasikan** (keputusan sebelum Fase 3).
+
+## Remote renderer dan trust removal (opsi, belum dikerjakan)
+
+Konteks. Di produksi, `WindowManager.loadWindowURL`
+(`src/main/services/window-manager.ts:143-158`) memuat renderer dari
+`https://release-v<versi>.<MAIN_VITE_LAUNCHER_SUBDOMAIN>` bila env subdomain
+diisi, dengan fallback ke `out/renderer/index.html`. Origin remote itu juga
+dimasukkan sebagai origin tepercaya oleh pengecekan pengirim IPC di
+`src/main/events/epic/assert-trusted-sender.ts:22-27` dan
+`src/main/events/misc/file-system.ts:25-46`. Artinya kode dari host remote dapat
+memanggil kanal IPC dengan hak yang sama seperti bundel lokal.
+
+Opsi.
+
+- **A. Buang total — renderer hanya dari bundel lokal.** Hapus join remote di
+  `loadWindowURL`, hapus origin remote dari daftar tepercaya, dan hapus
+  `MAIN_VITE_LAUNCHER_SUBDOMAIN` dari `.env.example` dan `vite-env.d.ts`.
+  Fail-closed: bila bundel lokal tidak ada, muat gagal (tidak ada fallback
+  remote). Kelebihan: permukaan serangan terkecil, tidak ada kode remote dengan
+  akses IPC, tidak ada ketergantungan host eksternal saat boot. Kekurangan:
+  tidak ada pembaruan UI OTA (perubahan UI butuh rilis ulang).
+- **B. Pertahankan, tetapi di sandbox dan tanpa IPC.** Muat UI remote di
+  `WebContentsView`/`<webview>` terpisah tanpa preload dan tanpa akses IPC;
+  komunikasi lewat pesan tersaring. Kelebihan: OTA tetap ada. Kekurangan:
+  kompleksitas besar, permukaan baru (CSP, SRI, pinning), tidak sepadan untuk
+  launcher local-first.
+- **C. Pertahankan seperti sekarang.** Kelebihan: nol kerja. Kekurangan: host
+  remote dapat mengeksekusi IPC (setara eksekusi kode), supply-chain tak
+  terkendali.
+
+Rekomendasi: **Opsi A**, sesuai default pengguna — renderer hanya dari bundel
+lokal, tanpa kode remote yang punya akses IPC. Bila OTA UI benar-benar
+dibutuhkan nanti, evaluasi ulang dengan Opsi B (sandbox, tanpa preload/IPC) dan
+buktikan keamanannya sebelum dipakai. Keputusan final sebelum Fase 3; belum
+diimplementasikan di Fase 1.
+
+## Prasyarat workflow rilis (Fase 5)
+
+- `src/main/constants.ts:15` memanggil
+  `import.meta.env.MAIN_VITE_API_URL.includes("staging")` tanpa guard; tanpa
+  `.env`/nilai env ini, `yarn dev` dan build gagal dengan `TypeError`. Workflow
+  rilis Fase 5 harus menginjeksi `MAIN_VITE_API_URL` (dan varian staging) lewat
+  secret CI, bukan `.env` lokal, memberi pesan gagal yang jelas bila env kosong
+  (atau menambah guard di `constants.ts`), dan mendokumentasikan env wajib untuk
+  build dev vs produksi. Dicatat sebagai prasyarat, belum dikerjakan.
 
 ## Langkah berikutnya
 
 1. Pengguna membuat/mengonfirmasi repo publik non-fork `Raka-Mahendra/sphinx`.
 2. Tambahkan `origin`, lalu minta izin `git push`.
 3. Selesaikan verifikasi `hydra-native.node` (prebuilt atau toolchain).
-4. Hapus pemuatan renderer remote dan origin IPC tepercaya sebelum rilis.
-5. Lanjutkan Fase 1/2: audit handler `feature_unavailable` di seluruh pemanggil
-   renderer, lalu port ke Tauri.
+4. Putuskan opsi remote renderer/trust (rekomendasi: Opsi A) **sebelum Fase 3**,
+   lalu implementasikan.
+5. Catat `src/main/constants.ts`/`MAIN_VITE_API_URL` sebagai prasyarat workflow
+   rilis Fase 5.
+6. Lanjutkan Fase 2 Bagian A (logo) sampai checkpoint konsep, lalu Bagian B
+   (audit handler `feature_unavailable`) dan port ke Tauri.
