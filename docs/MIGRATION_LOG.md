@@ -202,11 +202,12 @@ diverifikasi atau dijalankan.
   Rust + MSVC + Windows SDK. Perlu addon prebuilt resmi atau instalasi
   toolchain. Tanpa ini Fase 0 belum memenuhi verifikasi native secara penuh.
 - **Blocker:** repo `Raka-Mahendra/sphinx` yang ada adalah fork publik berisi
-  materi. PRD meminta repo publik non-fork yang kosong. Pengguna harus
-  membuat/mengonfirmasi repo tersebut sebelum `origin` ditambahkan.
-- **Izin:** `git push` belum dilakukan dan memerlukan izin eksplisit pengguna.
-- **Keputusan:** konfirmasi SHA baseline final (`be492f5` vs `a47faed` vs
-  `v4.1.6`).
+  materi. PRD meminta repo publik non-fork yang kosong. Pengguna akan
+  membuat/mengonfirmasi repo tersebut; `origin` ditambahkan setelah itu.
+- **Izin:** `git push` ditahan atas permintaan pengguna dan memerlukan izin
+  eksplisit sebelum dijalankan.
+- **Diputuskan (2026-10-23):** baseline final adalah `be492f5` (tag dan branch
+  `baseline-hydra`). Opsi `a47faed` dan `v4.1.6` tidak dipakai.
 - **Keputusan:** arsitektur cloud save Google Drive vs kelanjutan Hydra API;
   lihat `docs/cloud-save-audit.md`.
 - **Keputusan:** apakah Sphinx mempertahankan pipeline native v2 dan hanya
