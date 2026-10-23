@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import rawFeatureFlags from "./feature-flags.json";
+import rawFeatureFlags from "./feature-flags.json" with { type: "json" };
 
 export type FeatureFlag = keyof typeof rawFeatureFlags;
 
