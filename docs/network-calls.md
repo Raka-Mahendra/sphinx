@@ -5,6 +5,10 @@ Audit date: 2026-10-23.
 Scope: outbound HTTP(S), WebSocket, P2P, build-time downloads, and local
 listeners. No application code was changed by this audit.
 
+> **Fase 1 update (2026-10-23).** Sections 1–13 are the untouched baseline
+> audit. Section 14 records what Fase 1 changed relative to that baseline. Read
+> section 14 for the current state of the code.
+
 ## 1. Method and limits
 
 - Static scan of `src/`, `scripts/`, `native/`, and `ludusavi/`, excluding
@@ -20,15 +24,15 @@ listeners. No application code was changed by this audit.
 
 These values are injected at build time, not hardcoded in the repository:
 
-| Variable | Purpose | Evidence |
-| --- | --- | --- |
-| `MAIN_VITE_API_URL` | Hydra API base URL | `src/main/services/hydra-api.ts:374-376`; `.env.example:1` |
-| `MAIN_VITE_AUTH_URL` | Hydra login/auth page base | `src/main/services/window-manager.ts:907`; `.env.example:2` |
-| `MAIN_VITE_CHECKOUT_URL` | Subscription checkout opened in the system browser | `src/main/events/misc/open-checkout.ts:28-40` |
-| `MAIN_VITE_EXTERNAL_RESOURCES_URL` | Declared for the main process; no baseline call site found | `src/main/vite-env.d.ts:8` |
-| `RENDERER_VITE_EXTERNAL_RESOURCES_URL` | Remote `bundle.js` injected into renderer | `src/renderer/src/app.tsx:333-337` |
-| `RENDERER_VITE_SENTRY_DSN` | Sentry browser DSN | `src/renderer/src/main.tsx:61-69`; `.github/workflows/build.yml:107` |
-| `MAIN_VITE_LAUNCHER_SUBDOMAIN` | Launcher subdomain config | `.env.example:5` |
+| Variable                               | Purpose                                                    | Evidence                                                             |
+| -------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| `MAIN_VITE_API_URL`                    | Hydra API base URL                                         | `src/main/services/hydra-api.ts:374-376`; `.env.example:1`           |
+| `MAIN_VITE_AUTH_URL`                   | Hydra login/auth page base                                 | `src/main/services/window-manager.ts:907`; `.env.example:2`          |
+| `MAIN_VITE_CHECKOUT_URL`               | Subscription checkout opened in the system browser         | `src/main/events/misc/open-checkout.ts:28-40`                        |
+| `MAIN_VITE_EXTERNAL_RESOURCES_URL`     | Declared for the main process; no baseline call site found | `src/main/vite-env.d.ts:8`                                           |
+| `RENDERER_VITE_EXTERNAL_RESOURCES_URL` | Remote `bundle.js` injected into renderer                  | `src/renderer/src/app.tsx:333-337`                                   |
+| `RENDERER_VITE_SENTRY_DSN`             | Sentry browser DSN                                         | `src/renderer/src/main.tsx:61-69`; `.github/workflows/build.yml:107` |
+| `MAIN_VITE_LAUNCHER_SUBDOMAIN`         | Launcher subdomain config                                  | `.env.example:5`                                                     |
 
 Observed runtime behavior on 2026-10-23:
 
@@ -41,18 +45,18 @@ Observed runtime behavior on 2026-10-23:
 
 ## 3. First-party Hydra traffic
 
-| Host / path | When | Data | Notes |
-| --- | --- | --- | --- |
-| `MAIN_VITE_API_URL` + `/games/*`, `/download-sources/*`, `/decky/*` | Catalogue, details, downloads | Public metadata, object IDs, source URLs | 15 explicit public main-process calls |
-| `MAIN_VITE_API_URL` + `/profile/*`, `/auth/*`, `/library/*` | Login/account features | Bearer token, profile, library, friends, chat, achievements | Removed or flagged |
-| `MAIN_VITE_API_URL` + `/profile/cloud-saves/*`, `/profile/games/artifacts` | Cloud save | Snapshot manifests, presigned S3 URLs, tar/blobs | Hydra subscription required |
-| `MAIN_VITE_API_URL` + `/profile/integrations/epic` | Epic integration | Epic account link/sync data | Epic flag |
-| `MAIN_VITE_AUTH_URL` | Login window only | Login page | Removed with account |
-| `MAIN_VITE_CHECKOUT_URL` | Subscription checkout | Payment page | Removed with account |
-| Realtime WebSocket from `POST /auth/realtime` | Logged-in only | Chat/friends events | URL/token issued by Hydra; not hardcoded |
-| `cdn.losbroxas.org` | Favicon, Ludusavi manifest, native manifest | Static assets/manifest | `src/shared/index.ts:348`; `ludusavi/config.yaml:4`; `native/hydra-native/src/cloud_save/manifest/source.rs:1` |
-| `workwonders.app` | WorkWonders SDK | Changelog/feedback/knowledge; token if present | CORS allowlist at `window-manager.ts:351-386`; removed with account |
-| `https://release-v<version>.<MAIN_VITE_LAUNCHER_SUBDOMAIN>` | Production renderer HTML/JS | The entire app UI, from a remote host | `src/main/services/window-manager.ts:149-162`; trusted as an IPC origin by `events/epic/assert-trusted-sender.ts:22-27` and `events/misc/file-system.ts:21-33` |
+| Host / path                                                                | When                                        | Data                                                        | Notes                                                                                                                                                          |
+| -------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MAIN_VITE_API_URL` + `/games/*`, `/download-sources/*`, `/decky/*`        | Catalogue, details, downloads               | Public metadata, object IDs, source URLs                    | 15 explicit public main-process calls                                                                                                                          |
+| `MAIN_VITE_API_URL` + `/profile/*`, `/auth/*`, `/library/*`                | Login/account features                      | Bearer token, profile, library, friends, chat, achievements | Removed or flagged                                                                                                                                             |
+| `MAIN_VITE_API_URL` + `/profile/cloud-saves/*`, `/profile/games/artifacts` | Cloud save                                  | Snapshot manifests, presigned S3 URLs, tar/blobs            | Hydra subscription required                                                                                                                                    |
+| `MAIN_VITE_API_URL` + `/profile/integrations/epic`                         | Epic integration                            | Epic account link/sync data                                 | Epic flag                                                                                                                                                      |
+| `MAIN_VITE_AUTH_URL`                                                       | Login window only                           | Login page                                                  | Removed with account                                                                                                                                           |
+| `MAIN_VITE_CHECKOUT_URL`                                                   | Subscription checkout                       | Payment page                                                | Removed with account                                                                                                                                           |
+| Realtime WebSocket from `POST /auth/realtime`                              | Logged-in only                              | Chat/friends events                                         | URL/token issued by Hydra; not hardcoded                                                                                                                       |
+| `cdn.losbroxas.org`                                                        | Favicon, Ludusavi manifest, native manifest | Static assets/manifest                                      | `src/shared/index.ts:348`; `ludusavi/config.yaml:4`; `native/hydra-native/src/cloud_save/manifest/source.rs:1`                                                 |
+| `workwonders.app`                                                          | WorkWonders SDK                             | Changelog/feedback/knowledge; token if present              | CORS allowlist at `window-manager.ts:351-386`; removed with account                                                                                            |
+| `https://release-v<version>.<MAIN_VITE_LAUNCHER_SUBDOMAIN>`                | Production renderer HTML/JS                 | The entire app UI, from a remote host                       | `src/main/services/window-manager.ts:149-162`; trusted as an IPC origin by `events/epic/assert-trusted-sender.ts:22-27` and `events/misc/file-system.ts:21-33` |
 
 Remote renderer branch: when `MAIN_VITE_LAUNCHER_SUBDOMAIN` is set, every
 window tries to load `https://release-v<dashed-version>.<subdomain>#/...`
@@ -85,20 +89,20 @@ extending that redaction set.
 
 ## 4. Catalogue, store, and metadata
 
-| Host | Used for | Evidence |
-| --- | --- | --- |
-| `store.steampowered.com` | Store search/details | `src/main/services/steam.ts:157`; Steam store session |
-| `api.steampowered.com` | Steam Web API | `src/main/services/steam-integration/steam-web-api.ts:14` |
-| `steamcommunity.com` | Community achievements/profile | `steam-integration/steam-community-achievements.ts:1`; `steam-store-session.ts:271` |
-| `cdn.akamai.steamstatic.com` | Store artwork | game details sidebar; `steam-store-session.ts` |
-| `cdn.cloudflare.steamstatic.com` | Profile/achievement images | Big Picture/profile; Steam community |
-| `shared.steamstatic.com` | Shared Steam images | library merge/game launcher |
-| `steam250.com` | Steam top-250 metadata | `src/main/services/steam-250.ts:8` |
-| `archive.org` | Archive.org metadata/download | `src/shared/archive-org.ts:6` |
-| `hydrathemes.shop` | Theme catalogue link | `src/renderer/src/constants.ts:33` |
-| `hydrawrapped.com` | User-clicked wrapped page | `wrapped-tab.tsx:93` |
-| `www.protondb.com` | User-clicked ProtonDB link | `protondb-section.tsx:109` |
-| `docs.hydralauncher.gg` | Theme documentation link | `add-theme-modal.tsx:33` |
+| Host                             | Used for                       | Evidence                                                                            |
+| -------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------- |
+| `store.steampowered.com`         | Store search/details           | `src/main/services/steam.ts:157`; Steam store session                               |
+| `api.steampowered.com`           | Steam Web API                  | `src/main/services/steam-integration/steam-web-api.ts:14`                           |
+| `steamcommunity.com`             | Community achievements/profile | `steam-integration/steam-community-achievements.ts:1`; `steam-store-session.ts:271` |
+| `cdn.akamai.steamstatic.com`     | Store artwork                  | game details sidebar; `steam-store-session.ts`                                      |
+| `cdn.cloudflare.steamstatic.com` | Profile/achievement images     | Big Picture/profile; Steam community                                                |
+| `shared.steamstatic.com`         | Shared Steam images            | library merge/game launcher                                                         |
+| `steam250.com`                   | Steam top-250 metadata         | `src/main/services/steam-250.ts:8`                                                  |
+| `archive.org`                    | Archive.org metadata/download  | `src/shared/archive-org.ts:6`                                                       |
+| `hydrathemes.shop`               | Theme catalogue link           | `src/renderer/src/constants.ts:33`                                                  |
+| `hydrawrapped.com`               | User-clicked wrapped page      | `wrapped-tab.tsx:93`                                                                |
+| `www.protondb.com`               | User-clicked ProtonDB link     | `protondb-section.tsx:109`                                                          |
+| `docs.hydralauncher.gg`          | Theme documentation link       | `add-theme-modal.tsx:33`                                                            |
 
 Most of these are user-visible links or catalogue metadata. Steam store and
 community endpoints are account-adjacent where they use a Steam session; they
@@ -106,19 +110,19 @@ must be gated with `STEAM_INTEGRATION`.
 
 ## 5. Download sources, hosters, and debrid
 
-| Host | Used for | Evidence |
-| --- | --- | --- |
-| `api.real-debrid.com` | Real-Debrid API | `src/main/services/download/real-debrid.ts:47` |
-| `api.alldebrid.com` | AllDebrid API | `src/main/services/download/all-debrid.ts:105, 360-399` |
-| `www.premiumize.me` | Premiumize API | `src/main/services/download/premiumize.ts:87` |
-| `api.torbox.app` | TorBox API | `src/main/services/download/torbox.ts:25` |
-| `api.gofile.io`, `gofile.io`, `gofilecdn.eu.cc` | GoFile hoster | `src/main/services/hosters/gofile.ts:57-62, 339, 396, 671` |
-| `pixeldrain.com` | PixelDrain resolver | `src/main/services/hosters/pixeldrain.ts:11` |
-| `mediafire.com`, `www.mediafire.com` | MediaFire resolver | `src/main/services/hosters/mediafire.ts:29`; `src/shared/index.ts:165,172` |
-| `www.rootz.so` | Rootz resolver | `src/main/services/hosters/rootz.ts:32` |
-| `vikingfile.com`, `vik1ngfile.site` | VikingFile resolver | `src/shared/index.ts:178-179` |
-| `1fichier.com` | 1fichier resolver | `src/shared/index.ts:165` |
-| `datanodes.to`, `fuckingfast.co` | Hoster resolvers | `src/shared/index.ts:171-174` |
+| Host                                            | Used for            | Evidence                                                                   |
+| ----------------------------------------------- | ------------------- | -------------------------------------------------------------------------- |
+| `api.real-debrid.com`                           | Real-Debrid API     | `src/main/services/download/real-debrid.ts:47`                             |
+| `api.alldebrid.com`                             | AllDebrid API       | `src/main/services/download/all-debrid.ts:105, 360-399`                    |
+| `www.premiumize.me`                             | Premiumize API      | `src/main/services/download/premiumize.ts:87`                              |
+| `api.torbox.app`                                | TorBox API          | `src/main/services/download/torbox.ts:25`                                  |
+| `api.gofile.io`, `gofile.io`, `gofilecdn.eu.cc` | GoFile hoster       | `src/main/services/hosters/gofile.ts:57-62, 339, 396, 671`                 |
+| `pixeldrain.com`                                | PixelDrain resolver | `src/main/services/hosters/pixeldrain.ts:11`                               |
+| `mediafire.com`, `www.mediafire.com`            | MediaFire resolver  | `src/main/services/hosters/mediafire.ts:29`; `src/shared/index.ts:165,172` |
+| `www.rootz.so`                                  | Rootz resolver      | `src/main/services/hosters/rootz.ts:32`                                    |
+| `vikingfile.com`, `vik1ngfile.site`             | VikingFile resolver | `src/shared/index.ts:178-179`                                              |
+| `1fichier.com`                                  | 1fichier resolver   | `src/shared/index.ts:165`                                                  |
+| `datanodes.to`, `fuckingfast.co`                | Hoster resolvers    | `src/shared/index.ts:171-174`                                              |
 
 These calls happen only when the user has configured a debrid account, selects
 a hoster, or starts a download. They still need an explicit allowlist and
@@ -127,36 +131,36 @@ allowlist must be domain-scoped, not path-only.
 
 ## 6. Emulation and runtime downloads
 
-| Host | Used for | Evidence |
-| --- | --- | --- |
-| `dl.dolphin-emu.org`, `flatpak.dolphin-emu.org`, `dolphin-emu.org` | Dolphin | `dolphin-install-source.ts:6,41`; `emulator-install-sources.ts:295` |
-| `pcsx2.net` | PCSX2 link | setup download page |
-| `rpcs3.net` | RPCS3 link | setup download page |
-| `www.duckstation.org` | DuckStation link | setup download page |
-| `www.ppsspp.org` | PPSSPP link | setup download page |
-| `buildbot.libretro.com` | RetroArch cores | `retroarch-install-sources.ts:8` |
-| `flathub.org` | Flatpak installs | `emulator-install-sources.ts:151-269` |
-| `aur.archlinux.org` | AUR sources | `emulator-install-sources.ts:87-199` |
-| `api.github.com`, `github.com` | GitHub releases and UMU | `emulator-install-sources.ts:363`; `umu-updater.ts:22` |
-| `www.playstation.com` | PS firmware link | `ps-firmware-url.ts:10` |
-| `retroachievements.org`, `media.retroachievements.org` | RetroAchievements API/images | `retro-achievements-client.ts:26`; settings page |
-| `www.retroarch.com` | RetroArch link | setup page |
+| Host                                                               | Used for                     | Evidence                                                            |
+| ------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------------- |
+| `dl.dolphin-emu.org`, `flatpak.dolphin-emu.org`, `dolphin-emu.org` | Dolphin                      | `dolphin-install-source.ts:6,41`; `emulator-install-sources.ts:295` |
+| `pcsx2.net`                                                        | PCSX2 link                   | setup download page                                                 |
+| `rpcs3.net`                                                        | RPCS3 link                   | setup download page                                                 |
+| `www.duckstation.org`                                              | DuckStation link             | setup download page                                                 |
+| `www.ppsspp.org`                                                   | PPSSPP link                  | setup download page                                                 |
+| `buildbot.libretro.com`                                            | RetroArch cores              | `retroarch-install-sources.ts:8`                                    |
+| `flathub.org`                                                      | Flatpak installs             | `emulator-install-sources.ts:151-269`                               |
+| `aur.archlinux.org`                                                | AUR sources                  | `emulator-install-sources.ts:87-199`                                |
+| `api.github.com`, `github.com`                                     | GitHub releases and UMU      | `emulator-install-sources.ts:363`; `umu-updater.ts:22`              |
+| `www.playstation.com`                                              | PS firmware link             | `ps-firmware-url.ts:10`                                             |
+| `retroachievements.org`, `media.retroachievements.org`             | RetroAchievements API/images | `retro-achievements-client.ts:26`; settings page                    |
+| `www.retroarch.com`                                                | RetroArch link               | setup page                                                          |
 
 `RetroAchievements` is an external account integration. It must be gated with
 `ACHIEVEMENTS` unless the PRD explicitly separates it.
 
 ## 7. Epic / Legendary
 
-| Host | Used for | Evidence |
-| --- | --- | --- |
-| `www.epicgames.com` | Epic OAuth login | `src/main/services/epic/auth-protocol.ts:55-58` |
-| `launcher.store.epicgames.com/graphql` | Epic achievements/store | `epic/constants.ts:8`; `epic-store-details.ts:79` |
-| `library-service.live.use1a.on.epicgames.com` | Epic playtime/library | `epic/constants.ts:40` |
-| `datastorage-public-service-liveegs.live.use1a.on.epicgames.com` | Epic cloud saves | `epic/constants.ts:48` |
-| `github.com/legendary-gl/legendary` | Legendary release | `legendary-manifest.json:3-39` |
-| `www.python.org`, `files.pythonhosted.org` | Embedded Python runtime | `legendary-manifest.json:55-70` |
-| `deb.debian.org` | Linux runtime packages | `legendary-manifest.json:87-99` |
-| `api.github.com/repos/Open-Wine-Components/umu-launcher` | UMU updates (Linux) | `umu-updater.ts:22` |
+| Host                                                             | Used for                | Evidence                                          |
+| ---------------------------------------------------------------- | ----------------------- | ------------------------------------------------- |
+| `www.epicgames.com`                                              | Epic OAuth login        | `src/main/services/epic/auth-protocol.ts:55-58`   |
+| `launcher.store.epicgames.com/graphql`                           | Epic achievements/store | `epic/constants.ts:8`; `epic-store-details.ts:79` |
+| `library-service.live.use1a.on.epicgames.com`                    | Epic playtime/library   | `epic/constants.ts:40`                            |
+| `datastorage-public-service-liveegs.live.use1a.on.epicgames.com` | Epic cloud saves        | `epic/constants.ts:48`                            |
+| `github.com/legendary-gl/legendary`                              | Legendary release       | `legendary-manifest.json:3-39`                    |
+| `www.python.org`, `files.pythonhosted.org`                       | Embedded Python runtime | `legendary-manifest.json:55-70`                   |
+| `deb.debian.org`                                                 | Linux runtime packages  | `legendary-manifest.json:87-99`                   |
+| `api.github.com/repos/Open-Wine-Components/umu-launcher`         | UMU updates (Linux)     | `umu-updater.ts:22`                               |
 
 `prepare-legendary.cjs` downloads these at install/build time. The root
 `postinstall` runs it (`package.json:30`), so a seemingly local build can make
@@ -180,13 +184,13 @@ Epic-related outbound calls. This must be gated by the Epic build variant.
 
 ## 9. Telemetry and third-party SDKs
 
-| SDK | When | Destination | Disposition |
-| --- | --- | --- | --- |
-| `@sentry/react` | Renderer startup, if DSN present | Sentry ingest | Remove |
-| `workwonders-sdk` | Renderer startup | `workwonders.app` and vendor endpoints | Remove |
-| Electron `crashReporter` | Startup, `uploadToServer: false` | Local crash dumps only | Keep local until shell removal |
-| Hydra API logger | Every Hydra request | Local log file | Keep, but redact and scrub |
-| Google Drive provider | Not present in baseline | None | New, `drive.appdata` only |
+| SDK                      | When                             | Destination                            | Disposition                    |
+| ------------------------ | -------------------------------- | -------------------------------------- | ------------------------------ |
+| `@sentry/react`          | Renderer startup, if DSN present | Sentry ingest                          | Remove                         |
+| `workwonders-sdk`        | Renderer startup                 | `workwonders.app` and vendor endpoints | Remove                         |
+| Electron `crashReporter` | Startup, `uploadToServer: false` | Local crash dumps only                 | Keep local until shell removal |
+| Hydra API logger         | Every Hydra request              | Local log file                         | Keep, but redact and scrub     |
+| Google Drive provider    | Not present in baseline          | None                                   | New, `drive.appdata` only      |
 
 No PostHog, Mixpanel, Amplitude, Segment, GA, Umami, or Plausible integration
 was found. `MAIN_VITE_ANALYTICS_API_URL` is declared in
@@ -209,13 +213,13 @@ was found. `MAIN_VITE_ANALYTICS_API_URL` is declared in
 
 ## 11. Local-only and loopback
 
-| Surface | Behavior | Evidence |
-| --- | --- | --- |
-| `local:` protocol | Serves local images/files to renderer | `src/main/index.ts:86-181` |
-| `gradient:` protocol | Generates SVG gradients | `src/main/index.ts:118-181` |
-| Notification links | `localhost` links in notification UI | Big Picture/Renderer notification components |
-| Torrent listener | `0.0.0.0:5881` default | torrent bridge |
-| Epic auth window | Isolated session, HTTPS-only navigation | `epic/auth-window.ts` |
+| Surface              | Behavior                                | Evidence                                     |
+| -------------------- | --------------------------------------- | -------------------------------------------- |
+| `local:` protocol    | Serves local images/files to renderer   | `src/main/index.ts:86-181`                   |
+| `gradient:` protocol | Generates SVG gradients                 | `src/main/index.ts:118-181`                  |
+| Notification links   | `localhost` links in notification UI    | Big Picture/Renderer notification components |
+| Torrent listener     | `0.0.0.0:5881` default                  | torrent bridge                               |
+| Epic auth window     | Isolated session, HTTPS-only navigation | `epic/auth-window.ts`                        |
 
 The `local:` protocol is a local-file read capability exposed to the renderer.
 It is not an outbound call, but it is part of the attack surface that must be
@@ -251,3 +255,63 @@ preserved or tightened during the Tauri migration.
       or fails with a clear configuration error.
 - [ ] Record results in `docs/MIGRATION_LOG.md` before claiming Fase 0 network
       verification.
+
+## 14. Fase 1 delta (2026-10-23)
+
+This section updates the baseline audit to the current branch state. It does not
+replace the clean-VM capture still required by section 13.
+
+### 14.1 Removed outbound sources
+
+| Source                              | Baseline                                                                    | Current state                                                                                                                                | Evidence                               |
+| ----------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Sentry renderer SDK                 | Init with DSN, tracing, replay                                              | **Removed.** No `sentry`/`SENTRY` reference in `src/`; no `@sentry/react` dependency                                                         | source scan of `src/`, `package.json`  |
+| `workwonders-sdk`                   | Init at renderer startup, vendor calls                                      | **Removed.** No `workwonders`/`WorkWonders` code in `src/`; only unrelated locale label keys remain                                          | source scan of `src/`                  |
+| Remote `bundle.js`                  | `RENDERER_VITE_EXTERNAL_RESOURCES_URL/bundle.js` injected into the renderer | **Removed.** No `bundle.js`/`EXTERNAL_RESOURCES_URL` reference in `src/`                                                                     | source scan of `src/`                  |
+| Hydra login/auth window             | `MAIN_VITE_AUTH_URL` login window and callback                              | **Removed** with the account slice; `HydraApi.handleExternalAuth` throws `feature_unavailable`                                               | `src/main/services/hydra-api.ts:64-66` |
+| Subscription checkout               | `MAIN_VITE_CHECKOUT_URL` opened in the system browser                       | **Hidden** behind `HYDRA_ACCOUNT_FEATURES`; the `openCheckout` IPC channel is gated                                                          | `src/main/feature-flags-core.ts`       |
+| Electron auto-updater feed          | `hydralauncher/hydra` GitHub releases                                       | **Disabled.** Feed removed and `electron-updater` dependency removed; IPC names kept as no-ops                                               | commit `20d58f0a1`                     |
+| Epic/Legendary build-time downloads | `prepare:legendary` on `postinstall`/`beforePack`                           | **Removed from packaging.** `electron-builder.yml` no longer bundles the runtime; `package.json`/workflows no longer run the prepare scripts | commit `0581f27e1`                     |
+
+`crashReporter.start({ uploadToServer: false })` is retained
+(`src/main/index.ts:41-42`): crash dumps stay local.
+
+### 14.2 Account and cloud traffic now fails closed
+
+- All account-only main-process HTTP goes through `HydraApi`, which throws
+  `FeatureUnavailableError("HYDRA_ACCOUNT_FEATURES")` unless the caller passes
+  `needsAuth: false`. The client sends no bearer token: `getAuthContext()`
+  returns `null`, `isLoggedIn()` returns `false`.
+- The renderer-facing `hydraApiCall` proxy rejects `needsSubscription` requests
+  as `HYDRA_CLOUD_LEGACY` and any `needsAuth !== false` or non-public path as
+  `HYDRA_ACCOUNT_FEATURES`. The public allowlist is `GET /catalogue`, `/badges`,
+  `/features`, `/users`, `/games` (and sub-paths) plus `POST /catalogue/search`.
+- Realtime SSE (`POST /auth/realtime` and the WebSocket) is never started while
+  `HYDRA_ACCOUNT_FEATURES=false`; `SSEClient.connect()` and its resume-time
+  reconnect are inside the account guard in `src/main/main.ts` and
+  `src/main/index.ts`.
+- Every gated IPC channel rejects with `feature_unavailable` before reaching its
+  implementation. See `docs/feature-flags.md` for the full channel map.
+
+Net effect with all five flags `false`: no Hydra account/cloud/achievement/
+Steam/Epic request, no Sentry/WorkWonders call, no remote `bundle.js`. The
+anonymous catalogue calls in section 3.2 and the download-source operations
+remain the intended first-party traffic.
+
+### 14.3 Still open after Fase 1
+
+- **Remote renderer load and trust.** `window-manager.ts:143-158` still tries
+  `https://release-v<version>.<MAIN_VITE_LAUNCHER_SUBDOMAIN>` in production
+  before falling back to the local file, and that origin is still trusted by the
+  IPC sender checks (`events/epic/assert-trusted-sender.ts:22-25`,
+  `events/misc/file-system.ts:25-30`). This remains a release-blocking
+  supply-chain finding: ship local renderer assets only and remove the remote
+  origin from every trust check.
+- **Update feed.** The Electron updater is disabled, but Sphinx still needs its
+  own repository and documented signing identity before any release build.
+- **CommonRedist download.** The Windows startup download from
+  `hydralauncher/hydra-common-redist` is unchanged; Sphinx must host a verified
+  payload or make it opt-in.
+- **Anonymous artwork.** `GET /games/:shop/:objectId/artwork/grid` still returns
+  `401` anonymously; the catalogue needs a no-artwork fallback (no login
+  prompt).
