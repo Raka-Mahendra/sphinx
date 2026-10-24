@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" width="720" height="180" role="img" aria-labelledby="t">
+  <title id="t">Sphinx Launcher — Profil lockup</title>
+  <!-- Wordmark set in a system sans for exploration only; outline before the kit ships. -->
+  <g color="#111111">
+    <g transform="translate(0 18) scale(0.5625)">
+  <title id="t-a">Sphinx Launcher — concept A, Profil</title>
+  <!-- Head in profile: nemes crown and lappet, face cut on 45-degree steps, one circular eye. -->
+  <path fill="currentColor" fill-rule="evenodd"
+        d="M 89.77 24 H 173.96 C 182.63 33.9 186.35 51.24 186.35 68.57 L 193.77 83.43 L 176.44 100.76 L 203.68 128 L 176.44 137.9 L 188.82 150.29 L 191.3 165.14 L 183.87 172.57 V 232 H 74.92 V 167.62 L 52.63 145.33 C 50.15 98.29 62.54 51.24 89.77 24 Z M 141.77 98.29 m -9.9 0 a 9.9 9.9 0 1 0 19.81 0 a 9.9 9.9 0 1 0 -19.81 0 Z"/>
+</g>
+    <text x="180" y="120" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="92"
+          font-weight="600" letter-spacing="-2" fill="#111111">Sphinx</text>
+  </g>
+</svg>

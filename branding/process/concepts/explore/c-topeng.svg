@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t-c">
+  <title id="t-c">Sphinx Launcher — concept C, Topeng</title>
+  <!-- Front view: the nemes as a mask. Rounded crown, two lappets, flat chin cut. No shoulders, no base. -->
+  <path fill="#111111" fill-rule="evenodd"
+        d="M128 28 C104 28 84 44 82 62 L74 96 L70 140 L72 180 H184 L186 140 L182 96 L174 62
+           C172 44 152 28 128 28 Z
+           M98 70 H108 V172 H98 Z
+           M148 70 H158 V172 H148 Z"/>
+</svg>

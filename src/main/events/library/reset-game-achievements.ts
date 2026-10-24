@@ -136,7 +136,7 @@ const resetGameAchievementsNow = async (
     assertCurrent();
     AchievementSouvenirStore.invalidate(shop, objectId);
     achievementsLogger.log(
-      `Deleted Hydra achievements from ${game.remoteId} - ${game.objectId} - ${game.title}`
+      `Deleted Sphinx achievements from ${game.remoteId} - ${game.objectId} - ${game.title}`
     );
 
     const updatedAchievements = await getUnlockedAchievements(

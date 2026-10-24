@@ -4,11 +4,18 @@
     "src/main/**/*.test.ts",
     "src/main/**/*",
     "src/shared/**/*",
-    "src/types/**/*"
+    "src/types/**/*",
+    "src/sidecar/**/*"
   ],
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["node", "electron-vite/node"]
-  }
+    "types": [
+      "node",
+      "electron-vite/node"
+    ]
+  },
+  "exclude": [
+    "src/main/index.ts"
+  ]
 }

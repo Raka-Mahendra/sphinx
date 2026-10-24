@@ -112,13 +112,17 @@ const ps1Api: MemcardApi = {
     ),
 };
 
-const PICK_FILTERS = {
+/**
+ * Typed as `FileFilter` rather than `as const`: the dialog bridge hands these
+ * to Electron's `showOpenDialog`, whose `extensions` field is mutable.
+ */
+const PICK_FILTERS: Record<"ps1" | "ps2", Electron.FileFilter> = {
   ps1: {
     name: "PS1 Memory Card",
     extensions: ["mcd", "mcr", "mc", "gme", "vgs", "vmp"],
   },
   ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
-} as const;
+};
 
 const saveKey = (save: MemoryCardSaveRecord) =>
   `${save.cardFilePath}::${save.folderName}`;

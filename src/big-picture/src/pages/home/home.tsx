@@ -512,7 +512,7 @@ export default function Home() {
           upNavigationTarget={heroUpNavigationTarget}
         />
         <FocusCarousel
-          title="Popular on Hydra"
+          title="Popular on Sphinx"
           cardVariant="vertical"
           games={weeklyGames}
           regionId={HOME_WEEKLY_GAMES_CAROUSEL_REGION_ID}

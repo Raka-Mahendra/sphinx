@@ -1714,7 +1714,7 @@ function DownloadGameOptions({
         message: response.error?.startsWith("download_error_")
           ? t(response.error)
           : (response.error ??
-            "Hydra couldn't start this download. Try again in a moment."),
+            "Sphinx couldn't start this download. Try again in a moment."),
       });
 
       console.error("download-game-modal failed to submit download", {
@@ -1730,7 +1730,7 @@ function DownloadGameOptions({
       const message =
         error instanceof Error && error.message
           ? error.message
-          : "Hydra couldn't start this download. Try again in a moment.";
+          : "Sphinx couldn't start this download. Try again in a moment.";
       showErrorToast("Download failed", {
         fallbackVisual: "downloads",
         color: "var(--error)",

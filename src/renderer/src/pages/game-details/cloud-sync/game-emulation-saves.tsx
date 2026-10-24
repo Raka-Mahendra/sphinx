@@ -29,7 +29,7 @@ import type {
   MemoryCardSaveRecord,
 } from "@types";
 
-import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
+import sphinxSaveCard from "@renderer/assets/emulation/icons/sphinx-save-card.png";
 
 import {
   RenameModal,
@@ -220,7 +220,7 @@ export function GameEmulationSaves({
         <div className="game-emulation-saves__prompt">
           <img
             className="game-emulation-saves__prompt-icon"
-            src={hydraSaveCard}
+            src={sphinxSaveCard}
             alt=""
           />
           <h3>{t("game_no_memcards_title")}</h3>
@@ -267,7 +267,7 @@ export function GameEmulationSaves({
                       <div className="game-emulation-saves__card-head">
                         <img
                           className="game-emulation-saves__card-icon"
-                          src={hydraSaveCard}
+                          src={sphinxSaveCard}
                           alt=""
                         />
                         {region && (
@@ -351,7 +351,7 @@ export function GameEmulationSaves({
                       <div className="game-emulation-saves__card-head">
                         <img
                           className="game-emulation-saves__card-icon"
-                          src={hydraSaveCard}
+                          src={sphinxSaveCard}
                           alt=""
                         />
                         {region && (

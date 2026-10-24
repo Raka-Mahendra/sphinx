@@ -106,7 +106,7 @@ describe("game options category selection", () => {
     );
   });
 
-  it("opens Epic independently of Hydra Cloud access", () => {
+  it("opens Epic independently of Cloud Save (Google Drive) access", () => {
     for (const cloudSaveAccessAction of [
       "paywall",
       "sign-in",
@@ -132,7 +132,7 @@ describe("game options category selection", () => {
     );
   });
 
-  it("places Epic after active Hydra Cloud and before legacy archives", () => {
+  it("places Epic after active Cloud Save (Google Drive) and before legacy archives", () => {
     const availability = {
       cloudSaveAccessAction: "open" as const,
       showCloudSaveV2Settings: true,

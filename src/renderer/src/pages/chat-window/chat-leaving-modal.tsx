@@ -9,7 +9,7 @@ import {
 } from "@primer/octicons-react";
 import cn from "classnames";
 
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import SphinxIcon from "@renderer/assets/icons/sphinx.svg?react";
 import { Backdrop } from "@renderer/components/backdrop/backdrop";
 import { Button, CheckboxField } from "@renderer/components";
 
@@ -50,7 +50,7 @@ function ChatLeavingIcon({ isInsecure }: Readonly<{ isInsecure: boolean }>) {
         </mask>
       </defs>
       <g mask={`url(#${ICON_MASK_ID})`}>
-        <HydraIcon x={0} y={0} width={55} height={49} />
+        <SphinxIcon x={3} y={3} width={49} height={49} />
       </g>
       <circle
         className="chat-leaving-modal__icon-badge"

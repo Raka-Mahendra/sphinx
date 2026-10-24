@@ -12,7 +12,7 @@ const installHydraDeckyPlugin = async (
   error?: string;
 }> => {
   try {
-    logger.log("Installing/updating Hydra Decky plugin...");
+    logger.log("Installing/updating Sphinx Decky plugin...");
 
     const result = await DeckyPlugin.checkPluginVersion();
 

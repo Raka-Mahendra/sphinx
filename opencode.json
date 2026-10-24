@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "skill": {
+      "*": "deny",
+      "logo-design": "allow",
+      "verification-before-completion": "allow",
+      "incremental-implementation": "allow",
+      "systematic-debugging": "allow",
+      "full-output-enforcement": "allow",
+      "context-engineering": "allow",
+      "documentation-and-adrs": "allow",
+      "source-driven-development": "allow",
+      "doubt-driven-development": "allow",
+      "api-and-interface-design": "allow",
+      "test-driven-development": "allow",
+      "security-and-hardening": "allow",
+      "ci-cd-and-automation": "allow",
+      "git-workflow-and-versioning": "allow",
+      "shipping-and-launch": "allow",
+      "deprecation-and-migration": "allow",
+      "frontend-ui-engineering": "allow",
+      "rust-hardening": "allow",
+      "rust-coverage-meaningful-tests": "allow",
+      "code-review": "allow",
+      "grill-me": "allow",
+      "handoff": "allow"
+    },
+    "bash": {
+      "git push *": "ask",
+      "git reset --hard *": "deny"
+    }
+  }
+}

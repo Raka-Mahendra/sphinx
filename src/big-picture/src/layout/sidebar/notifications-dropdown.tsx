@@ -59,7 +59,7 @@ import {
   NOTIFICATIONS_FETCH_TAKE,
 } from "@shared";
 
-const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
+const sphinxIconUrl = new URL("../../assets/sphinx-icon.svg", import.meta.url)
   .href;
 const DROPDOWN_OFFSET = 16;
 const DROPDOWN_REGION_ID = "sidebar-notifications-dropdown-region";
@@ -775,7 +775,7 @@ export function SidebarNotificationsDropdown({
       return (
         <div className="sidebar-notifications-dropdown__fallback-icon">
           <img
-            src={hydraIconUrl}
+            src={sphinxIconUrl}
             alt=""
             className="sidebar-notifications-dropdown__fallback-image"
           />
@@ -786,7 +786,7 @@ export function SidebarNotificationsDropdown({
     return (
       <div className="sidebar-notifications-dropdown__fallback-icon">
         <img
-          src={hydraIconUrl}
+          src={sphinxIconUrl}
           alt=""
           className="sidebar-notifications-dropdown__fallback-image"
         />

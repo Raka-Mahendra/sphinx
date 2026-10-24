@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t-a">
+  <title id="t-a">Sphinx Launcher — concept A, Mahkota</title>
+  <!-- Front view: solid bust. Crown band, two lappets framing the face, wide shoulders. -->
+  <path fill="#111111" fill-rule="evenodd"
+        d="M96 36 H160 L168 60 L176 74 L184 140 L192 196 L212 214 H44 L64 196 L72 140 L80 74 L88 60 Z
+           M96 76 H106 V186 H96 Z
+           M150 76 H160 V186 H150 Z"/>
+</svg>

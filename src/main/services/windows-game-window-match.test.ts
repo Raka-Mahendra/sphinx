@@ -8,7 +8,7 @@ import {
 } from "./windows-game-window-match.js";
 
 describe("Windows game foreground process matching", () => {
-  it("accepts the process launched by Hydra", () => {
+  it("accepts the process launched by Sphinx", () => {
     assert.equal(isWindowsGameForegroundProcess([], 20, 20, []), true);
   });
 
@@ -79,7 +79,7 @@ describe("Windows game foreground process matching", () => {
     );
   });
 
-  it("accepts a descendant of the process launched by Hydra", () => {
+  it("accepts a descendant of the process launched by Sphinx", () => {
     assert.equal(
       isWindowsGameForegroundProcess(
         [

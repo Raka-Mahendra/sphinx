@@ -7,7 +7,7 @@ import {
   TrophyIcon,
   ToolsIcon,
 } from "@primer/octicons-react";
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import SphinxIcon from "@renderer/assets/icons/sphinx.svg?react";
 // Direct import keeps this lightweight window off the components barrel.
 import { Button } from "@renderer/components/button/button";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
@@ -429,7 +429,7 @@ export default function GameLauncher() {
       <div className="game-launcher__glow" style={glowStyle} />
 
       <div className="game-launcher__logo-badge">
-        <HydraIcon />
+        <SphinxIcon />
       </div>
 
       <div className="game-launcher__content">

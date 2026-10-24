@@ -41,8 +41,10 @@ interface BigPictureToastProps extends BigPictureToastCardProps {
 }
 
 const INITIAL_PROGRESS = 100;
-const hydraIconUrl = new URL("../../../assets/hydra-icon.svg", import.meta.url)
-  .href;
+const sphinxIconUrl = new URL(
+  "../../../assets/sphinx-icon.svg",
+  import.meta.url
+).href;
 const DEFAULT_FALLBACK_VISUAL: BigPictureToastFallbackVisual = "hydra";
 
 function fireToastConfetti(
@@ -135,7 +137,7 @@ export function BigPictureToastCard({
       />
     ) : (
       <img
-        src={hydraIconUrl}
+        src={sphinxIconUrl}
         alt=""
         className="big-picture-toast__fallback-image"
       />

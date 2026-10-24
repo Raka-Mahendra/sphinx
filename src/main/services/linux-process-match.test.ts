@@ -26,7 +26,7 @@ describe("Steam compatibility prefix matching", () => {
 });
 
 describe("Linux game window process matching", () => {
-  it("accepts a descendant of the process launched by Hydra", () => {
+  it("accepts a descendant of the process launched by Sphinx", () => {
     assert.equal(
       isLinuxGameWindowProcess(
         [

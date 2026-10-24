@@ -1000,7 +1000,7 @@ describe("Epic managed UI lifecycle", () => {
       assert.match(requestId, /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i);
   });
 
-  it("uses the Hydra modal header, directory and preferred presentation while downloading the actual Epic identity", async (t) => {
+  it("uses the Sphinx modal header, directory and preferred presentation while downloading the actual Epic identity", async (t) => {
     const calls: StartEpicGameDownloadPayload[] = [];
     const { render } = await fixture(t, {
       getEpicGameInstallOptions: async () => ({
@@ -1079,7 +1079,7 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(calls[0].addToQueueOnly, false);
   });
 
-  it("uses the queue action with an active download and Hydra loading feedback while starting", async (t) => {
+  it("uses the queue action with an active download and Sphinx loading feedback while starting", async (t) => {
     let payload!: StartEpicGameDownloadPayload;
     let finishStart!: (response: { ok: true }) => void;
     const { render } = await fixture(t, {
@@ -1202,7 +1202,7 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(current.diskFreeSpace, 200);
   });
 
-  it("fills the Hydra default directory before Legendary metadata arrives", async (t) => {
+  it("fills the Sphinx default directory before Legendary metadata arrives", async (t) => {
     const { render } = await fixture(t, {
       getEpicGameInstallOptions: () => new Promise(() => {}),
       startEpicGameDownload: async () => ({ ok: true }),

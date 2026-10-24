@@ -13,7 +13,7 @@ describe("DuckStation souvenir configuration", () => {
     );
   });
 
-  it("removes the logging value when Hydra originally added it", () => {
+  it("removes the logging value when Sphinx originally added it", () => {
     const enabled = "[Logging]\nLogToFile = true\nLogLevel = Info";
 
     assert.equal(

@@ -1,7 +1,18 @@
-import { levelKeys } from "../level/sublevels/keys.js";
-import type { Game, GameRunning } from "@types";
+import { randomUUID } from "node:crypto";
 
-interface GamePlaytimeState {
+import { levelKeys } from "../level/sublevels/keys.js";
+import type { Game } from "@types";
+
+/**
+ * A playtime session. `sessionId` is new for Sphinx: it makes a resumed session
+ * distinguishable from the one that was interrupted, and `resumed` records that
+ * the session was discovered by the recovery scan rather than by a launch.
+ *
+ * Neither field is persisted. The PRD explicitly asks for "no new persistence",
+ * so the gap between a crash and the next start stays visible in the log instead
+ * of being silently backfilled.
+ */
+export interface GamePlaytimeState {
   lastTick: number;
   firstTick: number;
   lastSyncTick: number;
@@ -9,10 +20,26 @@ interface GamePlaytimeState {
   syncSteamOnExit?: boolean;
   syncEpicOnExit?: boolean;
   managedEpicSession?: boolean;
+  sessionId: string;
+  resumed: boolean;
 }
 
+export type GamePlaytimeSessionInput = Omit<
+  GamePlaytimeState,
+  "sessionId" | "resumed"
+> & {
+  sessionId?: string;
+  resumed?: boolean;
+};
+
+/** The three fields the delta maths reads; narrower than a full session. */
+export type PlaytimeDeltaInput = Pick<
+  GamePlaytimeState,
+  "countHydraPlaytime" | "lastTick" | "lastSyncTick"
+>;
+
 export const getGamePlaytimeDeltas = (
-  session: GamePlaytimeState,
+  session: PlaytimeDeltaInput,
   now: number,
   pendingDelta = 0
 ) => ({
@@ -30,9 +57,13 @@ export const gamesPlaytime: ReadonlyMap<string, GamePlaytimeState> =
 
 export const setGamePlaytime = (
   gameKey: string,
-  playtime: GamePlaytimeState
+  playtime: GamePlaytimeSessionInput
 ) => {
-  mutableGamesPlaytime.set(gameKey, playtime);
+  mutableGamesPlaytime.set(gameKey, {
+    ...playtime,
+    sessionId: playtime.sessionId ?? randomUUID(),
+    resumed: playtime.resumed ?? false,
+  });
 };
 
 export const enableHydraPlaytimeForRunningSession = (
@@ -84,12 +115,12 @@ export const deleteEmulatorGameRunning = (gameKey: string) => {
 };
 
 export const getTrackedGamesRunning = (now = performance.now()) =>
-  Array.from(gamesPlaytime.entries()).map(
-    ([id, session]): Pick<GameRunning, "id" | "sessionDurationInMillis"> => ({
-      id,
-      sessionDurationInMillis: now - session.firstTick,
-    })
-  );
+  Array.from(gamesPlaytime.entries()).map(([id, session]) => ({
+    id,
+    sessionDurationInMillis: now - session.firstTick,
+    sessionId: session.sessionId,
+    resumed: session.resumed,
+  }));
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
   gamesPlaytime.has(levelKeys.game(shop, objectId)) ||

@@ -43,7 +43,7 @@ describe("Wine prefix resolution", () => {
     const root = await createRoot();
     const home = path.join(root, "home");
     const storage = path.join(root, "storage");
-    const alias = path.join(home, "hydralauncher");
+    const alias = path.join(home, "Sphinx Launcher");
     await fs.promises.mkdir(home, { recursive: true });
     await fs.promises.mkdir(storage, { recursive: true });
     await fs.promises.symlink(
@@ -53,7 +53,7 @@ describe("Wine prefix resolution", () => {
     );
 
     const resolved = await resolveWinePrefixPath(
-      "~/hydralauncher/wine-prefixes/953490",
+      "~/Sphinx Launcher/wine-prefixes/953490",
       home
     );
 

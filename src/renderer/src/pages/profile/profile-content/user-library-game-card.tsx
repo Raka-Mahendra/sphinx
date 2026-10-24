@@ -1,5 +1,5 @@
 import { UserGame } from "@types";
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import SphinxIcon from "@renderer/assets/icons/sphinx.svg?react";
 import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useContext } from "react";
@@ -183,7 +183,7 @@ export function UserLibraryGameCard({
                           transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                         }}
                       >
-                        <HydraIcon width={16} height={16} />
+                        <SphinxIcon width={16} height={16} />
                         {formatAchievementPoints(
                           game.achievementsPointsEarnedSum
                         )}

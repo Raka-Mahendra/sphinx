@@ -107,7 +107,7 @@ test("does not attribute incomplete, preloaded or DLC Legendary installations", 
   assert.equal(parseLegendaryInstalledGame({ app_name: "Artifact" }), null);
 });
 
-test("recognizes the Hydra managed workspace only with exact metadata identity", async (t) => {
+test("recognizes the Sphinx managed workspace only with exact metadata identity", async (t) => {
   const root = await fs.mkdtemp(
     path.join(os.tmpdir(), "hydra-managed-attribution-")
   );
@@ -182,7 +182,7 @@ test("recognizes the Hydra managed workspace only with exact metadata identity",
   );
 });
 
-test("hides stale exclusive imports and preserves Hydra data across A to B to A", () => {
+test("hides stale exclusive imports and preserves Sphinx data across A to B to A", () => {
   const context = { environment: "staging", userId: "A" };
   const game = {
     title: "Game",

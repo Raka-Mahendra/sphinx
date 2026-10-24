@@ -496,7 +496,7 @@ export function GeneralSettingsSection({
         selectedDrive.length > 1 && selectedDrive.endsWith(pathSeparator)
           ? selectedDrive.slice(0, -1)
           : selectedDrive;
-      fullDest = `${normalizedDrive}${pathSeparator}Hydra Games`;
+      fullDest = `${normalizedDrive}${pathSeparator}Sphinx Games`;
     } else if (customPath.trim()) {
       fullDest = customPath.trim();
     } else {

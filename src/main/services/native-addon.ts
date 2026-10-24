@@ -258,7 +258,7 @@ export class NativeAddon {
     const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
-      throw new Error(`Hydra native addon not found at ${addonPath}`);
+      throw new Error(`Sphinx native addon not found at ${addonPath}`);
     }
 
     if (process.platform === "linux") {
@@ -282,7 +282,7 @@ export class NativeAddon {
     const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
-      throw new Error(`Hydra native addon not found at ${addonPath}`);
+      throw new Error(`Sphinx native addon not found at ${addonPath}`);
     }
 
     this.worker = new Worker(WORKER_CODE, {
@@ -338,7 +338,7 @@ export class NativeAddon {
       const normalizedMimeType = response.mimeType ?? response.mime_type;
 
       if (!normalizedImagePath || !normalizedMimeType) {
-        throw new Error("Hydra native addon returned an invalid payload");
+        throw new Error("Sphinx native addon returned an invalid payload");
       }
 
       return {
@@ -373,7 +373,7 @@ export class NativeAddon {
         response.isAnimated ?? response.is_animated ?? false;
 
       if (!normalizedImagePath || !normalizedMimeType) {
-        throw new Error("Hydra native addon returned an invalid payload");
+        throw new Error("Sphinx native addon returned an invalid payload");
       }
 
       return {

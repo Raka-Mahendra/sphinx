@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t-a">
+  <title id="t-a">Sphinx Launcher — concept A, Profil</title>
+  <!-- Head in profile: nemes crown and lappet, face cut on 45-degree steps, one circular eye. -->
+  <path fill="#111111" fill-rule="evenodd"
+        d="M86 44 H154 C161 52 164 66 164 80 L170 92 L156 106 L178 128 L156 136 L166 146 L168 158 L162 164
+           V212 H74 V160 L56 142 C54 104 64 66 86 44 Z
+           M128 104 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 Z"/>
+</svg>

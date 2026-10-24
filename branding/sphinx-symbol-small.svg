@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="sphinx-symbol-title sphinx-symbol-desc">
+  <title id="sphinx-symbol-title">Sphinx Launcher</title>
+  <desc id="sphinx-symbol-desc">Small-size cut of the Sphinx mark: the eye detail is removed so the seam stays clean at 16-24 px.</desc>
+  <g id="symbol" fill="#111111" fill-rule="evenodd">
+    <path d="M16 40 L16 216 L40 240 L153 240 L153 210.9 L121 178.9 L121 149.1 L137 133.1 L137 122.9 L129 114.9 L129 89 L145 89 L145 82.9 L121 58.9 L121 16 L40 16 Z"/>
+    <path d="M216 240 L240 216 L240 40 L216 16 L135 16 L135 53.1 L159 77.1 L159 103 L143 103 L143 109.1 L151 117.1 L151 138.9 L135 154.9 L135 173.1 L167 205.1 L167 240 Z"/>
+  </g>
+</svg>

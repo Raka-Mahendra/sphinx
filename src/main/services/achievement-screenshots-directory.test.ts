@@ -25,7 +25,7 @@ describe("achievement screenshots directory", () => {
     );
   });
 
-  it("falls back to Hydra's screenshots directory", () => {
+  it("falls back to Sphinx's screenshots directory", () => {
     assert.equal(
       resolveAchievementScreenshotsDirectory(undefined, defaultScreenshotsPath),
       defaultScreenshotsPath

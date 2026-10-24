@@ -1,0 +1,92 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sphinx Launcher",
+  "version": "0.1.0",
+  "identifier": "com.sphinxlauncher.app",
+  "build": {
+    "beforeDevCommand": "yarn dev:renderer",
+    "beforeBuildCommand": "yarn build:renderer",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../out/renderer"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Sphinx Launcher",
+        "width": 1200,
+        "height": 860,
+        "minWidth": 1024,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true,
+        "visible": false,
+        "decorations": false,
+        "backgroundColor": "#1c1c1c",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http: asset: http://asset.localhost; media-src 'self' data: blob: https: http: asset: http://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https: http: ws: wss:; worker-src 'self' blob:; frame-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "externalBin": [
+      "binaries/node"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true,
+    "resources": {
+      "../resources/tray-icon.png": "tray-icon.png",
+      "../resources/tray-icon-dark.png": "tray-icon-dark.png",
+      "../resources/icon.png": "icon.png",
+      "../resources/achievement.wav": "achievement.wav",
+      "../resources/linux-game-capture.html": "linux-game-capture.html",
+      "../resources/legendary": "legendary",
+      "../resources/epic": "epic",
+      "../ludusavi": "ludusavi",
+      "../hydra-native": "hydra-native"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "compression": "lzma"
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "sphinx"
+        ]
+      }
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/Raka-Mahendra/sphinx/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ3QjRFRDk4RjY3M0RBN0UKUldSKzJuUDJtTzIwMTdoRVVwcWt5akVabVBnMmF2NE9EbWZQVUh2aW9yRVFzTlBWUTNVdHFnQjUK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

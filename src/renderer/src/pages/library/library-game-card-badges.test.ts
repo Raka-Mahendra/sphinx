@@ -89,7 +89,7 @@ function renderCard(
     },
     "@renderer/context": { userProfileContext: profileContext },
     "@renderer/constants": { MAX_MINUTES_TO_SHOW_IN_PLAYTIME: 120 },
-    "@renderer/assets/icons/hydra.svg?react": { default: () => null },
+    "@renderer/assets/icons/sphinx.svg?react": { default: () => null },
     "@renderer/pages/settings/emulation/emulator-icons": {
       EMULATOR_ICONS: {},
     },

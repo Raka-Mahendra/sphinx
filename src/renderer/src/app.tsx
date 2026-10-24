@@ -463,7 +463,7 @@ export function App() {
             window.electron.platform === "win32" ? " title-bar--windows" : ""
           }`}
         >
-          <h4>Hydra</h4>
+          <h4>Sphinx</h4>
 
           <button
             type="button"

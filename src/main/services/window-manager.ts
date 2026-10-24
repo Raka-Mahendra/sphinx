@@ -1,4 +1,3 @@
-import { is } from "@electron-toolkit/utils";
 import { isStaging } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
@@ -29,7 +28,6 @@ import { t } from "i18next";
 import { orderBy } from "lodash-es";
 import path from "node:path";
 import UserAgent from "user-agents";
-import { logger } from "./logger";
 import {
   addSteamGridDbCacheControl,
   isSteamGridDbArtworkRequest,
@@ -53,6 +51,17 @@ const FRIENDS_WINDOW_SHOW_FALLBACK_MS = 400;
 interface CreateMainWindowOptions {
   forceBigPicture?: boolean;
 }
+
+/**
+ * `BrowserWindowConstructorOptions` plus the `label` the sidecar shim accepts.
+ *
+ * Tauri identifies a window by label, and capabilities are granted per label, so
+ * a window the sidecar creates has to declare which one it is. Electron has no
+ * such option; the field is read by `src/sidecar/electron-shim/window.ts`.
+ */
+type SphinxWindowOptions = Electron.BrowserWindowConstructorOptions & {
+  label?: string;
+};
 
 export class WindowManager {
   private static mainWindowInstance: Electron.BrowserWindow | null = null;
@@ -95,6 +104,34 @@ export class WindowManager {
     this.mainWindowInstance = null;
   }
 
+  /**
+   * Adopts a window the Tauri shell created.
+   *
+   * In Electron this class constructs every window. In the Tauri shell Rust owns
+   * window creation, so the sidecar receives a proxy for the windows that exist
+   * and registers it here. Without this, `sendToAppWindows` and every
+   * `webContents.send` behind it would silently drop events, because
+   * `mainWindowInstance` and `bigPicture` would stay null.
+   */
+  public static attachExternalWindow(
+    label: string,
+    window: Electron.BrowserWindow | null
+  ): void {
+    if (label === "main") {
+      this.mainWindowInstance = window;
+      return;
+    }
+
+    if (label === "big-picture") {
+      this.bigPicture = window;
+      return;
+    }
+
+    if (label === "game-launcher") {
+      this.gameLauncherWindowInstance = window;
+    }
+  }
+
   private static readonly DEFAULT_WINDOW_WIDTH = 1200;
   private static readonly DEFAULT_WINDOW_HEIGHT = 860;
   private static readonly MIN_WINDOW_WIDTH = 1024;
@@ -131,36 +168,31 @@ export class WindowManager {
           }),
     };
 
-  private static formatVersionNumber(version: string) {
-    return version.replaceAll(".", "-");
-  }
-
+  /**
+   * Loads the renderer into a window.
+   *
+   * Two deliberate differences from the Electron baseline:
+   *
+   * 1. The `MAIN_VITE_LAUNCHER_SUBDOMAIN` branch is gone. It loaded
+   *    `https://release-v<version>.<subdomain>` and fell back to the local
+   *    bundle only on failure — remote code execution by configuration
+   *    (`docs/electron-api-usage.md` §6). Sphinx always loads its own bundle.
+   * 2. The development URL comes from `SPHINX_RENDERER_URL`, which the shell
+   *    sets, instead of Electron's `ELECTRON_RENDERER_URL`.
+   *
+   * The path argument to `loadFile` is not used by the Tauri shim: Rust already
+   * knows which bundle a window belongs to from its label, and the sidecar has
+   * no filesystem view of the app resources.
+   */
   public static async loadWindowURL(window: BrowserWindow, hash: string = "") {
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`);
-    } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
-      // Try to load from remote URL in production
-      try {
-        await window.loadURL(
-          `https://release-v${this.formatVersionNumber(app.getVersion())}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
-        );
-      } catch (error) {
-        // Fall back to local file if remote URL fails
-        logger.error(
-          "Failed to load from MAIN_VITE_LAUNCHER_SUBDOMAIN, falling back to local file:",
-          error
-        );
-        window.loadFile(path.join(__dirname, "../renderer/index.html"), {
-          hash,
-        });
-      }
-    } else {
-      window.loadFile(path.join(__dirname, "../renderer/index.html"), {
-        hash,
-      });
+    const devUrl = process.env.SPHINX_RENDERER_URL;
+
+    if (devUrl) {
+      await window.loadURL(`${devUrl}#/${hash}`);
+      return;
     }
+
+    await window.loadFile("index.html", { hash });
   }
 
   private static async loadMainWindowURL(hash: string = "") {
@@ -478,7 +510,11 @@ export class WindowManager {
         : screen.getPrimaryDisplay();
     const targetBounds = targetDisplay.bounds;
 
-    this.bigPicture = new BrowserWindow({
+    const bigPictureOptions: SphinxWindowOptions = {
+      // The label is the Tauri capability boundary: `capabilities/default.json`
+      // grants the IPC commands to "main" and "big-picture" only, so a window
+      // created without it gets a generated label and cannot call anything.
+      label: "big-picture",
       x: targetBounds.x,
       y: targetBounds.y,
       width: targetBounds.width,
@@ -491,7 +527,9 @@ export class WindowManager {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
-    });
+    };
+
+    this.bigPicture = new BrowserWindow(bigPictureOptions);
 
     this.bigPicture.removeMenu();
 
@@ -870,7 +908,7 @@ export class WindowManager {
     const connectionWindow = new BrowserWindow({
       width: layout.width,
       height: layout.height,
-      title: "Hydra",
+      title: "Sphinx",
       backgroundColor: "#1c1c1c",
       parent: parentWindow,
       modal: true,
@@ -1228,7 +1266,7 @@ export class WindowManager {
       tray.popUpContextMenu(contextMenu);
     };
 
-    tray.setToolTip("Hydra Launcher");
+    tray.setToolTip("Sphinx Launcher");
 
     if (process.platform === "win32") {
       await updateSystemTray();

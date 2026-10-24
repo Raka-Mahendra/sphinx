@@ -165,7 +165,7 @@ export const openSteamOpenIdWindow = (
   const finishConnected = (url: string) => {
     if (finished) return;
     finished = true;
-    steamSyncLogger.log("Steam OpenID returned to Hydra", url);
+    steamSyncLogger.log("Steam OpenID returned to Sphinx", url);
     completeSteamOpenIdConnection({
       clearReconnectRequired,
       notifyConnected: notifySteamConnected,

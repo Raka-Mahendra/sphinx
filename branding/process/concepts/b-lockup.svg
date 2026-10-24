@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" width="720" height="180" role="img" aria-labelledby="t">
+  <title id="t">Sphinx Launcher — Monogram lockup</title>
+  <!-- Wordmark set in a system sans for exploration only; outline before the kit ships. -->
+  <g color="#111111">
+    <g transform="translate(0 18) scale(0.5625)">
+  <title id="t-b">Sphinx Launcher — concept B, Monogram</title>
+  <!-- Custom geometric S: two 3/4 bowls, flat-cut terminals, no font. -->
+  <g fill="none" stroke="currentColor" stroke-width="38.2" stroke-linecap="butt">
+    <path d="M 170.45 85.55 A 42.45 42.45 0 1 0 128 128 A 42.45 42.45 0 1 1 85.55 170.45"/>
+  </g>
+</g>
+    <text x="180" y="120" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="92"
+          font-weight="600" letter-spacing="-2" fill="#111111">Sphinx</text>
+  </g>
+</svg>

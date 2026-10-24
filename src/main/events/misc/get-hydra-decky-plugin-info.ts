@@ -34,7 +34,7 @@ const getHydraDeckyPluginInfo = async (
 
     // Check if plugin folder exists
     if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-      logger.log("Hydra Decky plugin not installed");
+      logger.log("Sphinx Decky plugin not installed");
       return {
         installed: false,
         version: null,
@@ -51,7 +51,7 @@ const getHydraDeckyPluginInfo = async (
     );
 
     if (!fs.existsSync(packageJsonPath)) {
-      logger.log("Hydra Decky plugin package.json not found");
+      logger.log("Sphinx Decky plugin package.json not found");
       return {
         installed: false,
         version: null,
@@ -69,7 +69,7 @@ const getHydraDeckyPluginInfo = async (
     const outdated = expectedVersion ? version !== expectedVersion : false;
 
     logger.log(
-      `Hydra Decky plugin installed, version: ${version}, expected: ${expectedVersion}, outdated: ${outdated}`
+      `Sphinx Decky plugin installed, version: ${version}, expected: ${expectedVersion}, outdated: ${outdated}`
     );
 
     return {

@@ -142,7 +142,7 @@ interface ClassicsLaunchNotice {
 
 const CLASSICS_LAUNCH_FALLBACK: ClassicsLaunchNotice = {
   title: "Launch failed",
-  message: "Hydra could not launch this Classics game.",
+  message: "Sphinx could not launch this Classics game.",
   kind: "error",
 };
 
@@ -175,7 +175,7 @@ const CLASSICS_LAUNCH_NOTICES: Partial<
   },
   PLATFORM_UNKNOWN: {
     title: "Platform not supported",
-    message: "Hydra could not identify an emulator for this platform.",
+    message: "Sphinx could not identify an emulator for this platform.",
     kind: "error",
   },
   NO_DISC: {
@@ -192,7 +192,7 @@ const CLASSICS_LAUNCH_NOTICES: Partial<
   PKG_UNREADABLE: {
     title: "Unsupported PKG",
     message:
-      "Hydra could not read this package. Install and launch it from RPCS3 directly.",
+      "Sphinx could not read this package. Install and launch it from RPCS3 directly.",
     kind: "error",
   },
 };
@@ -2034,7 +2034,7 @@ export default function Game() {
         <ConfirmationModal
           visible={pendingClassicsLaunch !== null}
           title="RPCS3 is already running"
-          description="Close the current RPCS3 session before launching this game, or force Hydra to start it again."
+          description="Close the current RPCS3 session before launching this game, or force Sphinx to start it again."
           confirmLabel="Launch Anyway"
           onClose={() => setPendingClassicsLaunch(null)}
           onConfirm={async () => {

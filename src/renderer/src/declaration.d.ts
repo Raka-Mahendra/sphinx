@@ -331,11 +331,9 @@ declare global {
     getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
-    ) => () => Electron.IpcRenderer;
-    onSeedingStatus: (
-      cb: (value: SeedingStatus[]) => void
-    ) => () => Electron.IpcRenderer;
-    onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onSeedingStatus: (cb: (value: SeedingStatus[]) => void) => () => void;
+    onHardDelete: (cb: () => void) => () => void;
     getTorrentFiles: (
       magnet: string
     ) => Promise<
@@ -366,7 +364,7 @@ declare global {
       objectId: string,
       shop: GameShop,
       cb: (achievements: UserAchievement[]) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
 
     /* Library */
     toggleAutomaticCloudSync: (
@@ -588,15 +586,13 @@ declare global {
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
       ) => void
-    ) => () => Electron.IpcRenderer;
-    onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onLibraryBatchComplete: (cb: () => void) => () => void;
     onRemoteLibrarySyncStateChange: (
       cb: (syncing: boolean) => void
-    ) => () => Electron.IpcRenderer;
-    onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
-    onClassicsImportStatus: (
-      cb: (importing: boolean) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onDownloadsUpdated: (cb: () => void) => () => void;
+    onClassicsImportStatus: (cb: (importing: boolean) => void) => () => void;
     getClassicsImportStatus: () => Promise<boolean>;
     getActiveClassicsImport: () => Promise<{
       requestId: string;
@@ -648,7 +644,7 @@ declare global {
               message: string;
             }
       ) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     changeGamePlayTime: (
       shop: GameShop,
@@ -862,7 +858,7 @@ declare global {
     onPs2MemcardScanProgress: (
       requestId: string,
       cb: (payload: Ps2MemcardScanProgress) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     listPs2MemcardSaves: () => Promise<Ps2MemoryCardSaveRecord[]>;
     forgetPs2MemcardSave: (
       cardFilePath: string,
@@ -881,7 +877,7 @@ declare global {
     onPs1MemcardScanProgress: (
       requestId: string,
       cb: (payload: Ps2MemcardScanProgress) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     listPs1MemcardSaves: () => Promise<Ps2MemoryCardSaveRecord[]>;
     forgetPs1MemcardSave: (
       cardFilePath: string,
@@ -908,7 +904,7 @@ declare global {
     ) => Promise<{ uploaded: number; total: number }>;
     onEmulationBackupProgress: (
       cb: (payload: EmulationBackupProgress) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     getActiveEmulationBackups: () => Promise<EmulationBackupProgress[]>;
     listEmulationSaves: (
       platform: EmulationSavePlatform,
@@ -939,7 +935,7 @@ declare global {
     ) => Promise<EmulationCloudSave>;
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;
@@ -979,26 +975,24 @@ declare global {
     >;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onExtractionProgress: (
       cb: (shop: GameShop, objectId: string, progress: number) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onExtractionFailed: (
       cb: (
         shop: GameShop,
         objectId: string,
         failure: ExtractionFailure | null
       ) => void
-    ) => () => Electron.IpcRenderer;
-    onDownloadHalted: (
-      cb: (gameTitle: string) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onDownloadHalted: (cb: (gameTitle: string) => void) => () => void;
     onGameExecutableNotFound: (
       cb: (shop: GameShop, objectId: string) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
     createSteamShortcut: (
@@ -1059,17 +1053,17 @@ declare global {
       objectId: string,
       shop: GameShop,
       cb: (success: boolean) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onUploadComplete: (
       objectId: string,
       shop: GameShop,
       cb: () => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onBackupDownloadProgress: (
       objectId: string,
       shop: GameShop,
       cb: (progress: AxiosProgressEvent) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
 
     /* Clipboard */
     clipboard: {
@@ -1092,13 +1086,13 @@ declare global {
     cleanupAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncCleanupResult>;
     onAchievementSouvenirSyncStatus: (
       cb: (status: AchievementSouvenirSyncStatus) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onAchievementSouvenirSyncCompleted: (
       cb: (syncedCount: number) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onAchievementSouvenirScreenshotsMissing: (
       cb: (count: number) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     openFolder: (folderPath: string) => Promise<string>;
     isPortableVersion: boolean;
     showOpenDialog: (
@@ -1183,13 +1177,13 @@ declare global {
     checkHomebrewFolderExists: () => Promise<boolean>;
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onPreflightProgress: (
       cb: (value: { status: string; detail: string | null }) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onGameLauncherStatus: (
       cb: (value: GameLauncherStatusPayload) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     getGameLauncherStatuses: (
       shop: GameShop,
       objectId: string
@@ -1201,9 +1195,7 @@ declare global {
     isWayland: boolean;
 
     /* Auto update */
-    onAutoUpdaterEvent: (
-      cb: (event: AppUpdaterEvent) => void
-    ) => () => Electron.IpcRenderer;
+    onAutoUpdaterEvent: (cb: (event: AppUpdaterEvent) => void) => () => void;
     checkForUpdates: () => Promise<boolean>;
     restartAndInstallUpdate: () => Promise<void>;
 
@@ -1214,13 +1206,13 @@ declare global {
     minimizeAuthWindow: () => Promise<void>;
     closeAuthWindow: () => Promise<void>;
     getSessionHash: () => Promise<string | null>;
-    onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
-    onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
-    onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
+    onSignIn: (cb: () => void) => () => void;
+    onAccountUpdated: (cb: () => void) => () => void;
+    onSteamConnected: (cb: () => void) => () => void;
     onSteamConnectError: (
       cb: (code: SteamConnectErrorCode) => void
-    ) => () => Electron.IpcRenderer;
-    onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onSignOut: (cb: () => void) => () => void;
 
     /* User */
     getComparedUnlockedAchievements: (
@@ -1247,9 +1239,7 @@ declare global {
     minimizeRetroAchievementsConnectionWindow: () => Promise<void>;
     closeRetroAchievementsConnectionWindow: () => Promise<void>;
     completeRetroAchievementsConnectionWindow: () => Promise<void>;
-    onRetroAchievementsConnected: (
-      cb: () => void
-    ) => () => Electron.IpcRenderer;
+    onRetroAchievementsConnected: (cb: () => void) => () => void;
     startEpicSync: (connectionId: string) => Promise<EpicSyncState>;
     getEpicSyncState: () => Promise<EpicSyncState>;
     cancelEpicSync: (connectionId: string) => Promise<EpicOperationResult>;
@@ -1298,12 +1288,10 @@ declare global {
     reconcileSteamSyncRun: (
       latestSyncRunStatus: SteamSyncRunStatus | null
     ) => Promise<void>;
-    onSteamSyncProgress: (
-      cb: (state: SteamSyncState) => void
-    ) => () => Electron.IpcRenderer;
+    onSteamSyncProgress: (cb: (state: SteamSyncState) => void) => () => void;
     onSteamSyncFinished: (
       cb: (payload: SteamSyncFinishedPayload) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
@@ -1331,13 +1319,11 @@ declare global {
     ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
-    ) => () => Electron.IpcRenderer;
-    onCloudGiftResolved: (
-      cb: (giftId: string) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onCloudGiftResolved: (cb: (giftId: string) => void) => () => void;
     notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
@@ -1352,25 +1338,25 @@ declare global {
     clearAllLocalNotifications: () => Promise<void>;
     onLocalNotificationCreated: (
       cb: (notification: LocalNotification) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onAchievementUnlocked: (
       cb: (
         position?: AchievementCustomNotificationPosition,
         achievements?: AchievementNotificationInfo[]
       ) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onInAppAchievementUnlocked?: (
       cb: (
         position: AchievementCustomNotificationPosition,
         achievements: AchievementNotificationInfo[]
       ) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onPrepareAchievementNotification: (
       cb: (request: AchievementNotificationRequest) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onStartAchievementNotification: (
       cb: (requestId: string) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
@@ -1405,7 +1391,7 @@ declare global {
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
-    onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onCustomThemeUpdated: (cb: () => void) => () => void;
     closeEditorWindow: (themeId?: string) => Promise<void>;
 
     /* Game Launcher Window */
@@ -1441,51 +1427,43 @@ declare global {
     closeChatWindow: () => Promise<void>;
     openGameInMainWindow: (gamePath: string) => Promise<void>;
     consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
-    onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
+    onChatFriendsPending: (cb: () => void) => () => void;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
     /** Resolves to false when the read could not be saved. */
     markChatRead: (friendId: string, seq: number) => Promise<boolean>;
-    onChatMessage: (
-      cb: (sync: ChatMessageSync) => void
-    ) => () => Electron.IpcRenderer;
-    onChatTyping: (
-      cb: (sync: ChatTypingSync) => void
-    ) => () => Electron.IpcRenderer;
-    onChatReaction: (
-      cb: (sync: ChatReactionSync) => void
-    ) => () => Electron.IpcRenderer;
+    onChatMessage: (cb: (sync: ChatMessageSync) => void) => () => void;
+    onChatTyping: (cb: (sync: ChatTypingSync) => void) => () => void;
+    onChatReaction: (cb: (sync: ChatReactionSync) => void) => () => void;
     onChatMessageVisibility: (
       cb: (sync: ChatMessageVisibilitySync) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     onChatMessageRejected: (
       cb: (sync: ChatMessageRejectedSync) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
     /** Reserves an upload and sends the bytes; resolves to the attachment id. */
     uploadChatAttachment: (
       request: ChatAttachmentUploadRequest
     ) => Promise<{ id: string }>;
     onChatAttachmentUploadProgress: (
       cb: (progress: ChatAttachmentUploadProgress) => void
-    ) => () => Electron.IpcRenderer;
-    onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
-    onChatUnreadUpdated: (
-      cb: (state: ChatUnreadState) => void
-    ) => () => Electron.IpcRenderer;
-    onChatResync: (cb: () => void) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onChatMessageSound: (cb: () => void) => () => void;
+    onChatUnreadUpdated: (cb: (state: ChatUnreadState) => void) => () => void;
+    onChatResync: (cb: () => void) => () => void;
 
-    onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
-    onFriendsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onOpenAddFriendModal: (cb: () => void) => () => void;
+    onFriendsUpdated: (cb: () => void) => () => void;
     onFriendPresence: (
       cb: (presence: FriendPresenceSync) => void
-    ) => () => Electron.IpcRenderer;
-    onProfileUpdated: (cb: () => void) => () => Electron.IpcRenderer;
-    onNavigate: (cb: (path: string) => void) => () => Electron.IpcRenderer;
+    ) => () => void;
+    onProfileUpdated: (cb: () => void) => () => void;
+    onNavigate: (cb: (path: string) => void) => () => void;
 
     /* Download Options */
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
-    ) => () => Electron.IpcRenderer;
+    ) => () => void;
 
     /* LevelDB Generic CRUD */
     leveldb: {

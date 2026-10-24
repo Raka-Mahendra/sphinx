@@ -18,7 +18,7 @@ import {
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
+import SphinxIconUrl from "@renderer/assets/icons/sphinx.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
@@ -99,12 +99,12 @@ const resolveImageUrl = (source: string): Promise<string> => {
     };
 
     const timeout = window.setTimeout(
-      () => finish(HydraIconUrl),
+      () => finish(SphinxIconUrl),
       IMAGE_PREPARATION_TIMEOUT
     );
 
     image.onload = () => finish(source);
-    image.onerror = () => finish(HydraIconUrl);
+    image.onerror = () => finish(SphinxIconUrl);
     image.src = source;
   });
 };
@@ -215,7 +215,7 @@ export function AchievementNotification() {
         const sourceIcon =
           nextRequest.type === "achievement"
             ? nextRequest.achievement.iconUrl
-            : HydraIconUrl;
+            : SphinxIconUrl;
 
         void resolveImageUrl(sourceIcon)
           .then((resolvedIcon) => {

@@ -1,0 +1,43 @@
+[package]
+name = "sphinx-launcher"
+version = "0.1.0"
+description = "Sphinx Launcher — open-source desktop launcher for your game library"
+authors = ["Raka Mahendra"]
+edition = "2021"
+rust-version = "1.90"
+
+[lib]
+# `rlib` only: the Tauri desktop template also lists `staticlib`/`cdylib` for the
+# mobile entry point, and building those on the GNU target trips over the PE
+# export-ordinal limit (`ld.exe: error: export ordinal too large`) because the
+# `windows` crate generates tens of thousands of import stubs.
+# PRD §4.A.1 is desktop-only, so they are left out.
+name = "sphinx_launcher_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros"] }
+open = "5"
+arboard = "3"
+# `v1` restores the familiar Entry API (new / set_password / get_password /
+# delete_credential) on top of the v4 credential-store ecosystem.
+keyring = { version = "4", features = ["v1"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

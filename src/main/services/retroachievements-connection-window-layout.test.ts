@@ -10,7 +10,7 @@ import {
 import { getRetroAchievementsConnectionWindowLayout } from "./retroachievements-connection-window-layout.js";
 
 describe("getRetroAchievementsConnectionWindowLayout", () => {
-  it("matches the native Hydra auth window on Windows and macOS", () => {
+  it("matches the native Sphinx auth window on Windows and macOS", () => {
     const expected = {
       width: AUTH_WINDOW_CONTENT_WIDTH,
       height: AUTH_WINDOW_CONTENT_HEIGHT,

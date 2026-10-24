@@ -1,3 +1,5 @@
+import "@tauri-bridge/install";
+
 import ReactDOM from "react-dom/client";
 import { StrictMode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";

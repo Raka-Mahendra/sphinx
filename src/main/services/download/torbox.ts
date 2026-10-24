@@ -34,7 +34,7 @@ export class TorBoxClient {
       timeout: REQUEST_TIMEOUT_MS,
       headers: {
         Authorization: `Bearer ${apiToken}`,
-        "User-Agent": `Hydra/${appVersion}`,
+        "User-Agent": `Sphinx/${appVersion}`,
       },
     });
   }

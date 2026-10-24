@@ -1,3 +1,7 @@
+// Must stay first in the import list: pulls in the reused preload so
+// `window.electron` exists before any module below reads it at module scope.
+import "@tauri-bridge/install";
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import i18n from "i18next";
@@ -13,7 +17,13 @@ import "@fontsource/noto-sans/700.css";
 import "react-loading-skeleton/dist/skeleton.css";
 import "react-tooltip/dist/react-tooltip.css";
 
-import { CollectionContextMenuProvider } from "@renderer/context";
+// Imported from the module file rather than the `@renderer/context` barrel:
+// that barrel re-exports `@renderer/components`, which imports the barrel back,
+// and the cycle can produce two instances of the context object. The provider
+// mounted by one instance does not satisfy the `useContext` in the other, and
+// every page using `useCollectionContextMenu` fails with "must be used within
+// CollectionContextMenuProvider".
+import { CollectionContextMenuProvider } from "@renderer/context/collection-context-menu/collection-context-menu.context";
 import { GameOptionsModalProvider } from "@renderer/context/game-options-modal/game-options-modal.context";
 
 import { App } from "./app";

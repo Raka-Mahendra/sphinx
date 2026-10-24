@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { ChildProcess } from "node:child_process";
 
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -42,6 +43,8 @@ export interface EmulatorSession {
   sku: string | null;
   beforeTotalSeconds: number | null;
   startedAt: number;
+  /** Unique per emulator run, so a resumed session is distinguishable. */
+  sessionId: string;
   heartbeat: ReturnType<typeof setInterval> | null;
   child: ChildProcess;
   souvenirSession: EmulatorSouvenirSession | null;
@@ -92,6 +95,7 @@ export const startEmulatorSession = async ({
     sku,
     beforeTotalSeconds: before,
     startedAt: performance.now(),
+    sessionId: randomUUID(),
     heartbeat: null,
     child,
     souvenirSession,

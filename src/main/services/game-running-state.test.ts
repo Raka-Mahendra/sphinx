@@ -46,6 +46,32 @@ describe("game running state", () => {
     assert.equal(isGameRunning("ps3-game", "launchbox"), false);
   });
 
+  it("gives every session a unique id and records the resumed flag", () => {
+    const key = levelKeys.game("steam", "700");
+    const base = {
+      firstTick: 0,
+      lastTick: 0,
+      lastSyncTick: 0,
+      countHydraPlaytime: true,
+    };
+
+    setGamePlaytime(key, base);
+    const first = gamesPlaytime.get(key)!;
+
+    setGamePlaytime(key, base);
+    const second = gamesPlaytime.get(key)!;
+
+    assert.notEqual(first.sessionId, second.sessionId);
+    assert.equal(first.resumed, false);
+
+    // The recovery scan passes `resumed: true`; the marker survives the ticks
+    // that follow because they spread the existing session.
+    setGamePlaytime(key, { ...base, resumed: true });
+    assert.equal(gamesPlaytime.get(key)!.resumed, true);
+
+    deleteGamePlaytime(key);
+  });
+
   it("deletes and clears entries through the shared state helpers", () => {
     const firstKey = levelKeys.game("steam", "10");
     const secondKey = levelKeys.game("custom", "20");
@@ -77,6 +103,10 @@ describe("game running state", () => {
       lastSyncTick: 0,
       countHydraPlaytime: false,
     });
+    // The session id is generated once per session and must survive the
+    // per-tick re-registration below.
+    const sessionId = gamesPlaytime.get(key)!.sessionId;
+
     let localMilliseconds = 0;
     for (const now of [180_000, 360_000, 540_000, 600_000]) {
       const session = gamesPlaytime.get(key)!;
@@ -88,6 +118,8 @@ describe("game running state", () => {
         {
           id: key,
           sessionDurationInMillis: now,
+          sessionId,
+          resumed: false,
         },
       ]);
       setGamePlaytime(key, { ...session, lastTick: now, lastSyncTick: now });

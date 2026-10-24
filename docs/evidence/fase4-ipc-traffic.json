@@ -1,0 +1,62 @@
+{
+  "run": "yarn tauri dev (Tauri v2 shell + Node sidecar)",
+  "date": "2026-10-24",
+  "note": "Channel counts come from a temporary PROBE-CHANNEL line in src/sidecar/entry.ts, removed before this run ended.",
+  "invokeCallsTotal": 423,
+  "channels": {
+    "getUserPreferences": 242,
+    "hydraApiCall": 40,
+    "getLibrary": 35,
+    "leveldbValues": 24,
+    "leveldbGet": 17,
+    "updateNetworkStatus": 12,
+    "getRandomGame": 6,
+    "checkForUpdates": 4,
+    "getVersion": 4,
+    "getActiveClassicsImport": 4,
+    "getActiveRetroArchImport": 4,
+    "getDefaultDownloadsPath": 4,
+    "getGameAssets": 4,
+    "isStaging": 3,
+    "getAppSessionId": 3,
+    "getClassicsImportStatus": 2,
+    "refreshLibraryAssets": 2,
+    "getDownloadLayoutState": 2,
+    "getGameShopDetails": 2,
+    "getGameStats": 2,
+    "getUnlockedAchievements": 2,
+    "getMe": 2,
+    "openBigPictureWindow": 1,
+    "getGamesRunning": 1,
+    "getGameByObjectId": 1
+  },
+  "supervisor": {
+    "sidecarReady": [
+      {
+        "pid": 6776,
+        "bootMs": 993
+      },
+      {
+        "pid": 3680,
+        "bootMs": 949
+      },
+      {
+        "pid": 11432,
+        "bootMs": 794
+      },
+      {
+        "pid": 8872,
+        "bootMs": 507
+      }
+    ],
+    "restartsObserved": 3
+  },
+  "recoveryReport": [
+    "{\"runningGames\":[],\"downloads\":{\"total\":0,\"active\":0,\"paused\":0,\"seeding\":0}",
+    "{\"runningGames\":[],\"downloads\":{\"total\":0,\"active\":0,\"paused\":0,\"seeding\":0}"
+  ],
+  "reconnectBanner": [
+    "Menyambung ulang ke layanan latar\u2026",
+    "Menyalakan layanan latar\u2026"
+  ]
+}

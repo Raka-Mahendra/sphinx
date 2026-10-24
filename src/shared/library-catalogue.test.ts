@@ -136,7 +136,7 @@ describe("library catalogue presentation", () => {
     );
   });
 
-  it("sums distinct members for reading without modifying persisted Hydra time", () => {
+  it("sums distinct members for reading without modifying persisted Sphinx time", () => {
     const epic = makeGame({
       executablePath: "epic.exe",
       customIconUrl: "custom-icon",

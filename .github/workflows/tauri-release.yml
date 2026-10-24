@@ -1,0 +1,212 @@
+name: Tauri Release
+
+# Tauri builds and releases. The Electron workflow (`release.yml`) is kept until
+# Fase 8 removes the Electron code path; this one owns everything tagged.
+#
+# Design, from PRD §4.E:
+#   * tags only (`v*`), and only in this repository;
+#   * `contents: write` is granted to the two jobs that touch the release, never
+#     to the build job, so nothing else can publish;
+#   * build first, then a **draft** release, then one final job publishes it —
+#     no partially uploaded release can ever look like "latest";
+#   * `latest.json` carries the Windows entry only; Linux follows in Fase 9;
+#   * Authenticode signing is a no-op unless the certificate secret exists.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22.21.0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build. No release permissions, no secrets except the two the updater needs,
+  # so a fork pull request (which cannot push a tag anyway) cannot publish.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build (${{ matrix.target }})
+    permissions:
+      contents: read
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [x86_64-pc-windows-msvc]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Fails the build before any artefact exists if the three version sources
+      # disagree with the tag (PRD §4.E: "tes CI gagal bila ketiganya ≠ tag").
+      - name: Check the version sources against the tag
+        run: node scripts/bump-version.mjs --check "${{ github.ref_name }}"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Build the renderer and the sidecar
+        run: |
+          yarn build:renderer
+          yarn build:sidecar
+
+      - name: Stage the Node binary for bundle.externalBin
+        run: yarn stage:node
+
+      - name: Check whether an Authenticode certificate secret is present
+        id: certificate
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          if ($env:WINDOWS_CERTIFICATE) {
+            "present=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "present=false" >> $env:GITHUB_OUTPUT
+          }
+
+      # `signCommand` is not an input of tauri-action; it is Tauri config, so it
+      # is injected with `--config`. The command must contain `%1`, which Tauri
+      # replaces with the path of the file to sign.
+      # Source: https://v2.tauri.app/reference/config/#signcommand
+      - name: Compose the build arguments
+        id: build-args
+        shell: pwsh
+        run: |
+          if ("${{ steps.certificate.outputs.present }}" -eq "true") {
+            $command = '{"bundle":{"windows":{"signCommand":"signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f ${{ runner.temp }}\\certificate.p12 /p ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }} %1"}}}'
+            "args=--config $command" >> $env:GITHUB_OUTPUT
+          } else {
+            "args=" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Decode the certificate
+        if: steps.certificate.outputs.present == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          [IO.File]::WriteAllBytes("${{ runner.temp }}\certificate.p12", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+
+      - name: Build the bundle
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing (minisign). Different key type from Authenticode:
+          # see docs/release.md §"Two kinds of key".
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          # Build only: no tagName / releaseName / releaseId, so the action does
+          # not create or upload to a release.
+          # Source: https://github.com/tauri-apps/tauri-action (build-only mode)
+          projectPath: .
+          tauriScript: yarn tauri
+          args: ${{ steps.build-args.outputs.args }}
+          uploadWorkflowArtifacts: true
+          workflowArtifactNamePattern: "[bundle]-[arch]"
+          retryAttempts: 2
+
+      - name: Publish the bundles as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundles
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe.sig
+            latest.json
+            SHA256SUMS
+
+  # ---------------------------------------------------------------------------
+  # Draft release. Everything is built and signed before this job runs.
+  # ---------------------------------------------------------------------------
+  draft:
+    name: Draft the release
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download the bundles
+        uses: actions/download-artifact@v4
+        with:
+          name: release-bundles
+          path: bundles
+
+      - name: Resolve the installer and its signature
+        id: files
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle=$(ls bundles/*-setup.exe | head -n1)
+          echo "bundle=$bundle" >> "$GITHUB_OUTPUT"
+          echo "bundle_name=$(basename "$bundle")" >> "$GITHUB_OUTPUT"
+          echo "signature=${bundle}.sig" >> "$GITHUB_OUTPUT"
+
+      - name: Build latest.json and SHA256SUMS
+        run: |
+          node scripts/make-update-manifest.mjs \
+            --tag "${{ github.ref_name }}" \
+            --bundle "${{ steps.files.outputs.bundle }}" \
+            --sig "${{ steps.files.outputs.signature }}" \
+            --out bundles/latest.json \
+            --sha256-out bundles/SHA256SUMS
+
+      - name: Create the draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          name: Sphinx Launcher ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            bundles/*-setup.exe
+            bundles/*-setup.exe.sig
+            bundles/latest.json
+            bundles/SHA256SUMS
+
+  # ---------------------------------------------------------------------------
+  # One job publishes, after every platform is on the draft.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish the release
+    needs: draft
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          tag_name: ${{ github.ref_name }}

@@ -185,7 +185,7 @@ export class HydraApi {
         ...this.requestConfig(options),
         params,
         headers: {
-          "Hydra-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
+          "Sphinx-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
           "If-None-Match": options?.ifNoneMatch,
         },
       })
@@ -203,7 +203,7 @@ export class HydraApi {
         ...this.requestConfig(options),
         params,
         headers: {
-          "Hydra-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
+          "Sphinx-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
           "If-None-Match": options?.ifNoneMatch,
         },
       })

@@ -70,7 +70,7 @@ describe("RetroArch souvenir configuration", () => {
     );
   });
 
-  it("removes the setting when Hydra originally added it", () => {
+  it("removes the setting when Sphinx originally added it", () => {
     const original = `video_fullscreen = "true"\n`;
     const enabled = setCfgValue(original, KEY, "true");
 
@@ -105,7 +105,7 @@ describe("RetroArch souvenir configuration", () => {
     );
   });
 
-  it("removes both settings when Hydra originally added them", () => {
+  it("removes both settings when Sphinx originally added them", () => {
     const original = `video_fullscreen = "true"\n`;
     const enabled = setRetroArchSouvenirConfigValues(
       original,

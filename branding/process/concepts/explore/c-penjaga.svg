@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t-c">
+  <title id="t-c">Sphinx Launcher — concept C, Penjaga</title>
+  <!-- Front view: guardian statue on its plinth. Nemes crown, lappets, two grooves, base. -->
+  <path fill="#111111" fill-rule="evenodd"
+        d="M96 34 H160 L170 62 L176 104 L172 148 L168 168 H188 V214 H68 V168 H88 L84 148 L80 104 L86 62 Z
+           M104 66 H112 V160 H104 Z
+           M144 66 H152 V160 H144 Z"/>
+</svg>

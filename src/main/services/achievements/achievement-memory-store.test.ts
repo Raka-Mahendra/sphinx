@@ -139,7 +139,7 @@ describe("withSteamAchievementCatalogue", () => {
   });
   const unlocked = [{ name: "ACH_0", unlockTime: 1 }];
 
-  it("keeps the Hydra catalogue, language and validator", () => {
+  it("keeps the Sphinx catalogue, language and validator", () => {
     const hydra = {
       achievements: [achievement("ACH_0", 10)],
       unlockedAchievements: [],

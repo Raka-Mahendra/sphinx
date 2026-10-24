@@ -1,0 +1,22 @@
+<svg fill="#000000" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 256" width="880" height="256" role="img" aria-labelledby="sphinx-lockup-title sphinx-lockup-desc"><title>Sphinx Launcher</title>
+  <title id="sphinx-lockup-title">Sphinx Launcher — horizontal lockup</title>
+  <desc id="sphinx-lockup-desc">Split-tablet symbol with the custom wordmark. The wordmark is drawn with strokes; expand to outlines before print or cutting.</desc>
+  <g id="symbol" fill="#000000" fill-rule="evenodd">
+    <path d="M16 40 L16 216 L40 240 L153 240 L153 210.9 L121 178.9 L121 149.1 L137 133.1 L137 122.9 L129 114.9 L129 89 L145 89 L145 82.9 L121 58.9 L121 16 L40 16 Z M112 72 L112 84 L92 84 L80 72 Z"/>
+    <path d="M216 240 L240 216 L240 40 L216 16 L135 16 L135 53.1 L159 77.1 L159 103 L143 103 L143 109.1 L151 117.1 L151 138.9 L135 154.9 L135 173.1 L167 205.1 L167 240 Z"/>
+  </g>
+  <g id="wordmark" transform="translate(296 196) scale(1.3)">
+    <g fill="none" stroke="#000000" stroke-width="16" stroke-linecap="butt" stroke-linejoin="miter">
+      <path d="M56 -74 A22 22 0 1 0 34 -52 A22 22 0 1 1 12 -30"/>
+      <path transform="translate(78 0)" d="M8 -72 V32"/>
+      <circle transform="translate(78 0)" cx="36" cy="-36" r="28"/>
+      <path transform="translate(164 0)" d="M8 -104 V0"/>
+      <path transform="translate(164 0)" d="M8 -36 A28 28 0 0 1 64 -36 V0"/>
+      <path transform="translate(250 0)" d="M8 -72 V0"/>
+      <path transform="translate(280 0)" d="M8 -72 V0"/>
+      <path transform="translate(280 0)" d="M8 -36 A28 28 0 0 1 64 -36 V0"/>
+    </g>
+    <rect x="250" y="-104" width="16" height="16" fill="#000000" stroke="none"/>
+    <path d="M364 -72 L386.63 -72 L436 -22.63 L436 0 L413.37 0 L364 -49.37 Z M436 -72 L413.37 -72 L364 -22.63 L364 0 L386.63 0 L436 -49.37 Z" fill="#000000" stroke="none"/>
+  </g>
+</svg>

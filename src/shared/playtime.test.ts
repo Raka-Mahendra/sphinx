@@ -8,7 +8,7 @@ import {
 } from "./playtime.js";
 
 describe("getDisplayedPlayTimeInMilliseconds", () => {
-  it("sums Hydra and Steam playtime", () => {
+  it("sums Sphinx and Steam playtime", () => {
     assert.equal(
       getDisplayedPlayTimeInMilliseconds({
         playTimeInMilliseconds: 3_600_000,
@@ -42,7 +42,7 @@ describe("getPlayTimeHoursAndMinutes", () => {
 });
 
 describe("mergeLocalAndRemotePlayTime", () => {
-  it("keeps local Hydra hours and adds Steam from runtimeByPlatform", () => {
+  it("keeps local Sphinx hours and adds Steam from runtimeByPlatform", () => {
     assert.deepEqual(
       mergeLocalAndRemotePlayTime(
         { playTimeInMilliseconds: 360_000_000 },
@@ -59,7 +59,7 @@ describe("mergeLocalAndRemotePlayTime", () => {
     );
   });
 
-  it("uses remote Hydra when it is higher than local", () => {
+  it("uses remote Sphinx when it is higher than local", () => {
     assert.deepEqual(
       mergeLocalAndRemotePlayTime(
         { playTimeInMilliseconds: 1_000 },
@@ -90,7 +90,7 @@ describe("mergeLocalAndRemotePlayTime", () => {
   });
 });
 
-it("replaces Epic totals without reattributing aggregate time to Hydra", () => {
+it("replaces Epic totals without reattributing aggregate time to Sphinx", () => {
   const local = {
     playTimeInMilliseconds: 10,
     steamPlayTimeInMilliseconds: 20,
@@ -116,7 +116,7 @@ it("replaces Epic totals without reattributing aggregate time to Hydra", () => {
   );
 });
 
-it("discounts imports only when the Hydra attribution is absent", () => {
+it("discounts imports only when the Sphinx attribution is absent", () => {
   assert.equal(
     mergeLocalAndRemotePlayTime(
       {},
@@ -136,7 +136,7 @@ it("discounts imports only when the Hydra attribution is absent", () => {
   );
 });
 
-it("preserves Epic contribution when an older API omits its fields and does not copy it into Hydra", () => {
+it("preserves Epic contribution when an older API omits its fields and does not copy it into Sphinx", () => {
   const local = {
     playTimeInMilliseconds: 1000,
     epicPlayTimeInMilliseconds: 3000,

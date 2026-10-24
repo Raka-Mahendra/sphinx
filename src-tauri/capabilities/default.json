@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal capability set for the two trusted windows. The renderer talks to the sidecar only through ipc_invoke/ipc_send, which are additionally gated by the generated allowlist in src-tauri/src/ipc/allowlist.rs. No filesystem, shell or dialog permission is granted to the webview: those capabilities live in Rust and are reachable only through the sidecar's RPC methods.",
+  "windows": ["main", "big-picture"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "allow-ipc-invoke",
+    "allow-ipc-send",
+    "allow-sidecar-restart",
+    "allow-sidecar-status"
+  ]
+}

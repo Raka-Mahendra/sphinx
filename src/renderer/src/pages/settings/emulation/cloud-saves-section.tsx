@@ -31,8 +31,8 @@ import type {
 } from "@types";
 
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
-import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import sphinxSaveCard from "@renderer/assets/emulation/icons/sphinx-save-card.png";
+import SphinxIcon from "@renderer/assets/icons/sphinx.svg?react";
 
 import { RenameModal, RestoreModal, formatDate } from "./emulation-save-modals";
 
@@ -124,7 +124,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                   <div className="emulator-detail__cloud-card-top">
                     <img
                       className="emulator-detail__cloud-card-art"
-                      src={hydraSaveCard}
+                      src={sphinxSaveCard}
                       alt=""
                     />
                   </div>
@@ -153,7 +153,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
               theme="outline"
               onClick={() => showHydraCloudModal("backup")}
             >
-              <HydraIcon className="emulator-detail__cloud-locked-hydra" />
+              <SphinxIcon className="emulator-detail__cloud-locked-hydra" />
               <span>{tHydraCloud("learn_more")}</span>
             </Button>
           </div>
@@ -234,7 +234,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                   <div className="emulator-detail__cloud-card-top">
                     <img
                       className="emulator-detail__cloud-card-art"
-                      src={hydraSaveCard}
+                      src={sphinxSaveCard}
                       alt=""
                     />
                     <DropdownMenu

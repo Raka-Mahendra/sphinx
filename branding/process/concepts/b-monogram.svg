@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t-b">
+  <title id="t-b">Sphinx Launcher — concept B, Monogram</title>
+  <!-- Custom geometric S: two 3/4 bowls, flat-cut terminals, no font. -->
+  <g fill="none" stroke="#111111" stroke-width="38.2" stroke-linecap="butt">
+    <path d="M 170.45 85.55 A 42.45 42.45 0 1 0 128 128 A 42.45 42.45 0 1 1 85.55 170.45"/>
+  </g>
+</svg>

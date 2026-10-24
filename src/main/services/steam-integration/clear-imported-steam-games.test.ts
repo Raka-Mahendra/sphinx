@@ -103,7 +103,7 @@ describe("shouldRemoveImportedSteamGame", () => {
     );
   });
 
-  it("keeps steam-imported games that later gained Hydra playtime", () => {
+  it("keeps steam-imported games that later gained Sphinx playtime", () => {
     assert.equal(
       shouldRemoveImportedSteamGame(
         {
@@ -206,7 +206,7 @@ describe("Steam imported data cleanup", () => {
     );
   });
 
-  it("keeps a Hydra session fallback when imported cleanup cannot merge", () => {
+  it("keeps a Sphinx session fallback when imported cleanup cannot merge", () => {
     const hydraLastTimePlayed = new Date("2026-09-15T12:00:00.000Z");
 
     const cleanupPlan = getSteamImportedDataCleanupPlan({

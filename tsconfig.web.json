@@ -11,7 +11,9 @@
     "src/shared/**/*",
     "src/stories/**/*",
     "src/types/**/*",
-    ".storybook/**/*"
+    ".storybook/**/*",
+    "src/tauri-bridge/**/*",
+    "src/preload/index.ts"
   ],
   "compilerOptions": {
     "composite": true,
@@ -21,9 +23,24 @@
       "@renderer/*": [
         "src/renderer/src/*"
       ],
-      "@types": ["src/types/index.ts"],
-      "@locales": ["src/locales/index.ts"],
-      "@shared": ["src/shared/index.ts"]
+      "@types": [
+        "src/types/index.ts"
+      ],
+      "@locales": [
+        "src/locales/index.ts"
+      ],
+      "@shared": [
+        "src/shared/index.ts"
+      ],
+      "@preload/*": [
+        "src/preload/*"
+      ],
+      "@tauri-bridge/*": [
+        "src/tauri-bridge/*"
+      ],
+      "@tauri-bridge": [
+        "src/tauri-bridge/index.ts"
+      ]
     }
   }
 }

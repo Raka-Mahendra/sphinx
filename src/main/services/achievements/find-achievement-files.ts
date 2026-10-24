@@ -284,8 +284,22 @@ export const findAchievementFiles = (game: Game) => {
   return achievementFiles;
 };
 
-const steamUserIds = await getSteamUsersIds();
-const steamPath = await getSteamLocation().catch(() => null);
+/**
+ * Steam user list and install path, resolved once at start-up.
+ *
+ * These used to be two top-level `await`s. Top-level await cannot be bundled
+ * into a CommonJS-free single-file bundle when the module sits inside an import
+ * cycle, so the resolution is an explicit step that `loadState()` awaits before
+ * the achievement watcher can run. Until it runs the values are empty, which is
+ * the same "no Steam users found" branch the function already had.
+ */
+let steamUserIds: Awaited<ReturnType<typeof getSteamUsersIds>> = [];
+let steamPath: Awaited<ReturnType<typeof getSteamLocation>> | null = null;
+
+export const initializeSteamAchievementLocations = async (): Promise<void> => {
+  steamUserIds = await getSteamUsersIds();
+  steamPath = await getSteamLocation().catch(() => null);
+};
 
 export const findAchievementFileInSteamPath = (game: Game) => {
   if (!steamUserIds.length) {

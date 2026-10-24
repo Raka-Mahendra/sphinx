@@ -17,7 +17,7 @@ export function waitForHydraAuthRefresh<T>(
     const abort = () => {
       cleanup();
       reject(
-        Object.assign(new Error("Hydra auth request cancelled"), {
+        Object.assign(new Error("Sphinx auth request cancelled"), {
           code: "ERR_CANCELED",
         })
       );
@@ -33,7 +33,7 @@ export function waitForHydraAuthRefresh<T>(
       timer = setTimeout(() => {
         cleanup();
         reject(
-          Object.assign(new Error("Hydra auth request timed out"), {
+          Object.assign(new Error("Sphinx auth request timed out"), {
             code: "ETIMEDOUT",
           })
         );

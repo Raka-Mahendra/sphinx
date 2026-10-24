@@ -1,7 +1,7 @@
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import SphinxIcon from "@renderer/assets/icons/sphinx.svg?react";
 
 /**
- * Two speech bubbles with the Hydra mark cut out of the front one, for an
+ * Two speech bubbles with the Sphinx mark cut out of the front one, for an
  * empty conversation. The cut-outs take the tile's background color.
  */
 export function ChatEmptyIcon() {
@@ -21,11 +21,11 @@ export function ChatEmptyIcon() {
         strokeWidth="4"
         paintOrder="stroke"
       />
-      <HydraIcon
+      <SphinxIcon
         className="chat-window__empty-icon-logo"
-        x="10.5"
+        x="11.9"
         y="24"
-        width="25.3"
+        width="22.54"
         height="22.54"
       />
     </svg>

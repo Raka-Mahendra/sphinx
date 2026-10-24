@@ -1,7 +1,11 @@
-appId: gg.hydralauncher.hydra
-productName: Hydra
+appId: gg.sphinx.launcher
+productName: Sphinx Launcher
 directories:
   buildResources: build
+protocols:
+  - name: Sphinx
+    schemes:
+      - sphinx
 extraResources:
   - ludusavi
   - hydra-native
@@ -31,7 +35,7 @@ asarUnpack:
   - node_modules/sharp/**
   - node_modules/@img/sharp-libvips-*/**
 win:
-  executableName: Hydra
+  executableName: Sphinx
   extraResources:
     - from: binaries/7z.exe
     - from: binaries/7z.dll
@@ -73,7 +77,7 @@ linux:
   maintainer: electronjs.org
   category: Game
   mimeTypes:
-    - x-scheme-handler/hydralauncher
+    - x-scheme-handler/sphinx
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

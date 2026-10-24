@@ -24,11 +24,9 @@ import {
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
 import { DownloadManager } from "./services/download/download-manager";
-import { db, gamesSublevel, levelKeys } from "./level";
-import { GameShop, UserPreferences } from "@types";
-import { launchGame, openClassicsGame } from "./helpers";
+import { db, levelKeys } from "./level";
+import { handleDeepLinkPath } from "./deep-link";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
-import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
 import { isFeatureEnabled } from "./feature-flags";
 import {
@@ -58,7 +56,7 @@ i18n.init({
   },
 });
 
-const PROTOCOL = "hydralauncher";
+const PROTOCOL = "sphinx";
 
 // Register the custom schemes as privileged so the renderer can fetch them
 // (supportFetchAPI) and use the results on a canvas without tainting it
@@ -86,7 +84,7 @@ if (process.defaultApp) {
 
 const initializeApp = async () => {
   refreshPortableShortcutLauncher();
-  electronApp.setAppUserModelId("gg.hydralauncher.hydra");
+  electronApp.setAppUserModelId("gg.sphinx.launcher");
 
   logger.info("Crash dumps directory", app.getPath("crashDumps"));
 
@@ -198,11 +196,9 @@ const initializeApp = async () => {
   if (language) i18n.changeLanguage(language);
 
   // Check if starting from a "run" deep link - don't show main window in that case
-  const deepLinkArg = process.argv.find((arg) =>
-    arg.startsWith("hydralauncher://")
-  );
+  const deepLinkArg = process.argv.find((arg) => arg.startsWith("sphinx://"));
   const forceBigPicture = process.argv.includes("--big-picture");
-  const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
+  const isRunDeepLink = deepLinkArg?.startsWith("sphinx://run");
 
   if (!process.argv.includes("--hidden") && !isRunDeepLink) {
     WindowManager.createMainWindow({ forceBigPicture });
@@ -236,82 +232,12 @@ app.on("render-process-gone", (_event, _webContents, details) => {
   });
 });
 
-const handleRunGame = async (shop: GameShop, objectId: string) => {
-  const gameKey = levelKeys.game(shop, objectId);
-  const game = await gamesSublevel.get(gameKey);
-
-  if (!game) {
-    logger.error("Game not found", { shop, objectId });
-    return;
-  }
-
-  const userPreferences = await db.get<string, UserPreferences | null>(
-    levelKeys.userPreferences,
-    { valueEncoding: "json" }
-  );
-
-  // Only open main window if setting is disabled
-  if (!userPreferences?.hideToTrayOnGameStart) {
-    WindowManager.createMainWindow();
-  }
-
-  if (shop === "launchbox") {
-    if (!game.platform) {
-      const cachedPlatform = await lookupCachedPlatform(gameKey);
-      if (cachedPlatform) {
-        game.platform = cachedPlatform;
-        await gamesSublevel.put(gameKey, game).catch(() => {});
-      }
-    }
-    await openClassicsGame(shop, objectId);
-    return;
-  }
-
-  if (!game.executablePath) {
-    logger.error("Game has no executable path", { shop, objectId });
-    return;
-  }
-
-  await launchGame({
-    shop,
-    objectId,
-    executablePath: game.executablePath,
-    launchOptions: game.launchOptions,
-  });
-};
-
-const handleDeepLinkPath = (uri?: string) => {
-  if (!uri) return;
-
-  try {
-    const url = new URL(uri);
-
-    if (url.host === "run") {
-      const shop = url.searchParams.get("shop") as GameShop | null;
-      const objectId = url.searchParams.get("objectId");
-
-      if (shop && objectId) {
-        void handleRunGame(shop, objectId).catch((error) => {
-          logger.error("Failed to launch game from deep link", error);
-          WindowManager.createMainWindow();
-        });
-      }
-
-      return;
-    }
-  } catch (error) {
-    logger.error("Error handling deep link", uri, error);
-  }
-};
-
 app.on("second-instance", (_event, commandLine) => {
-  const deepLink = commandLine.find((arg) =>
-    arg.startsWith("hydralauncher://")
-  );
+  const deepLink = commandLine.find((arg) => arg.startsWith("sphinx://"));
   const forceBigPicture = commandLine.includes("--big-picture");
 
   // Check if this is a "run" deep link - don't show main window in that case
-  const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
+  const isRunDeepLink = deepLink?.startsWith("sphinx://run");
 
   if (!isRunDeepLink) {
     if (WindowManager.mainWindow) {

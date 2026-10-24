@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t-c">
+  <title id="t-c">Sphinx Launcher — concept C, Teka-teki</title>
+  <!-- The riddle: a bold question mark with flat-cut terminals. Stroke is exploration only; outline in the kit. -->
+  <g fill="none" stroke="#111111" stroke-width="36" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M92 96 C92 62 108 44 134 44 C162 44 178 62 178 88 C178 112 158 120 146 132 C140 138 138 146 138 156 V168"/>
+  </g>
+  <path fill="#111111" d="M120 196 H156 V228 H120 Z"/>
+</svg>

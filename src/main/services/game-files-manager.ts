@@ -721,7 +721,7 @@ export class GameFilesManager {
       objectId: this.objectId,
     });
 
-    return `hydralauncher://run?${query.toString()}`;
+    return `sphinx://run?${query.toString()}`;
   }
 
   private quoteLinuxExecArg(value: string) {

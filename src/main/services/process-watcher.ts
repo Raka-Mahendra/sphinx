@@ -145,6 +145,8 @@ export const getGamesRunning = () => {
     gamesRunning.push({
       id: gameKey,
       sessionDurationInMillis: now - session.startedAt,
+      sessionId: session.sessionId,
+      resumed: false,
     });
   }
 
@@ -328,7 +330,17 @@ const hasLinuxCompatibilityProcessMatch = (
   });
 };
 
-export const watchProcesses = async () => {
+export interface WatchProcessesOptions {
+  /**
+   * True for the single scan the sidecar runs at start-up. Sessions discovered
+   * by that scan are marked `resumed`, because the game was already running
+   * before the launcher existed and the playtime between the crash and this
+   * start cannot be reconstructed.
+   */
+  resumed?: boolean;
+}
+
+export const watchProcesses = async (options: WatchProcessesOptions = {}) => {
   startOptionalExecutableCatalogueLoad(() => GameExecutables.ensureLoaded());
 
   const games = await gamesSublevel
@@ -425,7 +437,7 @@ export const watchProcesses = async () => {
       if (gamesPlaytime.has(gameKey)) {
         onTickGame(game);
       } else {
-        await onOpenGame(game, matchedPath);
+        await onOpenGame(game, matchedPath, options.resumed === true);
       }
     } else if (gamesPlaytime.has(gameKey)) {
       onCloseGame(game);
@@ -437,7 +449,7 @@ export const watchProcesses = async () => {
   WindowManager.sendToAppWindows("on-games-running", getGamesRunning());
 };
 
-async function onOpenGame(game: Game, matchedPath: string) {
+async function onOpenGame(game: Game, matchedPath: string, resumed = false) {
   const authContext = HydraApi.getAuthContext();
   const hydraRevision = getHydraPlaytimeRevision(
     levelKeys.game(game.shop, game.objectId)
@@ -512,11 +524,14 @@ async function onOpenGame(game: Game, matchedPath: string) {
     syncSteamOnExit,
     syncEpicOnExit,
     managedEpicSession,
+    resumed,
   });
 
-  logPlaytimeTrace("session-open", game, {
+  logPlaytimeTrace(resumed ? "session-resumed" : "session-open", game, {
     performanceNow: now,
     matchedPath,
+    sessionId: gamesPlaytime.get(gameKey)?.sessionId,
+    resumed,
   });
 
   // On Linux, keep the launcher visible briefly and let it auto-close itself.

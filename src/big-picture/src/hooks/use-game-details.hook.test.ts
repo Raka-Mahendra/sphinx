@@ -392,7 +392,7 @@ describe("Big Picture catalogue page", () => {
     }
   });
 
-  it("keeps fresh operational Hydra time separate from the grouped reading total", async () => {
+  it("keeps fresh operational Sphinx time separate from the grouped reading total", async () => {
     const freshGame = { ...epic, playTimeInMilliseconds: 9000 };
     const state = await fixture([epic], undefined, freshGame);
     try {

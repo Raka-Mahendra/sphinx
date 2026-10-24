@@ -243,7 +243,7 @@ test("confirmed links preserve their status tone and available actions", () => {
   }
 });
 
-test("another Hydra account never receives cached Epic identity", () => {
+test("another Sphinx account never receives cached Epic identity", () => {
   assert.equal(isEpicStateForUser(state(), "A"), true);
   assert.equal(isEpicStateForUser(state(), "B"), false);
   assert.equal(isEpicStateForUser(state(), null), false);

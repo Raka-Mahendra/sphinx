@@ -1,11 +1,12 @@
 import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import SphinxIcon from "@renderer/assets/icons/sphinx.svg?react";
 import { SteamIcon } from "@renderer/components/steam-library-badge/steam-library-badge";
 import type { LibrarySource } from "./library-category";
 import "./source-icon.scss";
 
-const HYDRA_ICON_VIEW_BOX = "2.5 0 50 47.5";
-const HYDRA_ICON_BLEED = 2;
+// The Sphinx symbol already carries its own 16/256 clear space, so it needs no
+// bleed or viewBox crop the way the old 55x49 Hydra glyph did.
+const SPHINX_ICON_BLEED = 2;
 
 interface SourceIconProps {
   source: LibrarySource;
@@ -27,10 +28,9 @@ export function SourceIcon({ source, size = 14 }: Readonly<SourceIconProps>) {
   }
 
   return (
-    <HydraIcon
-      viewBox={HYDRA_ICON_VIEW_BOX}
-      width={size + HYDRA_ICON_BLEED}
-      height={size + HYDRA_ICON_BLEED}
+    <SphinxIcon
+      width={size + SPHINX_ICON_BLEED}
+      height={size + SPHINX_ICON_BLEED}
       className="library-source-icon library-source-icon--hydra"
       aria-hidden="true"
     />
