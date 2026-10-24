@@ -271,14 +271,76 @@ dikecualikan karena Linux-only.
 - Temuan supply-chain renderer remote (`window-manager.ts`) masih terbuka.
 - Keputusan arsitektur cloud save Google Drive masih terbuka.
 
-## Langkah berikutnya
+## Fase 2 — Branding, identitas, dan generator allowlist (PRD §4.D, §4.A.2)
 
-1. Pengguna membuat/mengonfirmasi repo publik non-fork `Raka-Mahendra/sphinx`.
-2. Tambahkan `origin`, lalu minta izin `git push`.
-3. Selesaikan verifikasi `hydra-native.node` (prebuilt atau toolchain).
-4. Hapus pemuatan renderer remote dan origin IPC tepercaya sebelum rilis.
-5. Lanjutkan Fase 1/2: audit handler `feature_unavailable` di seluruh pemanggil
-   renderer, lalu port ke Tauri.
+### Yang sudah ada di kode
+
+- `branding/` — kit produksi hasil skill `logo-design`: mark (disediakan pemilik
+  proyek, tidak digambar ulang), varian SVG/PNG, ikon tray (16/32/64), ikon web,
+  `brand-sheet.png`, dan `branding/process/` (brief, longlist, concepts, renders,
+  `preview.html`). Dokumentasi di `branding/README.md`.
+- `README.md` diubah: nama "Sphinx Launcher" dan deskripsi "written in Rust
+  (Tauri) and Node.js (a React/TypeScript sidecar)".
+- `docs/branding-allowlist.md` — mencatat ±596 `grep -ri hydra` yang sah (crate
+  `hydra-native`, `HYDRA_*` ledger, key i18n `hydra_cloud.*`, plugin Decky, dll.)
+  supaya sisa referensi dapat dibaca tanpa curiga.
+- `scripts/generate-ipc-allowlist.mjs` — memindai `src/main`, menulis
+  `src/sidecar/allowlist.generated.ts`, `src-tauri/src/ipc/allowlist.rs`, dan
+  `docs/ipc-inventory.md`. `src/sidecar/allowlist.test.ts` (9/9) gagal bila ada
+  kanal baru/stale.
+
+### Yang terverifikasi
+
+- Generator menghasilkan daftar dan tes paritas lulus (Fase 4, 9/9):
+  `yarn test` pada `allowlist.test.ts` (`--check` gagal bila output stale).
+- README berubah nama/deskripsi (terlihat di diff WIP `f99322bb0`).
+- `docs/branding-allowlist.md` ada dan memetakan sisa `hydra` (±596 file).
+
+### Yang belum / tidak memenuhi acceptance Fase 2
+
+- **Logo BELUM disetujui manusia.** `branding/README.md` eksplisit: "seluruh
+  file produksi … dihasilkan oleh agen AI dan **belum melalui pemeriksaan mata
+  desainer manusia**. Jalankan checklist di bagian 8 sebelum rilis publik."
+  Acceptance "Logo disetujui" **belum terpenuhi** — masih checkpoint tertunda
+  (R14).
+- **Generator allowlist BUKAN sadar-flag.** `scripts/generate-ipc-allowlist.mjs`
+  memindai `src/main` tanpa membaca `feature-flags.json`; hasilnya masih berisi
+  kanal yang seharusnya digate oleh flag mati: `hydraApiCall` (305 hit),
+  `getHydraDeckyPluginInfo`, `installHydraDeckyPlugin`, `setGameHydraPlaytimeEnabled`.
+  Acceptance "generator … (sadar flag)" **belum terpenuhi** (R9: kebocoran flag).
+  Catatan: webview tetap dibatasi allowlist Rust + handler fail-closed, tetapi
+  allowlist yang di-generate sendiri tidak menyempit saat flag mati.
+- **i18n khusus branding belum dikerjakan.** Fase 2 menyebut "i18n"; yang ada
+  baru i18n baseline Hydra. String produk "Hydra" yang tersisa di key i18n
+  tercakup oleh `docs/branding-allowlist.md` tetapi belum diganti namanya di
+  tingkat terjemahan.
+
+## Fase 3 — Kerangka Tauri (PRD §4.A.1, §4.A.3)
+
+### Yang sudah ada di kode
+
+- `src-tauri/` — proyek Cargo: `lib.rs` (builder + plugin + setup),
+  `tauri.conf.json`, `capabilities/default.json`, plugin `deep-link`, `updater`,
+  `notification`, `autostart`, `shell`, `dialog`, `fs`, `process`,
+  `window-state`, dll.
+- Vite renderer (`vite.config.ts`) + `vite.config.big-picture.ts`; jendela utama
+  `main` dan `big-picture` dibedakan lewat label (lihat Fase 4, bug #1).
+- `src/tauri-bridge/` — shim `electron`/`node:crypto`/`process` untuk webview;
+  preload baseline dipakai apa adanya.
+
+### Yang terverifikasi
+
+- **`yarn tauri dev` menampilkan UI** — acceptance Fase 3 terpenuhi dan terbukti
+  oleh boot dev (lihat bukti Fase 4): Home, Catalogue (≈211k hasil), Library,
+  Downloads, Settings, halaman detail game, dan Big Picture semuanya render;
+  sidecar mencapai `ready`; katalog mengembalikan HTTP 200.
+
+### Yang belum
+
+- Belum ada `yarn tauri build` instal NSIS yang dijalankan (milik Fase 8);
+  Fase 3 cukup sampai dev menampilkan UI.
+- Pengujian di mesin Linux belum dilakukan (Fase 9); kerangka ini berjalan di
+  Windows (PRD: Windows prioritas).
 
 ## Fase 4 — sidecar, bridge, supervisor, recovery (PRD §4.A.2 – §4.A.5)
 
@@ -364,3 +426,80 @@ muncul lalu hilang setelah panggilan berikutnya berhasil.
 - Karena itu tes crash (i) memverifikasi bagian "game hidup" dan keberadaan laporan recovery, bukan
   bagian "playtime lanjut"; bagian itu ditutup oleh tes unit `game-running-state.test.ts`.
 - `ludusavi.exe` tidak ada di repo (sama seperti baseline).
+
+## Fase 5 — Fitur platform, updater Tauri, workflow rilis (PRD §4.E, §6.1)
+
+Fase 5 **sebagian**: kode untuk updater, `tauri-release.yml`, tray, dan deep link
+**sudah ada dan menyusun**, tetapi belum diverifikasi ujung-ke-ujung. Berkas yang
+tergolong Fase 5 sebagian:
+
+| Berkas                                                                                                                                                  | Status kode                                                                                                                                                                                                            | Verifikasi                                                                                  | Kesenjangan                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/updater.rs` (+ `src-tauri/src/sidecar/rpc.rs`, `src/main/services/update-manager.ts`, `tauri.conf.json › plugins.updater`)                 | Lengkap: `check`/`download`/`install`/`shutdown_before_install`/`state_snapshot`; endpoint menunjuk `Raka-Mahendra/sphinx` (bukan Hydra) + `pubkey` minisign + `installMode: passive`                                    | `cargo check` bersih; `tauri dev` boot tanpa error plugin updater                           | E2E update **belum dijalankan**: belum ada tag rilis dibangun/dipublikasikan; jalur `v0.0.1→v0.0.2` (unduh+pasang tanpa file terkunci, tanpa proses tersisa) **belum terbukti**. Kecocokan `pubkey` di `tauri.conf.json` dengan `TAURI_SIGNING_PRIVATE_KEY` riil **belum divalidasi**. |
+| `.github/workflows/tauri-release.yml`                                                                                                                  | Lengkap: build → draft → publish; gerbang versi (`bump-version.mjs --check`); `signCommand` Authenticode (no-op tanpa secret); signing minisign via secret; generate `latest.json`+`SHA256SUMS`                          | YAML valid (js-yaml); struktur job benar; `bump-version.mjs --check v0.1.0` lulus          | Workflow **belum pernah dijalankan** (tidak ada tag push; push ditahan). Interaksi minisign+Authenticode, penamaan artefak, draft→publish di runner nyata **belum terbukti**.                                                                                                              |
+| `src-tauri/src/tray.rs` (+ `src/sidecar/entry.ts` handler `tray-click`/`tray-event`)                                                                  | Lengkap: menu dibangun dari model sidecar, `tray::register_menu_handler` di `setup`                                                                                                    | `cargo check` bersih; `tauri dev` boot (tray dibuat di setup tanpa crash)                    | Kehadiran/visual tray dan klik menu **belum diverifikasi** di sesi dev (tidak di-screenshot); checklist §6.1 (taskbar/Start Menu/ARP) belum di mesin bersih.                                                                                                                              |
+| `src/main/deep-link.ts` + `src-tauri/src/platform.rs` (`register_deep_links`) + `tauri.conf.json › plugins.deep-link`                                   | Lengkap: skema `sphinx` terdaftar; Rust meneruskan `control deep-link`/`second-instance` ke sidecar; `handleDeepLinkPath`/`handleSecondInstance` menangani                                                  | `cargo check` bersih; `tauri dev` boot (skema terdaftar, setup tanpa crash)                  | Klik tautan `sphinx://run` nyata **belum diuji**; single-instance + replay URL belum dieksekusi. Capability `deep-link:allow-*` tidak eksplisit di `capabilities/default.json` (penanganan skema di Rust, bukan webview) — perlu konfirmasi.                                              |
+| `scripts/bump-version.mjs`, `scripts/make-update-manifest.mjs`                                                                                         | Lengkap                                                                                                                                                                                                                | `bump-version.mjs --check` lulus; `make-update-manifest.mjs` 6/6 tes (SHA256 benar pada fixture) | `SHA256SUMS` **belum divalidasi terhadap artefak build riil** (hanya fixture).                                                                                                                                                                                                              |
+
+### Yang terverifikasi (Fase 5, lingkup terbatas)
+
+- `cargo check` bersih untuk seluruh `src-tauri/src` (termasuk `updater`, `tray`,
+  `platform`).
+- `tauri dev` boot tanpa error konfigurasi/plugin; tray, deep-link, updater
+  terdaftar di `setup` (bukti: log dev Fase 4 — sidecar `ready`, katalog 200,
+  tidak ada panic plugin).
+- `bump-version.mjs` dan `make-update-manifest.mjs` lulus tes unit masing-masing.
+- `tauri-release.yml` lolos validasi YAML dan gate versi.
+
+### Yang belum (acceptance Fase 5 belum terpenuhi)
+
+- **Update E2E** `v0.0.1→v0.0.2` (repo uji) sukses tanpa file terkunci dan tanpa
+  proses tersisa — **belum dijalankan** (butuh rilis nyata).
+- **Checklist platform §6.1 di Windows 10 & 11 bersih**: start, kontrol jendela,
+  tray, single instance, deep link, autostart, notifikasi, identitas
+  taskbar/Start/ARP — **belum dijalankan** di mesin bersih.
+- **SmartScreen** (unduhan browser vs update mandiri), **Smart App Control**
+  (Win 11), **Defender** false-positive untuk paket berisi `node.exe`/addon
+  native/engine torrent (R7, R9) — **belum diuji**.
+- **`SHA256SUMS` benar** untuk artefak riil — **belum divalidasi** (hanya
+  fixture).
+- **Autostart** perilaku "jalankan saat login" di Windows bersih — belum
+  diverifikasi (blok config dihapus dari `tauri.conf.json`; kini via `init()` di
+  `lib.rs`).
+- **Kunci minisign** (cadangan offline, pemisahan dari Authenticode, pemegang =
+  pemilik repo) — belum dibuat/didokumentasikan (PRD §10 butir 20).
+
+### Catatan khusus autostart
+
+Blok `plugins.autostart` dihapus dari `tauri.conf.json` karena plugin v2 tidak
+lagi membacanya dari config (membuat dev boot panic). Argumen `--hidden` kini
+diberikan via `tauri_plugin_autostart::init([...])` di `lib.rs`, dan preferensi
+"start minimised" dibaca dari `compute_startup` (`platform.rs`). Perilaku aktual
+di mesin bersih belum diuji.
+
+## Ringkasan status fase & langkah berikutnya
+
+| Fase | Status                  | Catatan kunci                                                                              |
+| ---- | ----------------------- | ------------------------------------------------------------------------------------------ |
+| 0    | selesai                 | audit + baseline `be492f5`                                                                  |
+| 1    | selesai                 | anonim, feature flag, lisensi Apache-2.0                                                    |
+| 2    | **sebagian**            | branding ada; logo belum disetujui; generator allowlist bukan sadar-flag                    |
+| 3    | selesai & terverifikasi | `yarn tauri dev` render UI                                                                  |
+| 4    | selesai & terverifikasi | sidecar/bridge/crash-tests; `hydra-native`/`ludusavi` belum ada di mesin ini                |
+| 5    | **sebagian**            | updater/tray/deep-link/release-yml ada di kode; E2E update & Windows bersih belum diverifikasi |
+
+Langkah berikutnya (sebelum/sesudah pindah ke Linux):
+
+1. **Tutup celah Fase 2:** dapatkan persetujuan logo manusia (checklist
+   `branding/README.md` §8); jadikan generator allowlist sadar-flag (filter
+   `src/main` dengan `feature-flags.json`) agar kanal mati tidak muncul di
+   allowlist.
+2. **Verifikasi Fase 5 di Windows bersih:** tag `v0.1.0`, jalankan
+   `tauri-release.yml` (perlu `TAURI_SIGNING_PRIVATE_KEY` + opsi Authenticode),
+   pasang di VM Windows 10 & 11, jalankan checklist §6.1, catat
+   SmartScreen/Smart App Control/Defender.
+3. **Validasi E2E update:** rilis `v0.0.1` lalu `v0.0.2` di repo uji; pastikan
+   tidak ada file terkunci/proses tersisa; cek `SHA256SUMS` vs artefak riil.
+4. **Kunci minisign:** buat, cadangkan offline, pisahkan dari Authenticode
+   (§10.20).
+5. **Tahan `git push`** atas izin pengguna (lihat pesan commit).
