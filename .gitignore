@@ -17,6 +17,7 @@ ludusavi/**
 native/hydra-native/target/
 native/epic-prerequisite-runner/target/
 binaries/epic-prerequisite-runner/
+.workbuddy-ai/
 
 # Sentry Config File
 .env.sentry-build-plugin
