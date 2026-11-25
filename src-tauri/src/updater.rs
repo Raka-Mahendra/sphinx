@@ -195,12 +195,14 @@ pub async fn download(
     let bytes = update
         .download(
             move |chunk_length, content_length| {
-                let total = progress_counter.fetch_add(chunk_length as u64, Ordering::Relaxed)
-                    + chunk_length as u64;
+                let chunk = u64::try_from(chunk_length).unwrap_or(u64::MAX);
+                let total = progress_counter
+                    .fetch_add(chunk, Ordering::Relaxed)
+                    .saturating_add(chunk);
 
                 let now = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .map(|elapsed| elapsed.as_millis() as u64)
+                    .map(|elapsed| u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX))
                     .unwrap_or(0);
 
                 let previous = progress_last.load(Ordering::Relaxed);
@@ -232,8 +234,9 @@ pub async fn download(
 /// `autoUpdater.quitAndInstall()`.
 ///
 /// On Windows this spawns the installer and exits the process; the sidecar is
-/// stopped by the `on_before_exit` hook registered in `build_updater`.
-pub async fn install(app: &AppHandle, state: &UpdaterState) -> Result<Value, WireError> {
+/// stopped by the `on_before_exit` hook attached to `Update` when `check()`
+/// built the updater via `build_updater`.
+pub async fn install(state: &UpdaterState) -> Result<Value, WireError> {
     let update = state
         .pending
         .lock()
@@ -251,10 +254,6 @@ pub async fn install(app: &AppHandle, state: &UpdaterState) -> Result<Value, Wir
         })?;
 
     set_phase(state, Phase::Installing);
-
-    // Rebuilds the updater so the before-exit hook is attached to *this* call.
-    // `install()` consumes the bytes and verifies them again before running.
-    let _ = build_updater(app)?;
 
     update
         .install(bytes)

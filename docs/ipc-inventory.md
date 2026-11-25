@@ -9,7 +9,7 @@ both the Rust shell and the sidecar.
 
 | Kind | Count | Reaches |
 | --- | ---: | --- |
-| Renderer → sidecar (`ipcMain.handle` / `registerEvent`) | 346 | `ipc_invoke` |
+| Renderer → sidecar (`ipcMain.handle` / `registerEvent`) | 350 | `ipc_invoke` |
 | Renderer → sidecar (`ipcMain.on`) | 0 | `ipc_send` |
 | Sidecar → renderer, static | 72 | `sphinx:ipc-event` |
 | Sidecar → renderer, dynamic prefixes | 6 | `sphinx:ipc-event` |
@@ -77,6 +77,7 @@ both the Rust shell and the sidecar.
 | `completeRetroAchievementsConnectionWindow` | `src/main/events/user/retroachievements-connection-window.ts:17` |
 | `confirmCloudSaveCustomPathApproval` | `src/main/events/cloud-save/confirm-cloud-save-custom-path-approval.ts:11` |
 | `confirmCloudSaveCustomPathRebindApproval` | `src/main/events/cloud-save/rebind-cloud-save-custom-path.ts:48` |
+| `connectGoogleDrive` | `src/main/events/cloud-save/google-drive.ts:22` |
 | `consumePendingChatFriends` | `src/main/events/chat/open-chat-window.ts:9`, `src/main/events/register-disabled-account-events.ts:9` |
 | `copyCustomGameAsset` | `src/main/events/library/copy-custom-game-asset.ts:36` |
 | `copyThemeAchievementSound` | `src/main/events/themes/copy-theme-achievement-sound.ts:40` |
@@ -98,6 +99,7 @@ both the Rust shell and the sidecar.
 | `detectEmulators` | `src/main/events/emulators/detect-emulators.ts:43` |
 | `detectRetroArch` | `src/main/events/retroarch/detect-retroarch.ts:41` |
 | `disconnectEpic` | `src/main/events/epic/index.ts:40` |
+| `disconnectGoogleDrive` | `src/main/events/cloud-save/google-drive.ts:27` |
 | `disconnectSteam` | `src/main/events/user/disconnect-steam.ts:137` |
 | `dismissCloudSaveCustomPathApproval` | `src/main/events/cloud-save/dismiss-cloud-save-custom-path-approval.ts:8` |
 | `downloadGameArtifact` | `src/main/events/cloud-save/download-game-artifact.ts:169` |
@@ -161,6 +163,7 @@ both the Rust shell and the sidecar.
 | `getGameShopDetails` | `src/main/events/catalogue/get-game-shop-details.ts:435` |
 | `getGamesRunning` | `src/main/events/library/get-games-running.ts:8` |
 | `getGameStats` | `src/main/events/catalogue/get-game-stats.ts:40` |
+| `getGoogleDriveState` | `src/main/events/cloud-save/google-drive.ts:17` |
 | `getHiddenLibrary` | `src/main/events/library/get-library.ts:200` |
 | `getHydraDeckyPluginInfo` | `src/main/events/misc/get-hydra-decky-plugin-info.ts:94` |
 | `getImageDataUrl` | `src/main/events/misc/get-image-data-url.ts:53` |
@@ -314,6 +317,7 @@ both the Rust shell and the sidecar.
 | `setGameArtworkSelection` | `src/main/events/library/set-game-artwork-selection.ts:155` |
 | `setGameHydraPlaytimeEnabled` | `src/main/events/library/set-game-hydra-playtime-enabled.ts:24` |
 | `setGameVisibility` | `src/main/events/library/set-game-visibility.ts:55` |
+| `setGoogleDriveSettings` | `src/main/events/cloud-save/google-drive.ts:36` |
 | `setPausedDownloadPosition` | `src/main/events/torrenting/set-paused-download-position.ts:14` |
 | `setRetroArchCoresDir` | `src/main/events/retroarch/set-retroarch-cores-dir.ts:19` |
 | `setRetroArchExecutablePath` | `src/main/events/retroarch/set-retroarch-executable-path.ts:51` |
@@ -398,7 +402,7 @@ _None._
 | `on-classics-import-progress` | `src/main/events/emulators/import-launchbox-roms.ts:989`, `src/main/events/emulators/import-launchbox-roms.ts:989`, `src/main/events/emulators/import-launchbox-roms.ts:989` |
 | `on-classics-import-status` | `src/main/events/emulators/import-launchbox-roms.ts:1017`, `src/main/events/emulators/import-launchbox-roms.ts:1066` |
 | `on-cloud-gift-resolved` | `src/main/events/misc/notify-cloud-gift-resolved.ts:10` |
-| `on-cloud-save-automatic-sync` | `src/main/services/cloud-save/automatic-sync.ts:108` |
+| `on-cloud-save-automatic-sync` | `src/main/services/cloud-save/automatic-sync.ts:104` |
 | `on-cloud-save-automatic-sync-mode-changed` | `src/main/services/cloud-save/automatic-sync-settings.ts:36` |
 | `on-cloud-save-sync-progress` | `src/main/events/cloud-save/resolve-cloud-save-conflict.ts:38`, `src/main/events/cloud-save/sync-cloud-save-after-custom-path-rebind.ts:41`, `src/main/events/cloud-save/sync-game-cloud-save-from-modal.ts:61`, `src/main/events/cloud-save/sync-game-cloud-save.ts:29` |
 | `on-custom-theme-updated` | `src/main/events/themes/update-custom-theme.ts:26`, `src/main/services/achievement-notification-presenter.ts:125` |

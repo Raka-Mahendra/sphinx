@@ -123,11 +123,15 @@ fn write_start_minimised(app: &AppHandle, minimised: bool) -> Result<(), WireErr
 /// Decides whether this process should start without showing the window.
 pub fn compute_startup(app: &AppHandle) -> Startup {
     let args: Vec<String> = std::env::args().collect();
+    let is_run_deep_link = find_deep_link(&args)
+        .as_deref()
+        .is_some_and(|uri| uri.starts_with("sphinx://run"));
 
-    // Only an autostart launch may start hidden; a normal double-click always
-    // shows the window, exactly like `if (!process.argv.includes("--hidden"))`
-    // in `index.ts:205`.
-    let hidden = has_hidden_flag(&args) && read_start_minimised(app);
+    // Only an autostart launch (with "start minimised") or a `sphinx://run`
+    // deep-link launch starts without showing `main`, matching `index.ts:201`.
+    // For `sphinx://run`, the sidecar decides whether to raise `main` based on
+    // `userPreferences.hideToTrayOnGameStart` (`src/main/deep-link.ts:32`).
+    let hidden = (has_hidden_flag(&args) && read_start_minimised(app)) || is_run_deep_link;
 
     Startup { hidden }
 }
@@ -183,13 +187,20 @@ pub fn handle_second_instance(app: &AppHandle, argv: &[String]) {
 
     let deep_link = find_deep_link(argv);
     let force_big_picture = wants_big_picture(argv);
+    let is_run_deep_link = deep_link
+        .as_deref()
+        .is_some_and(|uri| uri.starts_with("sphinx://run"));
 
-    // Focus immediately: the sidecar may still be booting, and a launcher that
-    // ignores a double-click for a second feels broken.
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
+    // Focus immediately unless this launch is a `sphinx://run` deep link (which
+    // starts a game without raising the library window, matching
+    // `src/main/deep-link.ts`). Otherwise the sidecar may still be booting, and
+    // a launcher that ignores a double-click for a second feels broken.
+    if !is_run_deep_link {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
     }
 
     let supervisor = Arc::clone(&state.supervisor);

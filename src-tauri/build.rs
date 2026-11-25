@@ -15,7 +15,7 @@ use tauri_build::AppManifest;
 /// which windows may call each command, and a window that is not listed is
 /// rejected by Tauri's core before the command body runs.
 fn main() {
-    tauri_build::try_build(
+    if let Err(error) = tauri_build::try_build(
         tauri_build::Attributes::new().app_manifest(
             AppManifest::new().commands(&[
                 "ipc_invoke",
@@ -24,6 +24,8 @@ fn main() {
                 "sidecar_status",
             ]),
         ),
-    )
-    .expect("failed to build the Tauri app manifest");
+    ) {
+        eprintln!("failed to build the Tauri app manifest: {error}");
+        std::process::exit(1);
+    }
 }

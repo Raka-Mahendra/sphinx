@@ -28,9 +28,7 @@ export const requestWebPage = async (url: string) => {
   return window.document;
 };
 
-export const isPortableVersion = () => {
-  return !!process.env.PORTABLE_EXECUTABLE_FILE;
-};
+export const isPortableVersion = () => false;
 
 export const normalizePath = (str: string) =>
   path.posix.normalize(str).replaceAll("\\", "/");

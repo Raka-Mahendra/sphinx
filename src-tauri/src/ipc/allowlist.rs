@@ -4,7 +4,7 @@
 // scan writes `src/sidecar/allowlist.generated.ts`, so the shell and the
 // sidecar can never disagree about which channels exist.
 //
-// Counts: 346 invoke, 0 send, 72 event, 6 dynamic prefix.
+// Counts: 350 invoke, 0 send, 72 event, 6 dynamic prefix.
 
 /// `ipcMain.handle` / `registerEvent` channels, reachable through `ipc_invoke`.
 pub const INVOKE_CHANNELS: &[&str] = &[
@@ -66,6 +66,7 @@ pub const INVOKE_CHANNELS: &[&str] = &[
     "completeRetroAchievementsConnectionWindow",
     "confirmCloudSaveCustomPathApproval",
     "confirmCloudSaveCustomPathRebindApproval",
+    "connectGoogleDrive",
     "consumePendingChatFriends",
     "copyCustomGameAsset",
     "copyThemeAchievementSound",
@@ -87,6 +88,7 @@ pub const INVOKE_CHANNELS: &[&str] = &[
     "detectEmulators",
     "detectRetroArch",
     "disconnectEpic",
+    "disconnectGoogleDrive",
     "disconnectSteam",
     "dismissCloudSaveCustomPathApproval",
     "downloadGameArtifact",
@@ -150,6 +152,7 @@ pub const INVOKE_CHANNELS: &[&str] = &[
     "getGameShopDetails",
     "getGamesRunning",
     "getGameStats",
+    "getGoogleDriveState",
     "getHiddenLibrary",
     "getHydraDeckyPluginInfo",
     "getImageDataUrl",
@@ -303,6 +306,7 @@ pub const INVOKE_CHANNELS: &[&str] = &[
     "setGameArtworkSelection",
     "setGameHydraPlaytimeEnabled",
     "setGameVisibility",
+    "setGoogleDriveSettings",
     "setPausedDownloadPosition",
     "setRetroArchCoresDir",
     "setRetroArchExecutablePath",

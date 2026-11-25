@@ -268,8 +268,10 @@ export function GameOptionsModal({
     game.platform
   ).settings;
   const { showV2, legacyPurpose } = cloudSaveSettings;
+  // The v2 settings are Drive-backed; only the legacy artifact settings still
+  // belong to the Hydra cloud flag.
   const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
-  const showCloudSaveV2Settings = cloudSaveEnabled && showV2;
+  const showCloudSaveV2Settings = showV2;
   const showLegacyCloudSaveSettings =
     cloudSaveEnabled &&
     isLegacyCloudSaveSettingsAvailable(

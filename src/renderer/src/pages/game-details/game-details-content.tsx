@@ -76,7 +76,10 @@ const getImageWithCustomPriority = (
 };
 
 const accountFeaturesEnabled = isFeatureEnabled("HYDRA_ACCOUNT_FEATURES");
+// Legacy artifacts stay behind the Hydra flag; the v2 cloud save widget is
+// backed by the user's Google Drive and ships enabled.
 const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
+const cloudSaveV2Enabled = true;
 
 export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
@@ -463,7 +466,7 @@ export function GameDetailsContent() {
                     </button>
                   )}
 
-                {cloudSaveEnabled &&
+                {cloudSaveV2Enabled &&
                   game &&
                   objectId &&
                   cloudSaveVisibility?.hero === "v2" && <CloudSaveWidget />}

@@ -433,13 +433,13 @@ Fase 5 **sebagian**: kode untuk updater, `tauri-release.yml`, tray, dan deep lin
 **sudah ada dan menyusun**, tetapi belum diverifikasi ujung-ke-ujung. Berkas yang
 tergolong Fase 5 sebagian:
 
-| Berkas                                                                                                                                                  | Status kode                                                                                                                                                                                                            | Verifikasi                                                                                  | Kesenjangan                                                                                                                                                                                                                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src-tauri/src/updater.rs` (+ `src-tauri/src/sidecar/rpc.rs`, `src/main/services/update-manager.ts`, `tauri.conf.json › plugins.updater`)                 | Lengkap: `check`/`download`/`install`/`shutdown_before_install`/`state_snapshot`; endpoint menunjuk `Raka-Mahendra/sphinx` (bukan Hydra) + `pubkey` minisign + `installMode: passive`                                    | `cargo check` bersih; `tauri dev` boot tanpa error plugin updater                           | E2E update **belum dijalankan**: belum ada tag rilis dibangun/dipublikasikan; jalur `v0.0.1→v0.0.2` (unduh+pasang tanpa file terkunci, tanpa proses tersisa) **belum terbukti**. Kecocokan `pubkey` di `tauri.conf.json` dengan `TAURI_SIGNING_PRIVATE_KEY` riil **belum divalidasi**. |
-| `.github/workflows/tauri-release.yml`                                                                                                                  | Lengkap: build → draft → publish; gerbang versi (`bump-version.mjs --check`); `signCommand` Authenticode (no-op tanpa secret); signing minisign via secret; generate `latest.json`+`SHA256SUMS`                          | YAML valid (js-yaml); struktur job benar; `bump-version.mjs --check v0.1.0` lulus          | Workflow **belum pernah dijalankan** (tidak ada tag push; push ditahan). Interaksi minisign+Authenticode, penamaan artefak, draft→publish di runner nyata **belum terbukti**.                                                                                                              |
-| `src-tauri/src/tray.rs` (+ `src/sidecar/entry.ts` handler `tray-click`/`tray-event`)                                                                  | Lengkap: menu dibangun dari model sidecar, `tray::register_menu_handler` di `setup`                                                                                                    | `cargo check` bersih; `tauri dev` boot (tray dibuat di setup tanpa crash)                    | Kehadiran/visual tray dan klik menu **belum diverifikasi** di sesi dev (tidak di-screenshot); checklist §6.1 (taskbar/Start Menu/ARP) belum di mesin bersih.                                                                                                                              |
-| `src/main/deep-link.ts` + `src-tauri/src/platform.rs` (`register_deep_links`) + `tauri.conf.json › plugins.deep-link`                                   | Lengkap: skema `sphinx` terdaftar; Rust meneruskan `control deep-link`/`second-instance` ke sidecar; `handleDeepLinkPath`/`handleSecondInstance` menangani                                                  | `cargo check` bersih; `tauri dev` boot (skema terdaftar, setup tanpa crash)                  | Klik tautan `sphinx://run` nyata **belum diuji**; single-instance + replay URL belum dieksekusi. Capability `deep-link:allow-*` tidak eksplisit di `capabilities/default.json` (penanganan skema di Rust, bukan webview) — perlu konfirmasi.                                              |
-| `scripts/bump-version.mjs`, `scripts/make-update-manifest.mjs`                                                                                         | Lengkap                                                                                                                                                                                                                | `bump-version.mjs --check` lulus; `make-update-manifest.mjs` 6/6 tes (SHA256 benar pada fixture) | `SHA256SUMS` **belum divalidasi terhadap artefak build riil** (hanya fixture).                                                                                                                                                                                                              |
+| Berkas                                                                                                                                    | Status kode                                                                                                                                                                                     | Verifikasi                                                                                       | Kesenjangan                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/updater.rs` (+ `src-tauri/src/sidecar/rpc.rs`, `src/main/services/update-manager.ts`, `tauri.conf.json › plugins.updater`) | Lengkap: `check`/`download`/`install`/`shutdown_before_install`/`state_snapshot`; endpoint menunjuk `Raka-Mahendra/sphinx` (bukan Hydra) + `pubkey` minisign + `installMode: passive`           | `cargo check` bersih; `tauri dev` boot tanpa error plugin updater                                | E2E update **belum dijalankan**: belum ada tag rilis dibangun/dipublikasikan; jalur `v0.0.1→v0.0.2` (unduh+pasang tanpa file terkunci, tanpa proses tersisa) **belum terbukti**. Kecocokan `pubkey` di `tauri.conf.json` dengan `TAURI_SIGNING_PRIVATE_KEY` riil **belum divalidasi**. |
+| `.github/workflows/tauri-release.yml`                                                                                                     | Lengkap: build → draft → publish; gerbang versi (`bump-version.mjs --check`); `signCommand` Authenticode (no-op tanpa secret); signing minisign via secret; generate `latest.json`+`SHA256SUMS` | YAML valid (js-yaml); struktur job benar; `bump-version.mjs --check v0.1.0` lulus                | Workflow **belum pernah dijalankan** (tidak ada tag push; push ditahan). Interaksi minisign+Authenticode, penamaan artefak, draft→publish di runner nyata **belum terbukti**.                                                                                                          |
+| `src-tauri/src/tray.rs` (+ `src/sidecar/entry.ts` handler `tray-click`/`tray-event`)                                                      | Lengkap: menu dibangun dari model sidecar, `tray::register_menu_handler` di `setup`                                                                                                             | `cargo check` bersih; `tauri dev` boot (tray dibuat di setup tanpa crash)                        | Kehadiran/visual tray dan klik menu **belum diverifikasi** di sesi dev (tidak di-screenshot); checklist §6.1 (taskbar/Start Menu/ARP) belum di mesin bersih.                                                                                                                           |
+| `src/main/deep-link.ts` + `src-tauri/src/platform.rs` (`register_deep_links`) + `tauri.conf.json › plugins.deep-link`                     | Lengkap: skema `sphinx` terdaftar; Rust meneruskan `control deep-link`/`second-instance` ke sidecar; `handleDeepLinkPath`/`handleSecondInstance` menangani                                      | `cargo check` bersih; `tauri dev` boot (skema terdaftar, setup tanpa crash)                      | Klik tautan `sphinx://run` nyata **belum diuji**; single-instance + replay URL belum dieksekusi. Capability `deep-link:allow-*` tidak eksplisit di `capabilities/default.json` (penanganan skema di Rust, bukan webview) — perlu konfirmasi.                                           |
+| `scripts/bump-version.mjs`, `scripts/make-update-manifest.mjs`                                                                            | Lengkap                                                                                                                                                                                         | `bump-version.mjs --check` lulus; `make-update-manifest.mjs` 6/6 tes (SHA256 benar pada fixture) | `SHA256SUMS` **belum divalidasi terhadap artefak build riil** (hanya fixture).                                                                                                                                                                                                         |
 
 ### Yang terverifikasi (Fase 5, lingkup terbatas)
 
@@ -479,14 +479,16 @@ di mesin bersih belum diuji.
 
 ## Ringkasan status fase & langkah berikutnya
 
-| Fase | Status                  | Catatan kunci                                                                              |
-| ---- | ----------------------- | ------------------------------------------------------------------------------------------ |
-| 0    | selesai                 | audit + baseline `be492f5`                                                                  |
-| 1    | selesai                 | anonim, feature flag, lisensi Apache-2.0                                                    |
-| 2    | **sebagian**            | branding ada; logo belum disetujui; generator allowlist bukan sadar-flag                    |
-| 3    | selesai & terverifikasi | `yarn tauri dev` render UI                                                                  |
-| 4    | selesai & terverifikasi | sidecar/bridge/crash-tests; `hydra-native`/`ludusavi` belum ada di mesin ini                |
+| Fase | Status                  | Catatan kunci                                                                                  |
+| ---- | ----------------------- | ---------------------------------------------------------------------------------------------- |
+| 0    | selesai                 | audit + baseline `be492f5`                                                                     |
+| 1    | selesai                 | anonim, feature flag, lisensi Apache-2.0                                                       |
+| 2    | **sebagian**            | branding ada; logo belum disetujui; generator allowlist bukan sadar-flag                       |
+| 3    | selesai & terverifikasi | `yarn tauri dev` render UI                                                                     |
+| 4    | selesai & terverifikasi | sidecar/bridge/crash-tests; `hydra-native`/`ludusavi` belum ada di mesin ini                   |
 | 5    | **sebagian**            | updater/tray/deep-link/release-yml ada di kode; E2E update & Windows bersih belum diverifikasi |
+| 6    | **sebagian**            | resource torrent native ikut installer; uji unduhan nyata & `cargo check` belum jalan          |
+| 7    | **sebagian**            | provider Google Drive lengkap + 43 tes; login/upload/restore nyata belum diuji                 |
 
 Langkah berikutnya (sebelum/sesudah pindah ke Linux):
 
@@ -503,3 +505,147 @@ Langkah berikutnya (sebelum/sesudah pindah ke Linux):
 4. **Kunci minisign:** buat, cadangkan offline, pisahkan dari Authenticode
    (§10.20).
 5. **Tahan `git push`** atas izin pengguna (lihat pesan commit).
+
+## Fase 6 — torrent native di Tauri (PRD §4.C)
+
+Mesin torrent tidak diganti: `hydra-native` + `torrent-bridge`, `DownloadManager`,
+status, seeding, pilih file, dan resume tetap. Catatan lengkap, termasuk tabel
+acceptance per kriteria dan rencana uji mesin bersih, ada di
+[`docs/torrent-tauri.md`](./torrent-tauri.md).
+
+### Yang dikerjakan
+
+- **Resource (`src-tauri/src/sidecar/config.rs`, `tauri.conf.json`)** — Rust
+  menyelesaikan folder `hydra-native` satu kali (paket: `<resources>/hydra-native`,
+  dev: `<repo>/hydra-native`, sama seperti Hydra) dan mengirimnya sebagai
+  `SPHINX_HYDRA_NATIVE_DIR`. `bundle.resources` tetap memetakan `../hydra-native`
+  ke `hydra-native`, jadi addon dan bridge prebuilt ikut installer tanpa binary
+  hasil build di-commit (`/hydra-native/` tetap di `.gitignore`).
+- **Resolusi path (`src/main/services/native-addon-path.ts`)** — fungsi murni
+  dengan urutan: modul tes → `SPHINX_HYDRA_NATIVE_DIR` → `resourcesPath` →
+  `appPath`. `native-addon.ts` hanya memanggilnya; tidak ada perubahan pada
+  jalur torrent. Pemanggil Electron di jalur ini tetap lewat shim (`app`,
+  `process.resourcesPath`); `src/main/services/download/**` tidak mengimpor
+  `electron`.
+- **Verifikasi dependensi `.node` (`scripts/check-torrent-resources.mjs`)** —
+  membaca tabel impor PE `hydra-native.node` dan bridge tanpa dependensi baru,
+  lalu gagal bila addon/bridge/runtime VC++ tidak ikut dikemas atau mapping
+  resource hilang. Diukur di sini: bridge prebuilt (`x64-windows-static`) tidak
+  mengimpor DLL CRT sama sekali; addon Rust mengimpor `vcruntime140`/`msvcp140`,
+  yang sudah disalin `scripts/build-native-addon.cjs` ke folder resource.
+- **Gate build & rilis (`package.json`, `.github/workflows/tauri-release.yml`)** —
+  `yarn build` menjalankan pemeriksaan itu; workflow rilis kini membangun addon
+  (`yarn build:native`) sebelum `tauri build`: instalasi CI memakai
+  `--ignore-scripts`, jadi `postinstall` dilewati dan rilis sebelumnya akan
+  terbit tanpa mesin torrent. `HYDRA_NATIVE_SKIP_LOAD_TEST=1` melewati uji muat
+  Electron yang tidak tersedia di runner.
+- **Tes otomatis** — `torrent-client.test.ts` (init/request/shutdown kontrak),
+  `native-addon-path.test.ts` (dev vs paket), dan
+  `src/sidecar/torrent-engine.test.ts` (integrasi proses nyata dengan pengganti
+  addon yang memegang socket eksklusif: satu engine per boot, satu
+  `torrentShutdown` pada shutdown bersih, sidecar kedua bukan engine kedua,
+  ambil alih setelah kill, `stdin` tertutup ⇒ keluar tanpa engine yatim).
+
+### Verifikasi (25 November 2026)
+
+| Klaim                          | Perintah                                                   | Hasil                                                       |
+| ------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------- |
+| Resolusi path dev/paket        | `native-addon-path.test.ts`                                | 5/5                                                         |
+| Init/request/shutdown engine   | `torrent-client.test.ts`                                   | 6/6                                                         |
+| Lifecycle engine lintas proses | `src/sidecar/torrent-engine.test.ts`                       | 4/4                                                         |
+| Resource dapat dikemas         | `node scripts/check-torrent-resources.mjs --allow-missing` | lulus, dengan peringatan `hydra-native.node` belum dibangun |
+| Typecheck                      | `tsc -p tsconfig.test.json` untuk berkas baru              | bersih                                                      |
+
+### Belum bisa dijalankan di mesin ini
+
+- Semua uji unduhan nyata (magnet/`.torrent`, jeda/lanjut/batal/hapus, pilih
+  sebagian file, seeding, resume setelah restart) — `hydra-native.node` tidak
+  dapat dibangun (tidak ada `libnode.dll`/MSVC, `cargo` tidak terpasang).
+- `cargo check` untuk perubahan `config.rs`; perubahan hanya menambah satu env
+  variable dan satu `eprintln!`, tetapi harus lolos CI.
+- Uji installer di VM Windows bersih tanpa Python/VC++ redistributable.
+
+## Fase 7 — cloud save Google Drive (PRD §4.F)
+
+Pipeline v2 tidak diganti: hashing native, snapshot lokal, manifest immutable,
+`SnapshotVariant`, dan `baseVersion` tetap sama. Yang berganti hanya tujuan
+unggah/restore — Hydra `/profile/cloud-saves/*` dan presigned S3 digantikan
+`GoogleDriveCloudSaveProvider` di belakang antarmuka
+`src/main/services/cloud-save/cloud-save-provider.ts`. Probe host dan langkah
+setup ada di [`docs/google-drive-setup.md`](./google-drive-setup.md).
+
+### Yang dikerjakan
+
+- **Provider (`src/main/services/google-drive/**`)** — REST v3 lewat `fetch`(tanpa`googleapis`), scope hanya `drive.appdata`. Blob
+content-addressed `<gameKey>/<sha256>`, manifest
+`<gameKey>/snapshots/<version>.json`di`appDataFolder`, metadata di `appProperties` (`app=sphinx`, `schema=1`,
+`kind`, `gameKey`, `hash`/`version`/`parent`, `deviceId`, `createdAt`). Tidak
+ada `index.json`; `gameKey` diturunkan dari shop+objectId sehingga tidak
+  bergantung nilai shop.
+- **Protokol commit** — daftar manifest → cek head == `baseVersion` → unggah
+  blob yang belum ada (dedupe per hash, konkurensi 3) → tulis manifest
+  `version+1` dengan `parent=baseVersion` → daftar ulang untuk mendeteksi
+  manifest kembar (dialog cloud/lokal/keduanya, backup lokal lebih dulu). Bila
+  `aggregateHash` sama dengan head, commit dilewati.
+- **ETag/If-Match** — diverifikasi dari dokumentasi Google dan laporan forum:
+  Drive v3 tidak menyediakan ETag yang dapat diandalkan pada `files.update`
+  atau penggantian media, dan `If-Match` tampak diabaikan. Karena itu konflik
+  diselesaikan lewat nomor versi + re-list setelah tulis, bukan precondition.
+- **Retensi & GC** — retensi default 3 (rentang 1–10) disimpan di
+  `google-drive-settings.json` (userData). Mark-and-sweep hanya menghapus blob
+  yang tidak dirujuk manifest mana pun **dan** lebih tua dari 24 jam, dan hanya
+  dijalankan setelah retensi memangkas manifest.
+- **Kuota** — `fields` parsial, `pageSize=1000`, filter `appProperties`, cache
+  daftar ~5 menit, backoff eksponensial + jitter untuk 429/403
+  `rateLimitExceeded`/5xx, pesan khusus `storageQuotaExceeded`, konfirmasi
+  ukuran (default 100 MB) dari byte baru setelah dedupe. `about.get` dipakai
+  untuk pemakaian/sisa kuota di Settings; tidak ada polling — sinkron hanya
+  saat aksi manual, game ditutup (bila diaktifkan), atau halaman game dibuka.
+- **OAuth** — Authorization Code + PKCE S256, loopback
+  `http://127.0.0.1:<port acak>/callback`, `state`, `access_type=offline`,
+  browser sistem, server loopback hanya selama login. Refresh token disimpan
+  lewat RPC `keychain.*` ke keychain OS; bila tidak tersedia, token hanya di
+  memori dan UI memberi tahu. Putuskan: revoke ke
+  `oauth2.googleapis.com/revoke`, hapus keychain, tawarkan hapus data cloud.
+  `invalid_grant` → terputus + ajakan hubungkan ulang.
+- **Client build-time** — `src-tauri/src/sidecar/config.rs` membaca
+  `option_env!("GOOGLE_CLIENT_ID"/"GOOGLE_CLIENT_SECRET")` (fallback env untuk
+  `tauri dev`) dan mengirimnya sebagai `SPHINX_GOOGLE_CLIENT_ID`/`SECRET`.
+  Workflow rilis meneruskan dua secret Actions. Build tanpa kredensial
+  menonaktifkan tombol dengan pesan "Google Drive belum dikonfigurasi di build
+  ini".
+- **Legacy & UI** — jalur `SubscriptionRequiredError` dihapus:
+  `assertCloudSaveAvailable()`/`isCloudSaveAvailable()` kini berbasis koneksi
+  Drive, dan 17 pemanggil subscription diganti. Channel v2 tidak lagi digated
+  `HYDRA_CLOUD_LEGACY`; kartu Settings baru
+  (`settings-google-drive.tsx`) berisi Hubungkan/Putuskan, pemakaian kuota,
+  retensi, dan ambang konfirmasi. Jalur artifact Hydra legacy tetap ada di
+  balik flag seperti sebelumnya.
+- **Tes otomatis** — 43 tes di `src/main/services/google-drive/`:
+  PKCE (vektor RFC 7636), OAuth (URL scope, state salah, scope berlebih,
+  `invalid_grant`, revoke), client REST (multipart, resumable, 401→refresh,
+  429 backoff, `storageQuotaExceeded`, `about`, delete, pagination), provider
+  (dedupe, skip commit, `baseVersion` bentrok, konfirmasi ukuran, manifest
+  kembar untuk ketiga pilihan, pruning + GC dengan grace period, varian Steam,
+  restore manifest/URL/unduh, hapus total), manifest (validasi totals/skema/
+  varian/custom path), settings (clamp, fallback, tulis atomik).
+
+### Verifikasi (25 November 2026)
+
+| Klaim                          | Perintah                                                                                       | Hasil                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Tes Google Drive               | `node --import ./scripts/register-ts-node.mjs --test src/main/services/google-drive/*.test.ts` | 43/43                                                                            |
+| Typecheck main/sidecar         | `tsc --noEmit -p tsconfig.node.json --composite false`                                         | bersih                                                                           |
+| Typecheck renderer/big-picture | `tsc --noEmit -p tsconfig.web.json --composite false`                                          | bersih                                                                           |
+| Lint berkas baru & yang diubah | `eslint` pada `src/main/services/google-drive`, provider, event, Settings                      | bersih (2 warning `any` lama di `preload/index.ts`)                              |
+| IPC allowlist                  | `node scripts/generate-ipc-allowlist.mjs`                                                      | 350 invoke, 0 send, 72 event                                                     |
+| Regresi pipeline cloud save    | `--test src/main/services/cloud-save/*.test.ts`                                                | 375/401; 15 gagal karena symlink `EPERM`/semantik path Windows, bukan kode Drive |
+
+### Belum bisa dijalankan di mesin ini
+
+- Login Google nyata, unggah/restore ke Drive sungguhan, dan pemeriksaan
+  "file tidak tampak di My Drive" — tidak ada kredensial client maupun akun
+  Google. Langkah manualnya ada di `docs/google-drive-setup.md` §8.
+- `cargo check` untuk `config.rs` (cargo tidak terpasang); perubahan hanya
+  menambah dua env dan satu peringatan build.
+- Uji restore end-to-end tetap tertahan `hydra-native.node` (lihat Fase 6).

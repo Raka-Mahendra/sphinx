@@ -14,7 +14,4 @@ const getSnapExecutablePath = () => {
 };
 
 export const getHydraExecutablePath = () =>
-  process.env.APPIMAGE ||
-  process.env.PORTABLE_EXECUTABLE_FILE ||
-  getSnapExecutablePath() ||
-  process.execPath;
+  process.env.APPIMAGE || getSnapExecutablePath() || process.execPath;

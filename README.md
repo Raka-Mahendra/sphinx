@@ -53,7 +53,7 @@ The logo, icon set and usage rules are in [`branding/`](./branding/README.md).
 
 Unsigned releases downloaded from GitHub show **"Windows protected your PC"**
 (SmartScreen) on the browser download. That is expected for every new,
-un-signed publisher and is not a defect — click **More info → Run anyway** to
+unsigned publisher and is not a defect — click **More info → Run anyway** to
 install. The in-app self-updater normally does **not** trigger SmartScreen
 because the installer is launched by the already-running app, not the browser.
 

@@ -100,7 +100,7 @@ pub async fn handle(
             let state = app
                 .try_state::<crate::updater::UpdaterState>()
                 .ok_or_else(|| WireError::new("updater_unavailable", "no updater state"))?;
-            crate::updater::install(app, &state).await
+            crate::updater::install(&state).await
         }
         "updater.state" => {
             let state = app

@@ -1,30 +1,15 @@
-import { HydraApi } from "@main/services/hydra-api";
 import type { GameShop, RemoteSnapshotSummary } from "@types";
 
-import { validateRemoteSnapshotSummary } from "./cloud-save-contract";
+import { getCloudSaveProvider } from "./cloud-save-provider";
 
-const validateRemoteSnapshots = (value: unknown): RemoteSnapshotSummary[] => {
-  if (!Array.isArray(value)) throw new Error("Invalid snapshots response");
-  if (value.length > 1) {
-    throw new Error("Cloud Save API returned more than one active snapshot");
-  }
-  return value.map(validateRemoteSnapshotSummary);
-};
-
+/**
+ * Lists the snapshots for a game, newest first.
+ *
+ * Drive keeps several immutable manifests (retention), so more than one entry is
+ * normal. The pipeline treats `[0]` as the head.
+ */
 export const listRemoteGameSnapshots = async (
   objectId: string,
   shop: GameShop
-) =>
-  validateRemoteSnapshots(
-    await HydraApi.get<unknown>(
-      "/profile/cloud-saves/snapshots",
-      {
-        shop,
-        objectId,
-      },
-      {
-        needsAuth: true,
-        needsSubscription: true,
-      }
-    )
-  );
+): Promise<RemoteSnapshotSummary[]> =>
+  getCloudSaveProvider().listSnapshots({ objectId, shop });

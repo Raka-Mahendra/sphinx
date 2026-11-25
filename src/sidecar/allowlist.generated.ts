@@ -5,7 +5,7 @@
  * `node scripts/generate-ipc-allowlist.mjs` after adding or removing a channel;
  * `--check` mode fails the build when this file is stale.
  *
- * Counts: 346 invoke, 0 send, 72 event, 6 dynamic prefix.
+ * Counts: 350 invoke, 0 send, 72 event, 6 dynamic prefix.
  */
 
 /** `ipcMain.handle` and `registerEvent` channels. Served by `ipc_invoke`. */
@@ -68,6 +68,7 @@ export const INVOKE_CHANNELS: readonly string[] = [
   "completeRetroAchievementsConnectionWindow",
   "confirmCloudSaveCustomPathApproval",
   "confirmCloudSaveCustomPathRebindApproval",
+  "connectGoogleDrive",
   "consumePendingChatFriends",
   "copyCustomGameAsset",
   "copyThemeAchievementSound",
@@ -89,6 +90,7 @@ export const INVOKE_CHANNELS: readonly string[] = [
   "detectEmulators",
   "detectRetroArch",
   "disconnectEpic",
+  "disconnectGoogleDrive",
   "disconnectSteam",
   "dismissCloudSaveCustomPathApproval",
   "downloadGameArtifact",
@@ -152,6 +154,7 @@ export const INVOKE_CHANNELS: readonly string[] = [
   "getGameShopDetails",
   "getGamesRunning",
   "getGameStats",
+  "getGoogleDriveState",
   "getHiddenLibrary",
   "getHydraDeckyPluginInfo",
   "getImageDataUrl",
@@ -305,6 +308,7 @@ export const INVOKE_CHANNELS: readonly string[] = [
   "setGameArtworkSelection",
   "setGameHydraPlaytimeEnabled",
   "setGameVisibility",
+  "setGoogleDriveSettings",
   "setPausedDownloadPosition",
   "setRetroArchCoresDir",
   "setRetroArchExecutablePath",

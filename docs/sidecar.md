@@ -60,29 +60,32 @@ data-loss bug.
 
 Implemented over the RPC channel:
 
-| API                                                                            | Backed by                                                               |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| `app.getPath` / `setPath` / `getVersion` / `isPackaged`                        | `SPHINX_*` environment variables, resolved synchronously at module load |
-| `ipcMain.handle` / `on` / `once` / `removeHandler`                             | the protocol dispatcher                                                 |
-| `BrowserWindow`                                                                | a proxy; `window.create` / `window.call` in Rust                        |
-| `dialog.showOpenDialog` / `showSaveDialog` / `showMessageBox` / `showErrorBox` | `tauri-plugin-dialog`                                                   |
-| `shell.openExternal` / `openPath` / `showItemInFolder`                         | the `open` crate, behind the `http:`/`https:` allowlist                 |
-| `net.fetch`                                                                    | Node's global `fetch`                                                   |
-| `clipboard.writeText`                                                          | `arboard`                                                               |
-| `screen.getPrimaryDisplay` / `getAllDisplays` / `getDisplayMatching`           | `SPHINX_DISPLAYS`                                                       |
-| `keychain.*`                                                                   | the `keyring` crate                                                     |
+| API                                                                            | Backed by                                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `app.getPath` / `setPath` / `getVersion` / `isPackaged`                        | `SPHINX_*` environment variables, resolved synchronously at module load                          |
+| `ipcMain.handle` / `on` / `once` / `removeHandler`                             | the protocol dispatcher                                                                          |
+| `BrowserWindow`                                                                | a proxy; `window.create` / `window.call` in Rust                                                 |
+| `dialog.showOpenDialog` / `showSaveDialog` / `showMessageBox` / `showErrorBox` | `tauri-plugin-dialog`                                                                            |
+| `shell.openExternal` / `openPath` / `showItemInFolder`                         | the `open` crate, behind the `http:`/`https:` allowlist                                          |
+| `net.fetch`                                                                    | Node's global `fetch`                                                                            |
+| `clipboard.writeText`                                                          | `arboard`                                                                                        |
+| `screen.getPrimaryDisplay` / `getAllDisplays` / `getDisplayMatching`           | `SPHINX_DISPLAYS`                                                                                |
+| `keychain.*`                                                                   | the `keyring` crate                                                                              |
+| `Tray` / `Menu`                                                                | `tray.create` / `tray.setMenu` / `tray.destroy` in `src-tauri/src/tray.rs`                       |
+| `Notification`                                                                 | `notification.show` via `tauri-plugin-notification` (`notifications.rs`)                         |
+| `auto-launch` (`src/sidecar/electron-shim/auto-launch.ts`)                     | `autostart.set` / `autostart.get` via `tauri-plugin-autostart` (`platform.rs`)                   |
+| `protocol.handle("local", ...)`                                                | `register_uri_scheme_protocol("local", ...)` (`uri_scheme.rs`) + `src/tauri-bridge/asset-url.ts` |
+| `UpdateManager` (`updater.*` RPC)                                              | `tauri-plugin-updater` (`src-tauri/src/updater.rs`)                                              |
 
-Deliberately **not** implemented, with the consequence:
+Deliberately **not** implemented or compromised, with the consequence:
 
-| API                  | Consequence                                                                                                                                                                      | Tracked |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `session.webRequest` | CORS/UA header rewriting for artwork is gone. `window-manager.ts:342` logs once at start-up. Fase 5 must decide between a sidecar proxy and accepting WebView2's CORS behaviour. | Fase 5  |
-| `nativeImage`        | screenshots and chat task-bar badges cannot be built synchronously.                                                                                                              | Fase 6  |
-| `desktopCapturer`    | desktop capture.                                                                                                                                                                 | Fase 6  |
-| `Notification`       | "new repacks" notifications are logged, not shown. `tauri-plugin-notification` is the Fase 6 answer.                                                                             | Fase 6  |
-| `powerSaveBlocker`   | the display may sleep mid-download.                                                                                                                                              | Fase 6  |
-| `Tray`               | throws. The tray is Rust-owned (Fase 5).                                                                                                                                         | Fase 5  |
-| `protocol.handle`    | `local:` and `gradient:` schemes.                                                                                                                                                | Fase 5  |
+| API                                | Consequence / Compromise                                                                                                                                                                                                                          | Tracked                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `session.webRequest`               | CORS/UA header rewriting for artwork is stubbed (`warnOnce` at startup). Fase 5 compromise: rely on WebView2 CORS / CDN headers rather than running a local HTTP artwork proxy; revisit only if a specific artwork CDN rejects WebView2 requests. | Fase 5 (accepted compromise) |
+| `nativeImage`                      | screenshots and chat task-bar badges cannot be built synchronously.                                                                                                                                                                               | Fase 6                       |
+| `desktopCapturer`                  | desktop capture.                                                                                                                                                                                                                                  | Fase 6                       |
+| `powerSaveBlocker`                 | `src-tauri/src/power.rs` logs once and returns `{ blocked, supported: false }`; the display may sleep mid-download until OS-specific sleep inhibition is wired.                                                                                   | Fase 6                       |
+| `protocol.handle("gradient", ...)` | unused by `src/renderer` and `src/big-picture` (only defined in `src/main/index.ts`); not registered in the Tauri shell.                                                                                                                          | Deferred                     |
 
 `electron-log` is replaced by `src/sidecar/electron-shim/logger.ts`, which keeps
 the baseline file split (`info.txt`, `error.txt`, `network.txt`,

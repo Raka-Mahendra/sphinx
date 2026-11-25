@@ -38,14 +38,9 @@ pub fn handle_local<R: Runtime>(
 ) -> Response<Cow<'static, [u8]>> {
     let raw = request.uri().path();
 
-    let decoded = match percent_decode(raw) {
-        Some(decoded) => decoded,
-        None => return not_found("malformed path"),
+    let Some(path) = decode_request_path(raw) else {
+        return not_found("malformed path");
     };
-
-    // `http://local.localhost/C%3A/path` -> `C:/path`; on Linux the path starts
-    // with `/` and must keep it.
-    let path = PathBuf::from(decoded);
 
     match std::fs::read(&path) {
         Ok(bytes) => Response::builder()
@@ -66,7 +61,33 @@ fn not_found(reason: &str) -> Response<Cow<'static, [u8]>> {
         .status(StatusCode::NOT_FOUND)
         .header("content-type", "text/plain")
         .body(Cow::Owned(reason.as_bytes().to_vec()))
-        .expect("static response")
+        .unwrap_or_else(|_| {
+            let mut fallback = Response::new(Cow::Borrowed(b"not found".as_slice()));
+            *fallback.status_mut() = StatusCode::NOT_FOUND;
+            fallback
+        })
+}
+
+/// Converts the HTTP request path back to a filesystem path.
+///
+/// On Windows, `convertFileSrc("C:\\foo", "local")` becomes
+/// `http://local.localhost/C%3A%5Cfoo`, whose URI path starts with the HTTP `/`
+/// separator (`"/C%3A%5Cfoo"`). Strip that leading `/` on Windows so `C:\foo` is
+/// passed to `std::fs::read`; on Unix, keep the leading `/` for absolute paths.
+fn decode_request_path(raw: &str) -> Option<PathBuf> {
+    let decoded = percent_decode(raw)?;
+
+    #[cfg(windows)]
+    let normalized = decoded.strip_prefix('/').unwrap_or(&decoded);
+
+    #[cfg(not(windows))]
+    let normalized = decoded.as_str();
+
+    if normalized.is_empty() {
+        return None;
+    }
+
+    Some(PathBuf::from(normalized))
 }
 
 /// Minimal percent-decoder.
@@ -76,17 +97,19 @@ fn not_found(reason: &str) -> Response<Cow<'static, [u8]>> {
 fn percent_decode(input: &str) -> Option<String> {
     let bytes = input.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
-    let mut index = 0;
+    let mut index = 0usize;
 
-    while index < bytes.len() {
-        if bytes[index] == b'%' {
-            let hex = bytes.get(index + 1..index + 3)?;
+    while let Some(&byte) = bytes.get(index) {
+        if byte == b'%' {
+            let start = index.checked_add(1)?;
+            let end = index.checked_add(3)?;
+            let hex = bytes.get(start..end)?;
             let value = u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?;
             out.push(value);
-            index += 3;
+            index = end;
         } else {
-            out.push(bytes[index]);
-            index += 1;
+            out.push(byte);
+            index = index.checked_add(1)?;
         }
     }
 
@@ -115,4 +138,41 @@ fn content_type(path: &std::path::Path) -> &'static str {
 /// Resolves the resource directory once, for callers that need a file path.
 pub fn resource_path<R: Runtime>(app: &AppHandle<R>, name: &str) -> Option<PathBuf> {
     app.path().resource_dir().ok().map(|dir| dir.join(name))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn percent_decode_decodes_hex_and_preserves_plain_chars() {
+        assert_eq!(
+            percent_decode("/C%3A/Users/test%20user/cover.png").as_deref(),
+            Some("/C:/Users/test user/cover.png")
+        );
+    }
+
+    #[test]
+    fn percent_decode_rejects_truncated_sequences() {
+        assert_eq!(percent_decode("/bad%2"), None);
+        assert_eq!(percent_decode("/bad%ZZ"), None);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn decode_request_path_strips_leading_slash_on_windows() {
+        assert_eq!(
+            decode_request_path("/C%3A/Users/raka/icon.png"),
+            Some(PathBuf::from("C:/Users/raka/icon.png"))
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn decode_request_path_keeps_leading_slash_on_unix() {
+        assert_eq!(
+            decode_request_path("/home/raka/icon.png"),
+            Some(PathBuf::from("/home/raka/icon.png"))
+        );
+    }
 }

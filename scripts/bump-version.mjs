@@ -23,7 +23,11 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const FILES = [
-  { label: "package.json", path: path.join(ROOT, "package.json"), kind: "json" },
+  {
+    label: "package.json",
+    path: path.join(ROOT, "package.json"),
+    kind: "json",
+  },
   {
     label: "src-tauri/Cargo.toml",
     path: path.join(ROOT, "src-tauri", "Cargo.toml"),
@@ -56,35 +60,29 @@ const writeVersion = (file, version) => {
   if (file.kind === "json") {
     const parsed = JSON.parse(raw);
     parsed.version = version;
-    fs.writeFileSync(
-      file.path,
-      `${JSON.stringify(parsed, null, 2)}\n`,
-      "utf8"
-    );
+    fs.writeFileSync(file.path, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
     return;
   }
 
   // Only the `[package]` version, and only the first occurrence: Cargo.toml has
   // other `version = "…"` lines inside dependency tables.
-  const replaced = raw.replace(
-    /^version = "[^"]*"/m,
-    `version = "${version}"`
-  );
+  const replaced = raw.replace(/^version = "[^"]*"/m, `version = "${version}"`);
   fs.writeFileSync(file.path, replaced, "utf8");
 };
 
 /**
  * Normalises a tag to a plain version.
  *
- * Tauri's updater accepts SemVer with or without a leading `v`, but the app
- * metadata is compared against `latest.json`'s `version` field, and the three
- * files store it without the `v`. Pre-release suffixes (`-beta.1`) are kept:
- * Tauri accepts them, but MSI/WiX does not — see docs/release.md.
+ * The three version files store `X.Y.Z` without the leading `v`, and release
+ * builds require pure numeric `X.Y.Z` only — pre-release suffixes (`-beta.1`)
+ * are rejected because MSI/WiX does not accept non-numeric suffixes and the
+ * updater would compare a pre-release as newer than or inconsistent with the
+ * matching release; see `docs/release.md` §4.
  */
 export const normalizeVersion = (tag) => {
   const bare = tag.replace(/^v/, "");
 
-  if (!/^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(bare)) {
+  if (!/^\d+\.\d+\.\d+$/.test(bare)) {
     throw new Error(
       `"${tag}" is not a plain X.Y.Z version (got "${bare}"). Pre-release suffixes are not supported for release builds.`
     );
@@ -146,4 +144,10 @@ const main = () => {
   }
 };
 
-main();
+// Run only when executed as a script, never when imported by a test.
+if (
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+) {
+  main();
+}

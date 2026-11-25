@@ -192,6 +192,22 @@ fn display_map(app: &AppHandle) -> String {
     serde_json::to_string(&displays).unwrap_or_else(|_| "[]".to_string())
 }
 
+/// The OAuth client baked into this build, or the developer's environment.
+fn google_env(name: &str) -> String {
+    let embedded = match name {
+        "GOOGLE_CLIENT_ID" => option_env!("GOOGLE_CLIENT_ID"),
+        "GOOGLE_CLIENT_SECRET" => option_env!("GOOGLE_CLIENT_SECRET"),
+        _ => None,
+    }
+    .unwrap_or("");
+
+    if !embedded.is_empty() {
+        return embedded.to_string();
+    }
+
+    std::env::var(name).unwrap_or_default()
+}
+
 pub fn build_config(app: &AppHandle) -> Result<SidecarConfig, String> {
     let (resources, root, is_packaged) = resolve_paths(app)?;
 
@@ -212,8 +228,47 @@ pub fn build_config(app: &AppHandle) -> Result<SidecarConfig, String> {
     let paths = path_map(app)?;
     let displays = display_map(app);
 
+    // The native torrent addon and the prebuilt libtorrent bridge share one
+    // folder (the addon loads the bridge from its own directory). This is the
+    // layout Hydra used in development and the one `bundle.resources` copies
+    // into the installer, so the sidecar never has to infer either.
+    let hydra_native_dir = if is_packaged {
+        resources.join("hydra-native")
+    } else {
+        root.join("hydra-native")
+    };
+
+    if is_packaged && !hydra_native_dir.join("hydra-native.node").exists() {
+        eprintln!(
+            "[shell] hydra-native.node is missing from {}; torrents will be unavailable in this build",
+            hydra_native_dir.display()
+        );
+    }
+
+    // Google Drive OAuth client. `option_env!` bakes the value into the binary
+    // at build time, so an official build always carries one client and a fork
+    // has to supply its own through the build environment. The runtime fallback
+    // exists only for `tauri dev`, where the compile happens on the developer's
+    // machine too.
+    let google_client_id = google_env("GOOGLE_CLIENT_ID");
+    let google_client_secret = google_env("GOOGLE_CLIENT_SECRET");
+
+    if is_packaged && google_client_id.is_empty() {
+        eprintln!(
+            "[shell] GOOGLE_CLIENT_ID was empty at build time; Google Drive cloud saves will be disabled"
+        );
+    }
+
     let env = vec![
         ("SPHINX_IS_PACKAGED".to_string(), if is_packaged { "1" } else { "0" }.to_string()),
+        (
+            "SPHINX_GOOGLE_CLIENT_ID".to_string(),
+            google_client_id,
+        ),
+        (
+            "SPHINX_GOOGLE_CLIENT_SECRET".to_string(),
+            google_client_secret,
+        ),
         ("SPHINX_APP_VERSION".to_string(), version),
         ("SPHINX_APP_NAME".to_string(), "Sphinx Launcher".to_string()),
         ("SPHINX_APP_PATH".to_string(), root.to_string_lossy().to_string()),
@@ -223,6 +278,10 @@ pub fn build_config(app: &AppHandle) -> Result<SidecarConfig, String> {
         ),
         ("SPHINX_PATHS".to_string(), paths),
         ("SPHINX_DISPLAYS".to_string(), displays),
+        (
+            "SPHINX_HYDRA_NATIVE_DIR".to_string(),
+            hydra_native_dir.to_string_lossy().to_string(),
+        ),
         ("SPHINX_SUPERVISED".to_string(), "1".to_string()),
         (
             "SPHINX_RENDERER_URL".to_string(),

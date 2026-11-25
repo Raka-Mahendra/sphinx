@@ -12,12 +12,11 @@ import {
 } from "@shared";
 import { gamesSublevel, levelKeys } from "@main/level";
 
-import { HydraApi } from "../hydra-api";
 import { isGameRunning } from "../game-running-state";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
-import { canAccessCloudSaves } from "./cloud-save-access";
+import { isCloudSaveAvailable } from "./cloud-save-access";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
@@ -65,10 +64,7 @@ export const canRunAutomaticCloudSaveSync = async (
   shop: GameShop
 ) => {
   if (
-    !canAccessCloudSaves(
-      HydraApi.isLoggedIn(),
-      HydraApi.hasActiveSubscription()
-    ) ||
+    !(await isCloudSaveAvailable()) ||
     (await isPendingDeletionBlockingAutomaticSync(objectId, shop)) ||
     !(await getCloudSaveAutomaticSyncEnabled(objectId, shop))
   ) {
@@ -115,12 +111,7 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
   expectedRemoteHash?: string | null
 ): Promise<AutomaticCloudSaveSyncOutcome> => {
-  if (
-    !canAccessCloudSaves(
-      HydraApi.isLoggedIn(),
-      HydraApi.hasActiveSubscription()
-    )
-  ) {
+  if (!(await isCloudSaveAvailable())) {
     return { status: "skipped", result: null };
   }
 
@@ -363,12 +354,7 @@ export const runAutomaticCloudSavePostExit = async (
   shop: GameShop
 ): Promise<SyncGameCloudSaveResult | null> => {
   const guard = consumeCloudSaveLaunchGuard(objectId, shop);
-  if (
-    !canAccessCloudSaves(
-      HydraApi.isLoggedIn(),
-      HydraApi.hasActiveSubscription()
-    )
-  ) {
+  if (!(await isCloudSaveAvailable())) {
     return null;
   }
   if (!guard?.uploadAllowed) {

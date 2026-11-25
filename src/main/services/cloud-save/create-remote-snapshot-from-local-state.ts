@@ -1,7 +1,5 @@
-import { HydraApi } from "@main/services/hydra-api";
 import type {
   CloudSaveUploadProgress,
-  CommitSnapshotRequest,
   CommitSnapshotResponse,
   GameShop,
   LocalGameSnapshotContext,
@@ -20,15 +18,9 @@ import {
   cloudSaveFileKey,
   isNonEmptyString,
 } from "./cloud-save-contract";
+import { getCloudSaveProvider } from "./cloud-save-provider";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
-import {
-  isCloudSaveCommitTransportFailure,
-  shouldReprepareCloudSaveSnapshot,
-} from "./snapshot-retry-policy";
-import {
-  uploadLocalGameSnapshot,
-  type PrepareLocalSnapshotOptions,
-} from "./upload-local-game-snapshot";
+import { type PrepareLocalSnapshotOptions } from "./upload-local-game-snapshot";
 
 type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
@@ -81,25 +73,13 @@ const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
   return value as CommitSnapshotResponse;
 };
 
-const commitPendingSnapshot = async (pendingSnapshotId: string) => {
-  let response: unknown;
-  const request: CommitSnapshotRequest = { pendingSnapshotId };
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      response = await HydraApi.post<unknown>(
-        "/profile/cloud-saves/commit-snapshot",
-        request,
-        { needsAuth: true, needsSubscription: true }
-      );
-      break;
-    } catch (error) {
-      if (attempt === 0 && isCloudSaveCommitTransportFailure(error)) continue;
-      throw error;
-    }
-  }
-  return validateCommitResponse(response);
-};
-
+/**
+ * Builds the local snapshot, uploads any missing blobs and writes the immutable
+ * manifest through the active provider.
+ *
+ * Returns `null` when the provider decided the remote copy wins a conflict the
+ * user resolved, which is the same contract as Hydra's "nothing pending".
+ */
 export const createRemoteSnapshotFromLocalState = async (
   objectId: string,
   shop: GameShop,
@@ -134,46 +114,36 @@ export const createRemoteSnapshotFromLocalState = async (
     resolvedOptions.aggregateHash ??
     buildCloudSaveAggregateHash({ variants, files });
 
-  let committed: CommitSnapshotResponse | null = null;
-  for (let prepareAttempt = 0; prepareAttempt < 2; prepareAttempt += 1) {
-    try {
-      await resolvedOptions.assertEnvironmentCurrent?.();
-      const upload = await uploadLocalGameSnapshot(
-        objectId,
-        shop,
-        onProgress,
-        context,
-        {
-          ...resolvedOptions,
-          ...(getEmulatorSaveProvider(game) === "retroarch"
-            ? { retroArchFormatVersion: 2 as const }
-            : {}),
-          variants,
-          files,
-          customPathRawPaths,
-          aggregateHash: expectedAggregateHash,
-        }
-      );
-      if (!upload.pendingSnapshotId) return null;
-      await resolvedOptions.assertEnvironmentCurrent?.();
-      committed = await commitPendingSnapshot(upload.pendingSnapshotId);
-      break;
-    } catch (error) {
-      if (prepareAttempt === 0 && shouldReprepareCloudSaveSnapshot(error))
-        continue;
-      throw error;
-    }
-  }
-  if (!committed) throw new Error("Cloud Save commit did not complete");
+  await resolvedOptions.assertEnvironmentCurrent?.();
+  const upload = await getCloudSaveProvider().uploadSnapshot(
+    {
+      shop,
+      objectId,
+      platform: context.pathContext.platform,
+      baseVersion: resolvedOptions.baseVersion,
+      aggregateHash: expectedAggregateHash,
+      variants,
+      files,
+      customPathRawPaths,
+      sourceFiles: context.sourceFiles,
+    },
+    onProgress
+  );
+  if (upload.kind === "remote-won") return null;
+
+  const committed = validateCommitResponse({
+    snapshotId: upload.snapshot.id,
+    version: upload.snapshot.version,
+    fileCount: upload.snapshot.fileCount,
+    totalSizeBytes: upload.snapshot.totalSizeBytes,
+    aggregateHash: upload.snapshot.aggregateHash,
+  });
 
   const expectedTotalSize = files.reduce(
     (total, file) => total + file.sizeBytes,
     0
   );
   if (
-    committed.version !== resolvedOptions.baseVersion + 1 ||
-    (resolvedOptions.expectedSnapshotId &&
-      committed.snapshotId !== resolvedOptions.expectedSnapshotId) ||
     committed.fileCount !== files.length ||
     committed.totalSizeBytes !== expectedTotalSize ||
     committed.aggregateHash !== expectedAggregateHash

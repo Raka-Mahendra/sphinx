@@ -13,7 +13,7 @@ import type {
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
-import { assertCloudSaveSubscription } from "./cloud-save-access";
+import { assertCloudSaveAvailable } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { downloadRemoteSnapshotToTemp } from "./download-remote-snapshot-to-temp";
@@ -194,7 +194,7 @@ export const restoreRemoteSnapshot = async (
   versionChangeAttempt = 0,
   assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<RestoreRemoteSnapshotResult> => {
-  assertCloudSaveSubscription();
+  await assertCloudSaveAvailable();
 
   const emitProgress = (
     stage: RestoreProgressPayload["stage"],

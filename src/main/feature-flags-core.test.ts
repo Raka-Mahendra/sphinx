@@ -29,7 +29,9 @@ describe("main feature flag enforcement", () => {
     assert.equal(featureForChannel("getUnlockedAchievements"), "ACHIEVEMENTS");
     assert.equal(featureForChannel("startSteamSync"), "STEAM_INTEGRATION");
     assert.equal(featureForChannel("startEpicAuth"), "EPIC_INTEGRATION");
-    assert.equal(featureForChannel("syncGameCloudSave"), "HYDRA_CLOUD_LEGACY");
+    // v2 cloud saves are Drive-backed and must work with the Hydra flag off.
+    assert.equal(featureForChannel("syncGameCloudSave"), undefined);
+    assert.equal(featureForChannel("getCloudSaveOverview"), undefined);
     assert.equal(featureForChannel("getCloudIframeUrl"), "HYDRA_CLOUD_LEGACY");
   });
 

@@ -55,6 +55,9 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  GoogleDriveDisconnectResult,
+  GoogleDriveSettings,
+  GoogleDriveState,
   RetroArchLocalBatteryCandidate,
   RetroArchLegacyBatteryCandidate,
   CloudSaveV2FileDetails,
@@ -194,6 +197,20 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveOverview>,
+  getGoogleDriveState: () =>
+    ipcRenderer.invoke("getGoogleDriveState") as Promise<GoogleDriveState>,
+  connectGoogleDrive: () =>
+    ipcRenderer.invoke("connectGoogleDrive") as Promise<GoogleDriveState>,
+  disconnectGoogleDrive: (deleteCloudData: boolean) =>
+    ipcRenderer.invoke(
+      "disconnectGoogleDrive",
+      deleteCloudData
+    ) as Promise<GoogleDriveDisconnectResult>,
+  setGoogleDriveSettings: (settings: Partial<GoogleDriveSettings>) =>
+    ipcRenderer.invoke(
+      "setGoogleDriveSettings",
+      settings
+    ) as Promise<GoogleDriveSettings>,
   getCloudSaveV2FileDetails: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "getCloudSaveV2FileDetails",
@@ -1512,7 +1529,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openFolder", folderPath),
   getAppSessionId: () => ipcRenderer.invoke("getAppSessionId"),
   isStaging: () => ipcRenderer.invoke("isStaging"),
-  isPortableVersion: Boolean(process.env.PORTABLE_EXECUTABLE_FILE),
+  isPortableVersion: false,
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: (options?: OpenCheckoutOptions) =>
     ipcRenderer.invoke("openCheckout", options),

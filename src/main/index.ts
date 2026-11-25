@@ -26,7 +26,6 @@ import { TorrentService } from "./services/torrent-service";
 import { DownloadManager } from "./services/download/download-manager";
 import { db, levelKeys } from "./level";
 import { handleDeepLinkPath } from "./deep-link";
-import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { loadState } from "./main";
 import { isFeatureEnabled } from "./feature-flags";
 import {
@@ -83,7 +82,6 @@ if (process.defaultApp) {
 }
 
 const initializeApp = async () => {
-  refreshPortableShortcutLauncher();
   electronApp.setAppUserModelId("gg.sphinx.launcher");
 
   logger.info("Crash dumps directory", app.getPath("crashDumps"));

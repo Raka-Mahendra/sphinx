@@ -11,7 +11,7 @@ import type {
 } from "@types";
 
 import { WindowManager } from "../window-manager";
-import { assertCloudSaveSubscription } from "./cloud-save-access";
+import { assertCloudSaveAvailable } from "./cloud-save-access";
 import { assertLegacyCloudSaveWriteAllowed } from "./legacy-cloud-save-policy";
 import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import {
@@ -134,7 +134,7 @@ export const setCloudSaveAutomaticSyncEnabled = async (
 ) => {
   if (enabled) {
     await assertCloudSaveV2Eligible(objectId, shop);
-    assertCloudSaveSubscription();
+    await assertCloudSaveAvailable();
   }
 
   const { mode: currentMode } = await readCloudSaveAutomaticSyncMode(

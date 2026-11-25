@@ -1,4 +1,3 @@
-import { HydraApi } from "@main/services/hydra-api";
 import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
@@ -13,6 +12,7 @@ import type {
 
 import { NativeAddon } from "../native-addon";
 import { validateRestoreManifest } from "./cloud-save-contract";
+import { getCloudSaveProvider } from "./cloud-save-provider";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { customPathToCloudSaveRule } from "./custom-path-store";
@@ -40,11 +40,10 @@ export const getRemoteSnapshotRestoreManifest = async (
   snapshot: RemoteSnapshotSummary | RemoteGameSnapshot
 ): Promise<RestoreManifestResponse> => {
   const manifest = validateRestoreManifest(
-    await HydraApi.get<unknown>(
-      "/profile/cloud-saves/snapshot-restore-manifest",
-      { snapshotId: snapshot.id },
-      { needsAuth: true, needsSubscription: true }
-    )
+    await getCloudSaveProvider().getRestoreManifest({
+      id: snapshot.id,
+      version: snapshot.version,
+    })
   );
   const totalSizeBytes = manifest.files.reduce(
     (total, file) => total + file.sizeBytes,

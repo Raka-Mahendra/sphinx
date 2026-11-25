@@ -26,6 +26,7 @@ import type {
 } from "@types";
 
 import { logger } from "./logger";
+import { resolveNativeAddonPath } from "./native-addon-path";
 
 type NativeProcessProfileImageResponse = {
   imagePath?: string;
@@ -240,15 +241,18 @@ export class NativeAddon {
   private static pendingResolvers: PendingResolver[] = [];
 
   private static resolveAddonPath() {
-    if (app.isPackaged) {
-      return path.join(
-        process.resourcesPath,
-        "hydra-native",
-        "hydra-native.node"
-      );
-    }
-
-    return path.join(app.getAppPath(), "hydra-native", "hydra-native.node");
+    // Rust resolves the directory once and passes it in `SPHINX_HYDRA_NATIVE_DIR`
+    // (`src-tauri/src/sidecar/config.rs`): `<resources>/hydra-native` when
+    // packaged, `<repo>/hydra-native` in development. That is the same folder
+    // Hydra used, so nothing about the torrent layout changes — only who picks
+    // it. The addon and the prebuilt bridge are both inside it.
+    return resolveNativeAddonPath({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      hydraNativeDir: process.env.SPHINX_HYDRA_NATIVE_DIR,
+      addonModule: process.env.SPHINX_TEST_NATIVE_ADDON,
+    });
   }
 
   private static load() {

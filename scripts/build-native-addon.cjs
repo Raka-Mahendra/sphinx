@@ -180,6 +180,18 @@ const build = async () => {
   await copySidecarLibrariesOnWindows();
   await ensureDepsResolvableOnLinux();
 
+  // CI builds the addon with `yarn install --ignore-scripts`, so Electron's
+  // binary is never downloaded and the check below would wait ten minutes for
+  // a runtime that is not coming. The clean-machine test plan in
+  // `docs/torrent-tauri.md` (not a skipped check) is what proves the addon
+  // loads. Set only by the release workflow.
+  if (process.env.HYDRA_NATIVE_SKIP_LOAD_TEST === "1") {
+    console.log(
+      "Skipping the Electron load test (HYDRA_NATIVE_SKIP_LOAD_TEST=1)."
+    );
+    return;
+  }
+
   // Verify with the actual application runtime, not a potentially incompatible
   // system Node.js. Fail installation before the user opens the download UI.
   await waitForElectron();

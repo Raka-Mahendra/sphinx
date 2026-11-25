@@ -1,0 +1,48 @@
+@use "../../scss/globals.scss";
+
+.settings-google-drive {
+  &__usage {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.8;
+  }
+
+  &__warning {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-warning, #e5a33d);
+  }
+
+  &__settings {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    margin-top: globals.$spacing-unit;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      font-size: 13px;
+    }
+
+    input {
+      width: 72px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: inherit;
+    }
+  }
+
+  &__delete-link {
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-danger, #e05252);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+}

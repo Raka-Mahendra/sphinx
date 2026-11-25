@@ -36,7 +36,6 @@ import {
   GAME_HERO_PRIMARY_ACTION_ID,
   GAME_HERO_TOGGLE_FAVORITE_ID,
 } from "../navigation";
-import { isFeatureEnabled } from "@renderer/feature-flags";
 import { BigPictureCloudSaveHeroButton } from "../cloud-save-v2";
 import { useHeroBackgroundLayers } from "../../library/hero/use-hero-background-layers";
 import cn from "classnames";
@@ -142,10 +141,9 @@ export function Hero({
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const shouldShowFavoriteButton = Boolean(game);
+  // Drive-backed cloud saves do not depend on the Hydra cloud flag.
   const shouldShowCloudSaveButton =
-    isFeatureEnabled("HYDRA_CLOUD_LEGACY") &&
-    !!game &&
-    isCloudSaveV2Eligible(game.shop, game.platform);
+    !!game && isCloudSaveV2Eligible(game.shop, game.platform);
   const lastActionRightTarget = useMemo<FocusOverrideTarget>(
     () => sidebarEntryTarget ?? { type: "block" },
     [sidebarEntryTarget]

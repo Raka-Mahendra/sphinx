@@ -4,20 +4,22 @@ Everything here is verified against the Tauri v2 documentation and the CLI
 schema that ships with this repository
 (`node_modules/@tauri-apps/cli/config.schema.json`). Where the documentation
 disagrees with the PRD, the disagreement is written down instead of quietly
-resolved.
+resolved. See [`docs/upstream-policy.md`](./upstream-policy.md) for why the
+updater and release workflow point at `Raka-Mahendra/sphinx` rather than
+upstream.
 
 ---
 
 ## 1. Two kinds of key — they are not interchangeable
 
-|  | Updater key (minisign) | Authenticode certificate |
-| --- | --- | --- |
-| What it signs | The update *bundle* (`.sig` next to the installer) | The installer and the binaries inside it |
-| What it proves | "This update was produced by whoever holds the updater key" | "This installer was produced by whoever holds the certificate" |
-| Created with | `yarn tauri signer generate -w ~/.sphinx-updater/sphinx-updater.key` | A CA (a paid OV/EV certificate, or `signtool` + a self-signed cert for testing) |
-| Where it lives | `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as repository secrets | `WINDOWS_CERTIFICATE` (base64 `.p12`) + `WINDOWS_CERTIFICATE_PASSWORD` as repository secrets |
-| Losing it | **Existing users can never be updated again** — the app verifies every update against the public key baked into `tauri.conf.json` | You cannot sign future releases; users keep seeing SmartScreen |
-| Used in v1 | **Yes** | **No** (opt-in, see §6) |
+|                | Updater key (minisign)                                                                                                            | Authenticode certificate                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| What it signs  | The update _bundle_ (`.sig` next to the installer)                                                                                | The installer and the binaries inside it                                                     |
+| What it proves | "This update was produced by whoever holds the updater key"                                                                       | "This installer was produced by whoever holds the certificate"                               |
+| Created with   | `yarn tauri signer generate -w ~/.sphinx-updater/sphinx-updater.key`                                                              | A CA (a paid OV/EV certificate, or `signtool` + a self-signed cert for testing)              |
+| Where it lives | `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as repository secrets                                          | `WINDOWS_CERTIFICATE` (base64 `.p12`) + `WINDOWS_CERTIFICATE_PASSWORD` as repository secrets |
+| Losing it      | **Existing users can never be updated again** — the app verifies every update against the public key baked into `tauri.conf.json` | You cannot sign future releases; users keep seeing SmartScreen                               |
+| Used in v1     | **Yes**                                                                                                                           | **No** (opt-in, see §6)                                                                      |
 
 Both secrets are stored the same way (GitHub repository secrets), and both are
 backed up offline (§3), but they are different credentials for different
@@ -29,7 +31,7 @@ purposes. Rotating one says nothing about the other.
 
 ```sh
 # 1. Make sure the three version sources agree with the tag you are about to push.
-yarn release:check-version          # no tag: checks the current files against each other
+yarn release:check-version v0.1.0
 
 # 2. Push the tag. The workflow does the rest.
 git tag v0.1.0
@@ -38,11 +40,11 @@ git push origin v0.1.0
 
 `.github/workflows/tauri-release.yml` runs on `v*` tags only and has three jobs:
 
-| Job | Permissions | What it does |
-| --- | --- | --- |
-| `build` | `contents: read` | Version check → renderer + sidecar → `yarn stage:node` → `tauri build` (signed if the certificate secret exists) → artefacts |
-| `draft` | `contents: write` | Builds `latest.json` + `SHA256SUMS`, creates a **draft** release, uploads everything |
-| `publish` | `contents: write` | Publishes the draft |
+| Job       | Permissions       | What it does                                                                                                                 |
+| --------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `build`   | `contents: read`  | Version check → renderer + sidecar → `yarn stage:node` → `tauri build` (signed if the certificate secret exists) → artefacts |
+| `draft`   | `contents: write` | Builds `latest.json` + `SHA256SUMS`, creates a **draft** release, uploads everything                                         |
+| `publish` | `contents: write` | Publishes the draft                                                                                                          |
 
 The build job is the only one that reads the signing secrets, and it has no
 release permission at all: a fork pull request cannot push a tag, and even a
@@ -55,18 +57,18 @@ Fase 8 deletes the Electron code path.
 
 ### What lands in the release
 
-| File | Purpose |
-| --- | --- |
-| `sphinx-launcher_<version>_x64-setup.exe` | The installer users download |
-| `…-setup.exe.sig` | The minisign signature the updater verifies |
-| `latest.json` | The update manifest (`windows-x86_64` only for now) |
-| `SHA256SUMS` | Checksums for both of the above, so a browser download can be verified by hand |
+| File                                      | Purpose                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------ |
+| `sphinx-launcher_<version>_x64-setup.exe` | The installer users download                                                   |
+| `…-setup.exe.sig`                         | The minisign signature the updater verifies                                    |
+| `latest.json`                             | The update manifest (`windows-x86_64` only for now)                            |
+| `SHA256SUMS`                              | Checksums for both of the above, so a browser download can be verified by hand |
 
 `latest.json` is generated by `scripts/make-update-manifest.mjs`, not by
 `tauri-action`, because this release flow builds first and publishes afterwards —
 the action can only emit `latest.json` when it uploads the release itself. The
-script is verified by reading the file back in CI (see the test in
-`scripts/__tests__/`).
+script and version-alignment helper are verified by unit tests in `scripts/`
+(`scripts/make-update-manifest.test.mjs` and `scripts/bump-version.test.mjs`).
 
 ---
 
@@ -122,7 +124,7 @@ node scripts/bump-version.mjs --check v0.2.0  # verify only (what CI runs)
 
 - the Tauri updater compares the version in `latest.json` against the running
   app's version, and a pre-release build (`0.2.0-beta.1`) would report itself as
-  *newer* than the stable `0.2.0` that follows it;
+  _newer_ than the stable `0.2.0` that follows it;
 - MSI/WiX does not accept non-numeric version suffixes at all
   (<https://wixtoolset.org/docs/v4/>), and this project ships NSIS now but may
   add MSI later.
@@ -137,10 +139,10 @@ repository or as a draft that is deleted afterwards (§8).
 The PRD asks for `installMode: passive`. That value exists — but for the
 **updater**, not for the installer. Two different settings:
 
-| Setting | Where | Allowed values | This project |
-| --- | --- | --- | --- |
-| `plugins.updater.windows.installMode` | `tauri.conf.json` | `passive`, `basicUi`, `quiet` | **`passive`** (the default: a progress bar, no interaction) |
-| `bundle.windows.nsis.installMode` | `tauri.conf.json` | `currentUser`, `perMachine`, `both` | **`currentUser`** |
+| Setting                               | Where             | Allowed values                      | This project                                                |
+| ------------------------------------- | ----------------- | ----------------------------------- | ----------------------------------------------------------- |
+| `plugins.updater.windows.installMode` | `tauri.conf.json` | `passive`, `basicUi`, `quiet`       | **`passive`** (the default: a progress bar, no interaction) |
+| `bundle.windows.nsis.installMode`     | `tauri.conf.json` | `currentUser`, `perMachine`, `both` | **`currentUser`**                                           |
 
 Verified from `node_modules/@tauri-apps/cli/config.schema.json` — `passive` is
 **not** a valid `NSISInstallerMode`, so it cannot be used for the installer.
@@ -149,29 +151,39 @@ Source: <https://v2.tauri.app/distribute/windows-installer/>
 The rest of the installer is matched to the Electron baseline
 (`electron-builder.yml`, `nsis:` block):
 
-| Baseline (electron-builder) | Tauri NSIS | Same? |
-| --- | --- | --- |
-| `oneClick: false` | NSIS is always a wizard | Yes, by construction |
-| `allowToChangeInstallationDirectory: true` | The default template offers the directory page | Yes |
-| `createDesktopShortcut: always` | The default template creates the shortcut | Yes |
-| per-user install (`perMachine` unset) | `installMode: currentUser` | Yes |
-| `shortcutName` / `uninstallDisplayName` = `Sphinx Launcher` | `productName` is used for both | Yes |
-| `artifactName: ${name}-${version}-setup.exe` | `sphinx-launcher_0.1.0_x64-setup.exe` | No — the release job renames on upload if this matters |
-| `include: installer.nsh` (custom NSIS hooks) | `bundle.windows.nsis.installerHooks` | Available, not needed yet |
-| `portable` target | not shipped | Portable is dropped on purpose (PRD §4.E) |
+| Baseline (electron-builder)                                 | Tauri NSIS                                     | Same?                                                                                     |
+| ----------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `oneClick: false`                                           | NSIS is always a wizard                        | Yes, by construction                                                                      |
+| `allowToChangeInstallationDirectory: true`                  | The default template offers the directory page | Yes                                                                                       |
+| `createDesktopShortcut: always`                             | The default template creates the shortcut      | Yes                                                                                       |
+| per-user install (`perMachine` unset)                       | `installMode: currentUser`                     | Yes                                                                                       |
+| `shortcutName` / `uninstallDisplayName` = `Sphinx Launcher` | `productName` is used for both                 | Yes                                                                                       |
+| `artifactName: ${name}-${version}-setup.exe`                | `sphinx-launcher_<version>_x64-setup.exe`      | Normalized in the `draft` job (removes spaces so GitHub Releases preserves the exact URL) |
+| `include: installer.nsh` (custom NSIS hooks)                | `bundle.windows.nsis.installerHooks`           | Available, not needed yet                                                                 |
+| `portable` target                                           | not shipped                                    | Portable is dropped on purpose (PRD §4.E)                                                 |
 
-`PORTABLE_EXECUTABLE_FILE` logic is removed from the shortcut launcher
-(`src/main/helpers/shortcut-launch.ts`) because no portable build exists.
+`PORTABLE_EXECUTABLE_FILE` logic is removed/disabled across
+`src/main/helpers/shortcut-launch.ts`, `src/main/helpers/hydra-executable-path.ts`,
+`src/main/helpers/index.ts`, and `src/preload/index.ts` because no portable build
+exists.
 
 ---
 
 ## 6. Authenticode signing (optional, off by default)
 
-Signing is not an input of `tauri-action`; it is Tauri config. The workflow
-injects it at build time with `--config`:
+Signing is not an input of `tauri-action`; it is Tauri config. When
+`WINDOWS_CERTIFICATE` is present, the workflow writes a temporary JSON file
+(`tauri-signing.json`) and passes it with `--config <path>` so secrets never
+touch shell interpolation:
 
 ```json
-{"bundle":{"windows":{"signCommand":"signtool.exe sign /fd SHA256 /tr <timestamp-url> /td SHA256 /f <cert.p12> /p <password> %1"}}}
+{
+  "bundle": {
+    "windows": {
+      "signCommand": "signtool.exe sign /fd SHA256 /tr <timestamp-url> /td SHA256 /f <cert.p12> /p <password> %1"
+    }
+  }
+}
 ```
 
 `%1` is required and is replaced by the path of the file to sign. Reference:
@@ -179,7 +191,7 @@ injects it at build time with `--config`:
 
 The step is skipped entirely unless `WINDOWS_CERTIFICATE` is present, so a fork
 or a local build produces an unsigned installer with no extra configuration.
-The certificate is a *different credential* from the updater key (§1): buying one
+The certificate is a _different credential_ from the updater key (§1): buying one
 does not rotate the other.
 
 ---
@@ -210,11 +222,11 @@ relaunched — that path is not shipped yet (Fase 9).
 ## 8. Manual test plan (Windows 10 and 11, clean machines)
 
 This cannot be automated from this repository, and it is the PRD's decision gate
-(§4.E). Run it on a clean VM or a sandbox, with Defender *at its defaults*, and
+(§4.E). Run it on a clean VM or a sandbox, with Defender _at its defaults_, and
 record each observation separately.
 
 **Setup:** two clean machines (Windows 10 and Windows 11), no prior install, a
-browser, and a user account that is *not* an administrator.
+browser, and a user account that is _not_ an administrator.
 
 1. Download `sphinx-launcher_0.0.1_x64-setup.exe` from the GitHub Releases page.
 2. Run it.
@@ -226,14 +238,14 @@ browser, and a user account that is *not* an administrator.
 
 **Record separately** (they are different failure modes and different fixes):
 
-| Observation | What it means |
-| --- | --- |
-| SmartScreen on the **browser download** | "Windows protected your PC" from `releases.githubusercontent.com`. Expected for every unsigned new release; the README explains "More info → Run anyway". |
-| SmartScreen on the **self-update** | The updater's installer is launched by the app, not the browser, so it normally does **not** show SmartScreen. If it does, the update path is broken. |
-| Smart App Control (Windows 11) | Blocks *unknown* publishers outright. If the machine has SAC on, an unsigned installer is not installable — that is a hard block, not a warning, and it makes signing a release prerequisite. |
-| Windows Defender on `node.exe`, `hydra-native.node`, the torrent engine | False positives are common for bundled runtimes. Confirm the files hash-match `SHA256SUMS` before reporting. |
-| Files locked during update | If the installer fails with "file in use", a sidecar process survived the exit. Check the log for `shutdown-complete`. |
-| Processes left behind | After the update, check Task Manager for `node.exe`. Any survivor means the supervisor's shutdown budget was too short. |
+| Observation                                                             | What it means                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SmartScreen on the **browser download**                                 | "Windows protected your PC" from `releases.githubusercontent.com`. Expected for every unsigned new release; the README explains "More info → Run anyway".                                     |
+| SmartScreen on the **self-update**                                      | The updater's installer is launched by the app, not the browser, so it normally does **not** show SmartScreen. If it does, the update path is broken.                                         |
+| Smart App Control (Windows 11)                                          | Blocks _unknown_ publishers outright. If the machine has SAC on, an unsigned installer is not installable — that is a hard block, not a warning, and it makes signing a release prerequisite. |
+| Windows Defender on `node.exe`, `hydra-native.node`, the torrent engine | False positives are common for bundled runtimes. Confirm the files hash-match `SHA256SUMS` before reporting.                                                                                  |
+| Files locked during update                                              | If the installer fails with "file in use", a sidecar process survived the exit. Check the log for `shutdown-complete`.                                                                        |
+| Processes left behind                                                   | After the update, check Task Manager for `node.exe`. Any survivor means the supervisor's shutdown budget was too short.                                                                       |
 
 If any machine shows a **hard block** (Smart App Control, or an installer that
 cannot run at all), signing becomes a prerequisite for the public release

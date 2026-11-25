@@ -136,14 +136,14 @@ export function GameSettingsModal({
 
   const isSignedIn = userDetails !== null;
   const cloudSaveEnabled = isFeatureEnabled("HYDRA_CLOUD_LEGACY");
-  const shouldShowCloudV2Tab =
-    cloudSaveEnabled &&
-    shouldShowCloudSaveV2Tab(
-      game.shop,
-      isSignedIn,
-      hasActiveSubscription,
-      game.platform
-    );
+  const shouldShowCloudV2Tab = shouldShowCloudSaveV2Tab(
+    game.shop,
+    // Drive-backed cloud saves neither need a Hydra sign-in nor a
+    // subscription; these arguments stay for the legacy tab below.
+    true,
+    true,
+    game.platform
+  );
   const shouldShowLegacyCloudTab =
     cloudSaveEnabled &&
     shouldShowLegacyCloudSaveTab(

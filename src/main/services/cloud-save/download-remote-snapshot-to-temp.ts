@@ -1,4 +1,3 @@
-import { HydraApi } from "@main/services/hydra-api";
 import { SystemPath } from "@main/services/system-path";
 import type {
   DownloadedRestoreFile,
@@ -6,16 +5,26 @@ import type {
   RestoreManifestFile,
 } from "@types";
 
-import { NativeAddon } from "../native-addon";
 import {
   cloudSaveFileKey,
   validateRestoreDownloadUrls,
 } from "./cloud-save-contract";
+import { getCloudSaveProvider } from "./cloud-save-provider";
 import {
   mapWithConcurrency,
   MAX_CONCURRENT_RESTORE_OPERATIONS,
 } from "./map-with-concurrency";
 
+const blobKey = (file: Pick<RestoreDownloadUrlFile, "hash" | "sizeBytes">) =>
+  JSON.stringify([file.hash, file.sizeBytes]);
+
+/**
+ * Downloads a snapshot's blobs into the restore temp directory.
+ *
+ * The provider only supplies transport (Drive signed fetch, or Hydra's native
+ * downloader); the blob identity, size checks and the content hash are the
+ * pipeline's, unchanged from the Hydra implementation.
+ */
 export const downloadRemoteSnapshotToTemp = async (
   snapshotId: string,
   snapshotVersion: number,
@@ -23,12 +32,9 @@ export const downloadRemoteSnapshotToTemp = async (
   onProgress?: (processedFiles: number, totalFiles: number) => void
 ): Promise<DownloadedRestoreFile[]> => {
   if (requestedFiles?.length === 0) return [];
+  const provider = getCloudSaveProvider();
   const files = validateRestoreDownloadUrls(
-    await HydraApi.get<unknown>(
-      "/profile/cloud-saves/snapshot-download-urls",
-      { snapshotId },
-      { needsAuth: true, needsSubscription: true }
-    )
+    await provider.getDownloadUrls({ id: snapshotId, version: snapshotVersion })
   );
   const requestedById = requestedFiles
     ? new Map(
@@ -58,7 +64,7 @@ export const downloadRemoteSnapshotToTemp = async (
   const tempSnapshotId = `${snapshotId}-${snapshotVersion}`;
   const filesByBlob = new Map<string, RestoreDownloadUrlFile[]>();
   for (const file of selectedFiles) {
-    const key = JSON.stringify([file.hash, file.sizeBytes]);
+    const key = blobKey(file);
     filesByBlob.set(key, [...(filesByBlob.get(key) ?? []), file]);
   }
 
@@ -69,14 +75,14 @@ export const downloadRemoteSnapshotToTemp = async (
     MAX_CONCURRENT_RESTORE_OPERATIONS,
     async (group) => {
       const [file] = group;
-      const tempPath = await NativeAddon.downloadRestoreBlobToTemp(
+      const tempPath = await provider.downloadBlobToTemp({
         tempSnapshotId,
-        file.hash,
-        file.sizeBytes,
-        file.downloadUrl,
-        tempRoot
-      );
-      return { key: JSON.stringify([file.hash, file.sizeBytes]), tempPath };
+        hash: file.hash,
+        sizeBytes: file.sizeBytes,
+        downloadUrl: file.downloadUrl,
+        tempRoot,
+      });
+      return { key: blobKey(file), tempPath };
     },
     (_result, group) => {
       processedFiles += group.length;
@@ -88,9 +94,7 @@ export const downloadRemoteSnapshotToTemp = async (
   );
 
   return selectedFiles.map((file) => {
-    const tempPath = tempPathByBlob.get(
-      JSON.stringify([file.hash, file.sizeBytes])
-    );
+    const tempPath = tempPathByBlob.get(blobKey(file));
     if (!tempPath) throw new Error("Missing downloaded restore blob");
     return { ...file, tempPath };
   });

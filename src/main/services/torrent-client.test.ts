@@ -65,6 +65,52 @@ describe("native torrent client", () => {
     await assert.rejects(client.call("status"), { code: "torrent_shutdown" });
   });
 
+  it("initializes on the baseline listen port and sends JSON params", async () => {
+    // Fase 6 keeps the port and the request shape: 5881 is the BitTorrent
+    // listener, not a local control port (`docs/torrent-audit.md` §3).
+    const ports: number[] = [];
+    const requests: { method: string; params: string }[] = [];
+    const client = new TorrentClient(
+      backend({
+        initialize: async (port) => {
+          ports.push(port);
+        },
+        request: async (method, params) => {
+          requests.push({ method, params });
+          return '{"result":true}';
+        },
+      })
+    );
+
+    await client.call("action", { action: "pause", id: "custom:game" });
+
+    assert.deepEqual(ports, [5881]);
+    assert.deepEqual(requests, [
+      {
+        method: "action",
+        params: JSON.stringify({ action: "pause", id: "custom:game" }),
+      },
+    ]);
+
+    await client.shutdown();
+  });
+
+  it("shuts the engine down once even when asked twice", async () => {
+    let shutdowns = 0;
+    const client = new TorrentClient(
+      backend({
+        shutdown: async () => {
+          shutdowns++;
+        },
+      })
+    );
+
+    await client.initialize();
+    await Promise.all([client.shutdown(), client.shutdown()]);
+
+    assert.equal(shutdowns, 1);
+  });
+
   it("waits for shutdown before explicit reinitialization", async () => {
     let stop!: () => void;
     let starts = 0;
