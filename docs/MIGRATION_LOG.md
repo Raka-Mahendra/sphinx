@@ -591,6 +591,13 @@ ada `index.json`; `gameKey` diturunkan dari shop+objectId sehingga tidak
   Drive v3 tidak menyediakan ETag yang dapat diandalkan pada `files.update`
   atau penggantian media, dan `If-Match` tampak diabaikan. Karena itu konflik
   diselesaikan lewat nomor versi + re-list setelah tulis, bukan precondition.
+- **Batas `appProperties` & laju tulis** — dokumentasi Google menetapkan
+  maksimum 100 properti kustom per file, 30 privat per aplikasi, dan 124 byte
+  per string properti (kunci + nilai). Sphinx menulis 9 kunci dengan nilai
+  terpanjang 36 byte (`deviceId`), jadi batas ini aman; rinciannya dicatat di
+  `docs/google-drive-setup.md` §6. Kuota tulis `files.create`/`files.update`
+  (50 unit) dan batas 325.000 unit/menit/user menjadi dasar konkurensi 3 +
+  backoff, bukan angka tebakan.
 - **Retensi & GC** — retensi default 3 (rentang 1–10) disimpan di
   `google-drive-settings.json` (userData). Mark-and-sweep hanya menghapus blob
   yang tidak dirujuk manifest mana pun **dan** lebih tua dari 24 jam, dan hanya

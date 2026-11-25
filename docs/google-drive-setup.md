@@ -96,7 +96,7 @@ dapat mengubahnya:
 | ----------------------------- | ---------------------- |
 | Unit per menit per project    | 1.000.000              |
 | Unit per menit per user       | 325.000                |
-| Upload per hari per user      | 1 TB                   |
+| Egress per hari per project   | 1 TB                   |
 | `files.list`                  | 100 unit per panggilan |
 | `files.get` (unduh media)     | 200 unit per panggilan |
 | `files.create`/`files.update` | 50 unit per panggilan  |
@@ -106,6 +106,28 @@ Konsekuensi desain di Sphinx: `pageSize=1000` + `fields` parsial, filter
 eksponensial + jitter pada 429/403 `rateLimitExceeded`/5xx, dan tanpa polling.
 `about.get` dipakai hanya saat halaman Settings dibuka untuk menampilkan sisa
 kuota akun.
+
+Bila kuota terlampaui Google membalas **403 `userRateLimitExceeded`** atau
+**429**, keduanya ditangani backoff yang sama; tidak ada jalan pintas lewat
+batch request karena setiap blob perlu media upload sendiri.
+
+### Batas `appProperties`
+
+Dari [dokumentasi custom file properties](https://developers.google.com/workspace/drive/api/guides/properties)
+(Google, diakses 25 November 2026):
+
+| Batas                                                     | Nilai    |
+| --------------------------------------------------------- | -------- |
+| Properti kustom per file (semua sumber)                   | 100      |
+| Properti privat per aplikasi per file                     | 30       |
+| Panjang satu string properti (kunci **dan** nilai, UTF-8) | 124 byte |
+
+Sphinx menulis 9 kunci (`app`, `schema`, `kind`, `gameKey`, `hash`/`version`,
+`parent`, `deviceId`, `createdAt`), jauh di bawah 30. Nilai terpanjang adalah
+`deviceId` (UUID, 36 karakter) dan `createdAt` (ISO-8601, 24 karakter);
+`gameKey` adalah `"<shop>-<objectId>"` yang normalnya < 40 karakter. Tidak ada
+nilai yang mendekati 124 byte, dan properti tidak bersarang (nilai selalu
+string) — batas ini diverifikasi saat audit, bukan asumsi.
 
 ## 7. Menanam client ke build
 
