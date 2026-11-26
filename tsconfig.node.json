@@ -1,53 +1,48 @@
 {
-  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "include": [
-    "electron.vite.config.*",
+    "vite.config.ts",
     "src/main/**/*",
-    "src/preload/**/*",
     "src/locales/index.ts",
     "src/shared/**/*",
     "src/types/**/*",
     "src/big-picture/vite-scope-big-picture-css.ts",
-    "src/sidecar/**/*"
+    "src/sidecar/**/*",
+    "src/tauri-bridge/**/*"
   ],
-  "exclude": [
-    "src/**/*.test.ts"
-  ],
+  "exclude": ["src/**/*.test.ts"],
   "compilerOptions": {
+    "target": "esnext",
     "module": "ESNext",
+    "moduleResolution": "node",
+    "sourceMap": false,
+    "strict": true,
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
     "composite": true,
-    "types": [
-      "electron-vite/node"
-    ],
+    "types": ["node", "vite/client"],
     "baseUrl": ".",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "paths": {
-      "@main/*": [
-        "src/main/*"
-      ],
-      "@renderer/*": [
-        "src/renderer/*"
-      ],
-      "@types": [
-        "src/types/index.ts"
-      ],
-      "@locales": [
-        "src/locales/index.ts"
-      ],
-      "@resources": [
-        "src/resources/index.ts"
-      ],
-      "@shared": [
-        "src/shared/index.ts"
-      ],
-      "@sidecar/*": [
-        "src/sidecar/*"
-      ],
-      "@shared/*": [
-        "src/shared/*"
-      ]
+      "electron": ["src/sidecar/electron-shim/index.ts"],
+      "@main/*": ["src/main/*"],
+      "@renderer/*": ["src/renderer/*"],
+      "@types": ["src/types/index.ts"],
+      "@locales": ["src/locales/index.ts"],
+      "@resources": ["src/resources/index.ts"],
+      "@shared": ["src/shared/index.ts"],
+      "@sidecar/*": ["src/sidecar/*"],
+      "@shared/*": ["src/shared/*"],
+      "@tauri-bridge/*": ["src/tauri-bridge/*"]
     }
   }
 }

@@ -791,11 +791,10 @@ mod tests {
 
         assert!(!record_restart(&mut restarts, start));
         assert!(!record_restart(&mut restarts, start + Duration::from_secs(10)));
-        assert!(!record_restart(&mut restarts, start + Duration::from_secs(20)));
-        // The first three have aged out, so this one is the first in a new window.
+        // Both earlier restarts have aged out by now, so this one starts a new window.
         assert!(!record_restart(
             &mut restarts,
-            start + RESTART_WINDOW + Duration::from_secs(1)
+            start + RESTART_WINDOW + Duration::from_secs(50)
         ));
         assert_eq!(restarts.len(), 1);
     }

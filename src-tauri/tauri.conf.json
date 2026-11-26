@@ -5,7 +5,7 @@
   "identifier": "com.sphinxlauncher.app",
   "build": {
     "beforeDevCommand": "yarn dev:renderer",
-    "beforeBuildCommand": "yarn build:renderer",
+    "beforeBuildCommand": "yarn build:renderer && yarn build:sidecar",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../out/renderer"
   },
@@ -53,7 +53,8 @@
       "../resources/legendary": "legendary",
       "../resources/epic": "epic",
       "../ludusavi": "ludusavi",
-      "../hydra-native": "hydra-native"
+      "../hydra-native": "hydra-native",
+      "../out/sidecar": "sidecar"
     },
     "windows": {
       "webviewInstallMode": {

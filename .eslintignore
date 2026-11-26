@@ -1,6 +1,7 @@
 node_modules
 dist
 out
+src-tauri/target
 .gitignore
 migration.stub
 hydra-python-rpc/

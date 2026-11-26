@@ -139,6 +139,22 @@ fn number_param(params: &Value, key: &str) -> Option<f64> {
     params.get(key).and_then(Value::as_f64)
 }
 
+/// Maps the URL the sidecar sends to a `WebviewUrl`.
+///
+/// External `http(s)` URLs are kept as they are. Anything else is an app path
+/// that may carry a fragment (`index.html#/big-picture`), so the path and the
+/// fragment are kept together: the fragment is what selects the renderer route.
+fn webview_url_for(url: &str) -> Result<WebviewUrl, WireError> {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        let parsed = url
+            .parse()
+            .map_err(|error| WireError::new("invalid_url", format!("{url}: {error}")))?;
+        return Ok(WebviewUrl::External(parsed));
+    }
+
+    Ok(WebviewUrl::App(PathBuf::from(url.trim_start_matches('/'))))
+}
+
 /// `new BrowserWindow(options)` from the sidecar.
 ///
 /// The window is created by Rust because only the shell owns a `WebviewWindow`.
@@ -157,14 +173,7 @@ async fn create_window(
         return Ok(json!({ "windowId": 0, "existing": true }));
     }
 
-    let webview_url = if url.starts_with("http://") || url.starts_with("https://") {
-        WebviewUrl::External(
-            url.parse()
-                .map_err(|error| WireError::new("invalid_url", format!("{url}: {error}")))?,
-        )
-    } else {
-        WebviewUrl::App(PathBuf::from(url.trim_start_matches('/')))
-    };
+    let webview_url = webview_url_for(&url)?;
 
     let mut builder = WebviewWindowBuilder::new(app, &label, webview_url)
         .title(
@@ -311,5 +320,43 @@ async fn call_window(app: &AppHandle, params: &Value) -> Result<Value, WireError
             "not_implemented",
             format!("window.{other} is not implemented by the shell"),
         )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn app_path(url: &str) -> String {
+        match webview_url_for(url) {
+            Ok(WebviewUrl::App(path)) => path.to_string_lossy().to_string(),
+            _ => String::from("<not an app url>"),
+        }
+    }
+
+    #[test]
+    fn app_route_keeps_its_fragment() {
+        assert_eq!(app_path("index.html#/big-picture"), "index.html#/big-picture");
+    }
+
+    #[test]
+    fn leading_slash_is_stripped_and_query_kept() {
+        assert_eq!(
+            app_path("/theme-editor?themeId=abc"),
+            "theme-editor?themeId=abc"
+        );
+    }
+
+    #[test]
+    fn https_urls_stay_external() {
+        assert!(matches!(
+            webview_url_for("https://example.test/x"),
+            Ok(WebviewUrl::External(_))
+        ));
+    }
+
+    #[test]
+    fn malformed_external_url_is_rejected() {
+        assert!(webview_url_for("https://[bad").is_err());
     }
 }

@@ -387,10 +387,10 @@ _None._
 | `on-achievement-souvenir-sync-completed` | `src/main/services/achievements/grouped-souvenir-worker.ts:828` |
 | `on-achievement-souvenir-sync-status` | `src/main/services/achievements/grouped-souvenir-worker.ts:200` |
 | `on-achievement-unlocked` | `src/main/services/notifications/index.ts:435`, `src/main/services/notifications/index.ts:510` |
-| `on-achievement-unlocked-in-app` | `src/main/services/window-manager.ts:971` |
+| `on-achievement-unlocked-in-app` | `src/main/services/window-manager.ts:967` |
 | `on-archive-deletion-prompt` | `src/main/services/game-files-manager.ts:247`, `src/main/services/game-files-manager.ts:941` |
 | `on-chat-attachment-upload-progress` | `src/main/events/chat/upload-chat-attachment.ts:63` |
-| `on-chat-friends-pending` | `src/main/services/window-manager.ts:683`, `src/main/services/window-manager.ts:768` |
+| `on-chat-friends-pending` | `src/main/services/window-manager.ts:679`, `src/main/services/window-manager.ts:764` |
 | `on-chat-message` | `src/main/services/sse/events/chat-message.ts:45` |
 | `on-chat-message-rejected` | `src/main/services/sse/events/chat-message-rejected.ts:17` |
 | `on-chat-message-sound` | `src/main/services/notifications/index.ts:283` |
@@ -408,7 +408,7 @@ _None._
 | `on-custom-theme-updated` | `src/main/events/themes/update-custom-theme.ts:26`, `src/main/services/achievement-notification-presenter.ts:125` |
 | `on-download-halted` | `src/main/services/download/download-manager.ts:959` |
 | `on-download-progress` | `src/main/services/download/download-manager.ts:937`, `src/main/services/download/download-manager.ts:982`, `src/main/services/download/download-manager.ts:1381`, `src/main/services/download/download-manager.ts:1618` +4 |
-| `on-downloads-updated` | `src/main/services/window-manager.ts:243` |
+| `on-downloads-updated` | `src/main/services/window-manager.ts:239` |
 | `on-emulation-backup-progress` | `src/main/events/emulators/upload-emulation-save.ts:27` |
 | `on-emulator-install-progress` | `src/main/services/emulators/emulator-installer.ts:38` |
 | `on-epic-cloud-save-state-changed` | `src/main/services/epic/index.ts:131` |
@@ -430,12 +430,12 @@ _None._
 | `on-hard-delete` | `src/main/services/download/download-manager.ts:1468` |
 | `on-library-batch-complete` | `src/main/events/library/add-scanned-game.ts:28`, `src/main/events/library/scan-installed-games.ts:1185`, `src/main/events/library/set-game-artwork-selection.ts:149`, `src/main/events/library/update-custom-game.ts:115` +20 |
 | `on-local-notification-created` | `src/main/services/notifications/local-notifications.ts:36` |
-| `on-navigate` | `src/main/services/window-manager.ts:888`, `src/main/services/window-manager.ts:1164` |
+| `on-navigate` | `src/main/services/window-manager.ts:884`, `src/main/services/window-manager.ts:1160` |
 | `on-new-download-options` | `src/main/services/download-sources-checker.ts:90` |
-| `on-open-add-friend-modal` | `src/main/services/window-manager.ts:893` |
+| `on-open-add-friend-modal` | `src/main/services/window-manager.ts:889` |
 | `on-profile-updated` | `src/main/events/profile/update-profile.ts:84` |
 | `on-remote-library-sync-state` | `src/main/services/library-sync/remote-library-sync-state.ts:13`, `src/main/services/library-sync/remote-library-sync-state.ts:22` |
-| `on-retroachievements-connected` | `src/main/services/window-manager.ts:959` |
+| `on-retroachievements-connected` | `src/main/services/window-manager.ts:955` |
 | `on-retroarch-core-install-progress` | `src/main/services/retroarch/retroarch-core-installer.ts:82` |
 | `on-retroarch-import-progress` | `src/main/events/retroarch/import-retroarch-roms.ts:651`, `src/main/events/retroarch/import-retroarch-roms.ts:651`, `src/main/events/retroarch/import-retroarch-roms.ts:651` |
 | `on-retroarch-import-status` | `src/main/events/retroarch/import-retroarch-roms.ts:684`, `src/main/events/retroarch/import-retroarch-roms.ts:732` |
@@ -448,7 +448,7 @@ _None._
 | `on-sync-friend-requests` | `src/main/events/friends/sync-friend-requests.ts:10`, `src/main/services/sse/resync.ts:47` |
 | `on-sync-notification-count` | `src/main/services/sse/resync.ts:61` |
 | `on-user-preferences-updated` | `src/main/events/user-preferences/update-user-preferences.ts:161` |
-| `on-window-maximize-change` | `src/main/services/window-manager.ts:342` |
+| `on-window-maximize-change` | `src/main/services/window-manager.ts:338` |
 | `preflight-progress` | `src/main/services/common-redist-manager.ts:363` |
 | `prepare-achievement-notification` | `src/main/services/achievement-notification-presenter.ts:306` |
 | `start-achievement-notification` | `src/main/services/achievement-notification-presenter.ts:185` |
@@ -475,10 +475,10 @@ so a dynamic channel cannot be turned into a different one.
 - `src/main/events/library/transfer-game-files.ts:19 (send)`
 - `src/main/services/achievement-notification-presenter-electron.ts:43 (send)`
 - `src/main/services/epic/sync-runtime.ts:327 (send)`
-- `src/main/services/window-manager.ts:228 (sendToAppWindows)`
-- `src/main/services/window-manager.ts:238 (sendToAppWindows)`
-- `src/main/services/window-manager.ts:811 (sendToFirstLoadedWindow)`
-- `src/main/services/window-manager.ts:819 (sendToFirstLoadedWindow)`
-- `src/main/services/window-manager.ts:823 (sendToChatWindow)`
-- `src/main/services/window-manager.ts:825 (sendToChatWindow)`
+- `src/main/services/window-manager.ts:224 (sendToAppWindows)`
+- `src/main/services/window-manager.ts:234 (sendToAppWindows)`
+- `src/main/services/window-manager.ts:807 (sendToFirstLoadedWindow)`
+- `src/main/services/window-manager.ts:815 (sendToFirstLoadedWindow)`
+- `src/main/services/window-manager.ts:819 (sendToChatWindow)`
+- `src/main/services/window-manager.ts:821 (sendToChatWindow)`
 

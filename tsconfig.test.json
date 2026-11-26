@@ -10,12 +10,7 @@
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": [
-      "node",
-      "electron-vite/node"
-    ]
+    "types": ["node"]
   },
-  "exclude": [
-    "src/main/index.ts"
-  ]
+  "exclude": ["src/main/index.ts"]
 }

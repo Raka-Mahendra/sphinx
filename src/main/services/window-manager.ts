@@ -1,4 +1,5 @@
 import { isStaging } from "@main/constants";
+import { rendererRouteUrl } from "./renderer-route";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIconDark from "@resources/tray-icon-dark.png?asset";
@@ -185,14 +186,9 @@ export class WindowManager {
    * no filesystem view of the app resources.
    */
   public static async loadWindowURL(window: BrowserWindow, hash: string = "") {
-    const devUrl = process.env.SPHINX_RENDERER_URL;
-
-    if (devUrl) {
-      await window.loadURL(`${devUrl}#/${hash}`);
-      return;
-    }
-
-    await window.loadFile("index.html", { hash });
+    await window.loadURL(
+      rendererRouteUrl(hash, process.env.SPHINX_RENDERER_URL)
+    );
   }
 
   private static async loadMainWindowURL(hash: string = "") {

@@ -14,6 +14,7 @@
  */
 import { SidecarRpc } from "./rpc.js";
 import { isChannelAllowed, isEventChannelAllowed } from "./allowlist.js";
+import { createIpcEvent } from "./ipc-event.js";
 import {
   BrowserWindow,
   WebContents,
@@ -30,7 +31,7 @@ import { setFatalExitEnabled } from "./electron-shim/logger.js";
 
 // Everything that reaches `@main` must be imported dynamically. ES module
 // imports are evaluated before this file's body runs, and `src/main/constants.ts`
-// reads `process.resourcesPath` at module load — which this file defines below.
+// reads `process.resourcesPath` at module load â€” which this file defines below.
 // A static import of `@main/*` would therefore read it too early.
 
 const env = loadShellEnvironment();
@@ -70,8 +71,8 @@ const initializeI18n = async (): Promise<void> => {
 };
 
 // `src/main/constants.ts` reads `process.resourcesPath` while the module graph
-// loads. Plain Node has no such property, so it is defined here — before any
-// import that reaches constants.ts — from the directory Rust passes in.
+// loads. Plain Node has no such property, so it is defined here â€” before any
+// import that reaches constants.ts â€” from the directory Rust passes in.
 Object.defineProperty(process, "resourcesPath", {
   value: env.resourcesPath,
   enumerable: false,
@@ -119,25 +120,13 @@ rpc.onInvoke(async (channel, args, context) => {
     throw Object.assign(error, { code: "handler_missing" });
   }
 
-  const event = {
-    sender: senderFor(context.windowLabel),
-    senderFrame: null,
-    frameId: 0,
-    processId: process.pid,
-    returnValue: undefined,
-  };
+  const event = createIpcEvent(senderFor(context.windowLabel), process.pid);
 
   return handler(event, ...args);
 });
 
 rpc.onSend(async (channel, args, context) => {
-  const event = {
-    sender: senderFor(context.windowLabel),
-    senderFrame: null,
-    frameId: 0,
-    processId: process.pid,
-    returnValue: undefined,
-  };
+  const event = createIpcEvent(senderFor(context.windowLabel), process.pid);
 
   ipcMain.fire(channel, event, args);
 });
