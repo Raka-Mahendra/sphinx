@@ -56,7 +56,8 @@ const findSpecifiers = () => {
   // The bundle carries library source as strings, so the patterns also match
   // text such as `require(fn)` or an HTML fragment. Keep only names that could
   // be a package.
-  const packageShape = /^(@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(\/[^"'`\s]+)?$/i;
+  const packageShape =
+    /^(@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(\/[^"'`\s]+)?$/i;
 
   return [...found].filter((specifier) => {
     if (!specifier || !packageShape.test(specifier)) return false;
@@ -85,16 +86,21 @@ const packageNameOf = (specifier) => {
  */
 const resolvePackage = (name, fromDir) => {
   const segments = name.split("/");
+  const root = path.parse(fromDir).root;
   let dir = fromDir;
+  let found = null;
 
-  while (true) {
+  while (!found) {
     const candidate = path.join(dir, "node_modules", ...segments);
-    if (fs.existsSync(path.join(candidate, "package.json"))) return candidate;
-
-    const parent = path.dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
+    if (fs.existsSync(path.join(candidate, "package.json"))) {
+      found = candidate;
+      break;
+    }
+    if (dir === root) break;
+    dir = path.dirname(dir);
   }
+
+  return found;
 };
 
 const readManifest = (dir) => {
@@ -156,7 +162,10 @@ const copyPackage = (name, fromDir, options = {}) => {
 
   for (const dependency of Object.keys(manifest.optionalDependencies ?? {})) {
     if (SKIP_PACKAGES.has(dependency)) continue;
-    copyPackage(dependency, dir, { optional: true, parentDestination: destination });
+    copyPackage(dependency, dir, {
+      optional: true,
+      parentDestination: destination,
+    });
   }
 };
 
@@ -191,7 +200,9 @@ process.stdout.write(
 
 for (const required of ["classic-level", "sharp"]) {
   if (!fs.existsSync(path.join(TARGET, required))) {
-    process.stderr.write(`sidecar deps: ${required} is missing from the staged tree\n`);
+    process.stderr.write(
+      `sidecar deps: ${required} is missing from the staged tree\n`
+    );
     process.exitCode = 1;
   }
 }

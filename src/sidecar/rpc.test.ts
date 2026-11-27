@@ -398,9 +398,11 @@ describe("JsonLineTransport when the host pipe closes", () => {
   const brokenOutput = (): Writable =>
     new Writable({
       write(_chunk, _encoding, callback) {
-        callback(Object.assign(new Error("EPIPE: broken pipe, write"), {
-          code: "EPIPE",
-        }));
+        callback(
+          Object.assign(new Error("EPIPE: broken pipe, write"), {
+            code: "EPIPE",
+          })
+        );
       },
     });
 
