@@ -79,6 +79,7 @@ export class WindowManager {
   private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
     null;
   private static deferredMainMaximize = false;
+  private static themeEditorSequence = 0;
 
   private static isArtworkRendererRequest(
     webContentsId: number | undefined
@@ -577,6 +578,7 @@ export class WindowManager {
     }
 
     const friendsWindow = new BrowserWindow({
+      label: "friends",
       width: 420,
       height: 780,
       minWidth: 420,
@@ -681,6 +683,7 @@ export class WindowManager {
     }
 
     this.chatWindow = new BrowserWindow({
+      label: "chat",
       width: 560,
       height: 560,
       minWidth: 400,
@@ -902,6 +905,7 @@ export class WindowManager {
 
     const layout = getRetroAchievementsConnectionWindowLayout(process.platform);
     const connectionWindow = new BrowserWindow({
+      label: "retroachievements-connection",
       width: layout.width,
       height: layout.height,
       title: "Sphinx",
@@ -988,6 +992,7 @@ export class WindowManager {
       }
 
       const editorWindow = new BrowserWindow({
+        label: `theme-editor-${++WindowManager.themeEditorSequence}`,
         width: 720,
         height: 720,
         minWidth: 600,
@@ -1066,6 +1071,7 @@ export class WindowManager {
     );
 
     const gameLauncherWindow = new BrowserWindow({
+      label: "game-launcher",
       width: this.GAME_LAUNCHER_WINDOW_WIDTH,
       height: this.GAME_LAUNCHER_WINDOW_HEIGHT,
       x,

@@ -126,7 +126,11 @@ fn tray_icon(app: &AppHandle) -> Option<Image<'static>> {
 }
 
 /// `new Tray(icon)` + the first `setContextMenu`.
-pub async fn create(app: &AppHandle, supervisor: &Arc<Supervisor>, params: &Value) -> Result<Value, WireError> {
+pub async fn create(
+    app: &AppHandle,
+    supervisor: &Arc<Supervisor>,
+    params: &Value,
+) -> Result<Value, WireError> {
     let model: TrayModel = serde_json::from_value(params.clone())
         .map_err(|error| WireError::new("invalid_message", error.to_string()))?;
 
@@ -207,13 +211,17 @@ pub async fn set_menu(app: &AppHandle, _params: &Value) -> Result<Value, WireErr
         .map_err(|error| WireError::new("tray_failed", error.to_string()))?;
 
     if let Some(tooltip) = &model.tooltip {
-        let _ = tray.set_tooltip(Some(tooltip));
+        if let Err(error) = tray.set_tooltip(Some(tooltip)) {
+            eprintln!("[tray] cannot set the tooltip: {error}");
+        }
     }
 
     // Refresh the icon too: this is the only moment the shell knows the sidecar
     // is redrawing the tray, and it is where the baseline re-reads the theme.
     if let Some(icon) = tray_icon(app) {
-        let _ = tray.set_icon(Some(icon));
+        if let Err(error) = tray.set_icon(Some(icon)) {
+            eprintln!("[tray] cannot refresh the icon: {error}");
+        }
     }
 
     Ok(Value::Null)
@@ -255,7 +263,10 @@ pub async fn set_icon(app: &AppHandle, params: &Value) -> Result<Value, WireErro
 }
 
 pub async fn remove(app: &AppHandle) -> Result<Value, WireError> {
-    let _ = app.remove_tray_by_id(TRAY_ID);
+    // Removing a tray that was never created is not an error, only worth noting.
+    if app.remove_tray_by_id(TRAY_ID).is_none() {
+        eprintln!("[tray] remove: no tray icon to remove");
+    }
     Ok(Value::Null)
 }
 

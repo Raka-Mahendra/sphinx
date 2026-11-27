@@ -14,7 +14,6 @@ pub mod commands;
 
 pub use commands::{ipc_invoke, ipc_send, sidecar_restart, sidecar_status};
 
-
 use std::sync::Arc;
 
 use crate::sidecar::Supervisor;

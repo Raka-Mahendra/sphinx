@@ -5,6 +5,7 @@ import {
   reportBridgeFailure,
   reportBridgeSuccess,
   reportSidecarStatus,
+  setSidecarRetry,
 } from "./reconnect-indicator";
 
 /**
@@ -28,7 +29,13 @@ export interface IpcRendererEvent {
   senderFrame: unknown;
 }
 
-type RendererListener = (event: IpcRendererEvent, ...args: unknown[]) => void;
+/**
+ * Renderer-side callbacks declare their own payload types, exactly as they did
+ * with Electron's `(...args: any[])`. `unknown[]` would reject every one of
+ * them on parameter contravariance without checking anything real.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RendererListener = (event: IpcRendererEvent, ...args: any[]) => void;
 
 /** One synthetic event object, reused like Electron's does. */
 const IPC_EVENT: IpcRendererEvent = { sender: null, senderFrame: null };
@@ -78,6 +85,19 @@ export const ensureSubscription = (): Promise<UnlistenFn> => {
 };
 
 let statusSubscription: Promise<UnlistenFn> | null = null;
+
+/**
+ * Restarts the supervisor after it gave up. `sidecar_restart` is a shell
+ * command, not a sidecar channel, so it does not go through `ipc_invoke` and is
+ * gated by the capability set instead of the generated allowlist.
+ */
+const restartSidecar = async (): Promise<void> => {
+  await invoke("sidecar_restart");
+};
+
+// Registered at import time so the retry button works even if the first failure
+// the renderer sees arrives before any `sphinx:sidecar-status` event.
+setSidecarRetry(restartSidecar);
 
 /**
  * Subscribes to the shell's supervisor status. Separate from `sphinx:ipc-event`
@@ -146,9 +166,13 @@ const toRendererError = (channel: string, raw: unknown): Error => {
 };
 
 export const ipcRenderer = {
-  async invoke(channel: string, ...args: unknown[]): Promise<unknown> {
+  // Electron types `ipcRenderer.invoke` as `Promise<any>`: the renderer casts the
+  // result at each call site. Keeping `unknown` here would force a cast at all
+  // 748 call sites and check nothing the bridge can verify.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async invoke<T = any>(channel: string, ...args: unknown[]): Promise<T> {
     try {
-      const result = await invoke<unknown>("ipc_invoke", { channel, args });
+      const result = await invoke<T>("ipc_invoke", { channel, args });
       reportBridgeSuccess();
       return result;
     } catch (error) {

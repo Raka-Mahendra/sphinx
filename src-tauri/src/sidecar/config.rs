@@ -260,18 +260,21 @@ pub fn build_config(app: &AppHandle) -> Result<SidecarConfig, String> {
     }
 
     let env = vec![
-        ("SPHINX_IS_PACKAGED".to_string(), if is_packaged { "1" } else { "0" }.to_string()),
         (
-            "SPHINX_GOOGLE_CLIENT_ID".to_string(),
-            google_client_id,
+            "SPHINX_IS_PACKAGED".to_string(),
+            if is_packaged { "1" } else { "0" }.to_string(),
         ),
+        ("SPHINX_GOOGLE_CLIENT_ID".to_string(), google_client_id),
         (
             "SPHINX_GOOGLE_CLIENT_SECRET".to_string(),
             google_client_secret,
         ),
         ("SPHINX_APP_VERSION".to_string(), version),
         ("SPHINX_APP_NAME".to_string(), "Sphinx Launcher".to_string()),
-        ("SPHINX_APP_PATH".to_string(), root.to_string_lossy().to_string()),
+        (
+            "SPHINX_APP_PATH".to_string(),
+            root.to_string_lossy().to_string(),
+        ),
         (
             "SPHINX_RESOURCES_DIR".to_string(),
             resources.to_string_lossy().to_string(),
@@ -307,7 +310,10 @@ pub fn build_config(app: &AppHandle) -> Result<SidecarConfig, String> {
 ///
 /// The boot-time set is passed as `SPHINX_PATHS`; this covers the names that are
 /// only needed later and that Tauri can resolve on demand.
-pub fn resolve_named_path(app: &AppHandle, name: &str) -> Result<String, super::protocol::WireError> {
+pub fn resolve_named_path(
+    app: &AppHandle,
+    name: &str,
+) -> Result<String, super::protocol::WireError> {
     use super::protocol::WireError;
     use tauri::path::BaseDirectory;
 

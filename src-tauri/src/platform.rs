@@ -197,9 +197,15 @@ pub fn handle_second_instance(app: &AppHandle, argv: &[String]) {
     // a launcher that ignores a double-click for a second feels broken.
     if !is_run_deep_link {
         if let Some(window) = app.get_webview_window("main") {
-            let _ = window.unminimize();
-            let _ = window.show();
-            let _ = window.set_focus();
+            if let Err(error) = window.unminimize() {
+                eprintln!("[platform] cannot unminimize the main window: {error}");
+            }
+            if let Err(error) = window.show() {
+                eprintln!("[platform] cannot show the main window: {error}");
+            }
+            if let Err(error) = window.set_focus() {
+                eprintln!("[platform] cannot focus the main window: {error}");
+            }
         }
     }
 

@@ -36,11 +36,26 @@ const hostTriple = () => {
     // rustc is not on PATH; fall through to the platform default.
   }
 
-  return process.platform === "win32"
-    ? `x86_64-pc-windows-${process.arch === "arm64" ? "msvc" : "msvc"}`
-    : process.platform === "darwin"
-      ? `aarch64-apple-darwin`
+  if (process.platform === "win32") {
+    const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
+    return `${arch}-pc-windows-msvc`;
+  }
+
+  if (process.platform === "darwin") {
+    return process.arch === "arm64"
+      ? "aarch64-apple-darwin"
+      : "x86_64-apple-darwin";
+  }
+
+  if (process.platform === "linux") {
+    return process.arch === "arm64"
+      ? "aarch64-unknown-linux-gnu"
       : "x86_64-unknown-linux-gnu";
+  }
+
+  throw new Error(
+    `cannot stage the Node binary on ${process.platform}/${process.arch}: install rustc or set TAURI_ENV_TARGET_TRIPLE`
+  );
 };
 
 const triple = process.env.TAURI_ENV_TARGET_TRIPLE ?? hostTriple();

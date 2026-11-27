@@ -13,6 +13,17 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 use crate::sidecar::protocol::WireError;
 
+/// Delivers a dialog result to the awaiting RPC caller.
+///
+/// A failed send means the caller stopped waiting (the RPC was cancelled or the
+/// window went away). There is no one left to receive the value, so it is
+/// reported instead of being dropped silently.
+fn deliver<T>(sender: tokio::sync::oneshot::Sender<T>, value: T, what: &str) {
+    if sender.send(value).is_err() {
+        eprintln!("[dialogs] {what}: the caller stopped waiting");
+    }
+}
+
 fn title(params: &Value) -> String {
     params
         .get("title")
@@ -91,17 +102,19 @@ pub async fn open(app: &AppHandle, params: &Value) -> Result<Value, WireError> {
 
     if wants_directories(params) {
         builder.pick_folder(move |folder| {
-            let _ = sender.send(folder.map(|path| vec![to_pathbuf(path)]));
+            deliver(sender, folder.map(|path| vec![to_pathbuf(path)]), "open");
         });
     } else if allows_multiple(params) {
         builder.pick_files(move |files| {
-            let _ = sender.send(
+            deliver(
+                sender,
                 files.map(|list| list.into_iter().map(to_pathbuf).collect::<Vec<_>>()),
+                "open",
             );
         });
     } else {
         builder.pick_file(move |file| {
-            let _ = sender.send(file.map(|path| vec![to_pathbuf(path)]));
+            deliver(sender, file.map(|path| vec![to_pathbuf(path)]), "open");
         });
     }
 
@@ -132,7 +145,7 @@ pub async fn save(app: &AppHandle, params: &Value) -> Result<Value, WireError> {
     }
 
     builder.save_file(move |file| {
-        let _ = sender.send(file.map(to_pathbuf));
+        deliver(sender, file.map(to_pathbuf), "save");
     });
 
     let selection = receiver.await.map_err(|error| {
@@ -169,7 +182,7 @@ pub async fn message(app: &AppHandle, params: &Value) -> Result<Value, WireError
         .kind(kind)
         .buttons(MessageDialogButtons::OkCancel)
         .show(move |confirmed| {
-            let _ = sender.send(confirmed);
+            deliver(sender, confirmed, "message");
         });
 
     let confirmed = receiver.await.unwrap_or(false);

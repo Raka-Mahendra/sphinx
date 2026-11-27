@@ -9,6 +9,7 @@
 //! Two-stage UX, as in the baseline:
 //!   1. `update_check` → sidecar emits `{ type: "update-available", info }`
 //!   2. `update_download` → sidecar emits `{ type: "update-downloaded" }`
+//!
 //! then `update_install` runs the installer.
 //!
 //! Sources:
@@ -48,20 +49,15 @@ pub struct UpdaterState {
     phase: Mutex<Phase>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum Phase {
+    #[default]
     Idle,
     Checking,
     Available,
     Downloading,
     Downloaded,
     Installing,
-}
-
-impl Default for Phase {
-    fn default() -> Self {
-        Phase::Idle
-    }
 }
 
 impl Phase {
@@ -84,7 +80,11 @@ fn set_phase(state: &UpdaterState, phase: Phase) {
 }
 
 fn phase(state: &UpdaterState) -> Phase {
-    state.phase.lock().map(|phase| *phase).unwrap_or(Phase::Idle)
+    state
+        .phase
+        .lock()
+        .map(|phase| *phase)
+        .unwrap_or(Phase::Idle)
 }
 
 /// Builds an updater with the before-exit hook attached.
@@ -250,7 +250,10 @@ pub async fn install(state: &UpdaterState) -> Result<Value, WireError> {
         .ok()
         .and_then(|mut downloaded| downloaded.take())
         .ok_or_else(|| {
-            WireError::new("update_not_downloaded", "the update has not been downloaded")
+            WireError::new(
+                "update_not_downloaded",
+                "the update has not been downloaded",
+            )
         })?;
 
     set_phase(state, Phase::Installing);

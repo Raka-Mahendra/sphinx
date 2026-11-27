@@ -126,6 +126,13 @@ untuk seluruh typecheck.
 
 ### Build Electron
 
+> **Historis Fase 0.** Bagian ini mencatat baseline saat aplikasi masih Electron.
+> Setelah Fase 8, `electron-vite`, `electron-builder`, dan dependensi Electron
+> dihapus; perintah `yarn electron-vite build` tidak ada lagi. Build sekarang:
+> `yarn build:renderer` (Vite → `out/renderer`) + `yarn build:sidecar` (esbuild →
+> `out/sidecar`) + `cargo` untuk shell Tauri. Angka di bawah bukan hasil build
+> Sphinx.
+
 - Perintah: `corepack yarn electron-vite build` dengan
   `NODE_OPTIONS=--max-old-space-size=4096`.
 - Hasil: exit 0, selesai dalam 60.30 dtk (log:
@@ -303,13 +310,14 @@ dikecualikan karena Linux-only.
   desainer manusia**. Jalankan checklist di bagian 8 sebelum rilis publik."
   Acceptance "Logo disetujui" **belum terpenuhi** — masih checkpoint tertunda
   (R14).
-- **Generator allowlist BUKAN sadar-flag.** `scripts/generate-ipc-allowlist.mjs`
-  memindai `src/main` tanpa membaca `feature-flags.json`; hasilnya masih berisi
-  kanal yang seharusnya digate oleh flag mati: `hydraApiCall` (305 hit),
-  `getHydraDeckyPluginInfo`, `installHydraDeckyPlugin`, `setGameHydraPlaytimeEnabled`.
-  Acceptance "generator … (sadar flag)" **belum terpenuhi** (R9: kebocoran flag).
-  Catatan: webview tetap dibatasi allowlist Rust + handler fail-closed, tetapi
-  allowlist yang di-generate sendiri tidak menyempit saat flag mati.
+- **Generator allowlist sadar-flag (diperbaiki di remediasi P2).**
+  `scripts/generate-ipc-allowlist.mjs` kini membaca `feature-flags.json` dan peta
+  `channelFlags`, sehingga 83 kanal milik flag mati tidak masuk tabel Rust/sidecar.
+  Kanal yang disebut catatan lama — `hydraApiCall`,
+  `getHydraDeckyPluginInfo`, `installHydraDeckyPlugin`,
+  `setGameHydraPlaytimeEnabled` — **bukan** milik flag mana pun (proxy katalog
+  publik, plugin Decky Linux, dan playtime), jadi tetap ada; klaim lama yang
+  menyebutnya bocor sudah dikoreksi di sini. Lihat `docs/feature-flags.md` §4.2a.
 - **i18n khusus branding belum dikerjakan.** Fase 2 menyebut "i18n"; yang ada
   baru i18n baseline Hydra. String produk "Hydra" yang tersisa di key i18n
   tercakup oleh `docs/branding-allowlist.md` tetapi belum diganti namanya di
@@ -645,7 +653,7 @@ ada `index.json`; `gameKey` diturunkan dari shop+objectId sehingga tidak
 | Typecheck main/sidecar         | `tsc --noEmit -p tsconfig.node.json --composite false`                                         | bersih                                                                           |
 | Typecheck renderer/big-picture | `tsc --noEmit -p tsconfig.web.json --composite false`                                          | bersih                                                                           |
 | Lint berkas baru & yang diubah | `eslint` pada `src/main/services/google-drive`, provider, event, Settings                      | bersih (2 warning `any` lama di `preload/index.ts`)                              |
-| IPC allowlist                  | `node scripts/generate-ipc-allowlist.mjs`                                                      | 350 invoke, 0 send, 72 event                                                     |
+| IPC allowlist                  | `node scripts/generate-ipc-allowlist.mjs`                                                      | 267 invoke, 0 send, 72 event, 83 excluded by feature flags                       |
 | Regresi pipeline cloud save    | `--test src/main/services/cloud-save/*.test.ts`                                                | 375/401; 15 gagal karena symlink `EPERM`/semantik path Windows, bukan kode Drive |
 
 ### Belum bisa dijalankan di mesin ini
@@ -656,3 +664,212 @@ ada `index.json`; `gameKey` diturunkan dari shop+objectId sehingga tidak
 - `cargo check` untuk `config.rs` (cargo tidak terpasang); perubahan hanya
   menambah dua env dan satu peringatan build.
 - Uji restore end-to-end tetap tertahan `hydra-native.node` (lihat Fase 6).
+
+## Fase 8 — Pembersihan dan paket (PRD fase 8, §4.A, §4.B, §4.G, §8, §10)
+
+Tujuan fase: Electron hilang sepenuhnya, `grep` bersih, installer NSIS dibangun dan
+diukur, dokumen rilis lengkap. Bagian yang bisa dijalankan di mesin ini dicatat
+dengan hasil nyata; bagian yang diblokir toolchain dicatat sebagai **tidak
+terbukti**, bukan lulus.
+
+### Yang dihapus / dirapikan
+
+| Item                                                                                                                                                                          | Bukti                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Dependensi Electron (`electron`, `electron-builder`, `electron-vite`, `electron-log`, `electron-updater`, `@electron-toolkit/*`)                                              | `package.json` tidak memuatnya; `yarn.lock` dipangkas (60 insertions, 1.715 deletions)              |
+| `electron-builder.yml`, `electron.vite.config.ts`, `build/`                                                                                                                   | Dihapus                                                                                             |
+| Workflow Electron (`build.yml`, `release.yml`, `build-renderer.yml`, `trigger-lp.yml`, `update-aur.yml`)                                                                      | Dihapus; hanya `tauri-release.yml`, `lint.yml`, `text-integrity.yml`, `torrent-bridge-prebuilt.yml` |
+| Skrip Epic/Legendary build (`legendary-*.cjs`, `prepare-legendary.cjs`, `*-managed*.py`, `prepare-epic-process-supervisor.cjs`, `build-epic-prerequisite-runner.cjs`, tesnya) | Dihapus; tidak ada referensi tersisa di `package.json`, CI, atau `src-tauri`                        |
+| `resources/legendary/` (Python, shell, `.pyz` bootstrap)                                                                                                                      | Dihapus; nol berkas `.py` di repo                                                                   |
+| Masukan ignorable `legendary/`, `hydra-python-rpc/`, `.env.sentry-build-plugin`                                                                                               | Dihapus dari `.gitignore`, `.eslintignore`, `.prettierignore`                                       |
+
+Shim yang tersisa memang disengaja: `src/sidecar/electron-shim/**`,
+`src/tauri-bridge/electron.ts`, `src/types/electron-globals.d.ts`, dan alias
+`electron` di `vite.config*.ts`/`tsconfig*.json`. Daftar lengkap ada di
+[`docs/electron-allowlist.md`](./electron-allowlist.md).
+
+### Perbaikan akar masalah yang ditemukan saat verifikasi
+
+1. **Typecheck `src/main` gagal total setelah paket Electron dihapus.** Seluruh
+   `src/main` diketik terhadap shim, dan shim hanya mendeklarasikan anggota yang
+   dulu dipakai jalur torrent. 120+ error (`ipcMain` contravariance,
+   `WebContents.mainFrame`, `BrowserWindow.setPosition/showInactive/flashFrame`,
+   `session.fromPartition`, `dialog` return type, `nativeImage`, `process.defaultApp`,
+   `@resources/*?asset`).
+   Perbaikan: tipe shim dilengkapi (`WebFrameMain`, `IpcListener(...args: any[])`,
+   `Session`, `NativeImage`, `DesktopCapturerSource`, `readShortcutLink`, opsi
+   notifikasi), `src/types/asset-modules.d.ts` ditambahkan, dan
+   `ipcRenderer.invoke` dikembalikan ke kontrak Electron `Promise<any>`.
+   Tidak ada `@ts-ignore` atau penurunan aturan `tsconfig`.
+2. **`yarn build:renderer` gagal** karena alias `@preload` hilang dari
+   `vite.config.ts` (Big Picture sudah memilikinya). Ditambahkan; build renderer
+   dan Big Picture lulus.
+3. **`yarn format-check` gagal pada 10 berkas** (termasuk berkas yang sudah ada
+   sebelum fase ini). Diperbaiki dengan `prettier --write`, bukan dengan
+   mengecualikan berkas.
+4. **`yarn.lock` masih memuat seluruh graf Electron.** `yarn install` (bukan edit
+   tangan) memangkasnya; `electron-to-chromium` tetap ada karena itu data
+   browserslist, bukan Electron.
+
+### Hasil perintah (26 November 2026, Windows 10 Pro 19045, Node 24.22.1, Yarn 1.22.22)
+
+| Perintah                                          | Hasil                                                                                                                                                                                          |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yarn install --ignore-scripts`                   | lulus, `Saved lockfile`                                                                                                                                                                        |
+| `yarn install --frozen-lockfile --ignore-scripts` | lulus, `Already up-to-date`                                                                                                                                                                    |
+| `yarn typecheck` (flag `false`)                   | lulus (`typecheck:node` 16.8 dtk, `typecheck:web` 59.0 dtk)                                                                                                                                    |
+| `yarn typecheck` (semua flag `true`)              | lulus (85.0 dtk), JSON dikembalikan ke `false`                                                                                                                                                 |
+| `yarn lint` (flag `false`)                        | lulus, 0 error (78 warning pre-existing)                                                                                                                                                       |
+| `yarn lint` (semua flag `true`)                   | lulus, 0 error, 78 warning                                                                                                                                                                     |
+| `yarn format-check`                               | lulus (`All matched files use Prettier code style`)                                                                                                                                            |
+| `yarn test` (seluruh suite)                       | **menggantung** di suite Epic Linux-only; dihentikan setelah 6 menit tanpa output                                                                                                              |
+| Suite yang sama tanpa `src/main/services/epic/**` | 1.768 tes: **1.726 lulus, 24 gagal, 18 skip**; lihat kategori di bawah                                                                                                                         |
+| `yarn build:renderer`                             | lulus (74.7 dtk) setelah alias `@preload` diperbaiki                                                                                                                                           |
+| `yarn build:big-picture`                          | lulus (46.0 dtk) — skrip & entry ini dihapus di P0; Big Picture kini route `#/big-picture` di bundel renderer                                                                                  |
+| `yarn build:sidecar`                              | lulus: `out/sidecar/index.mjs` 7.710 KB, 982 modul, 74 external                                                                                                                                |
+| `yarn check:torrent-resources`                    | **gagal**: `hydra-native.node` tidak ada (butuh Rust + MSVC)                                                                                                                                   |
+| `yarn tauri build`                                | **gagal**: `beforeBuildCommand` memanggil `yarn build:native`, yang bergantung pada paket `electron` yang sudah dihapus dan `hydra-native.node` yang belum dibangun → tidak ada installer NSIS |
+
+24 kegagalan tes adalah lingkungan Windows dan sudah ada sebelum fase ini
+(simlink `EPERM`, casing path `RAKAMH~1` vs `rakamhndra`, Wine/UMU Linux-only,
+arsip 7z/zip, `native addon is not built`, `crash-recovery` yang membutuhkan
+sidecar terbuild, dan satu suite Epic yang timeout). Tidak ada kegagalan yang
+berasal dari penghapusan Electron atau dari perubahan Fase 8: `feature flag`,
+sidecar, allowlist, dan tes kampanye Fase 8 lulus.
+
+### Blokir yang belum dapat dibuktikan
+
+| Butir PRD                                                               | Status                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Instalasi NSIS di Windows bersih + checklist §6.1 penuh                 | **Tidak dijalankan** — tidak ada installer dan tidak ada VM bersih       |
+| Ukuran installer (angka nyata)                                          | **Tidak terukur** — build berhenti di `build:native`/`hydra-native.node` |
+| RAM idle (angka nyata)                                                  | **Tidak terukur** — aplikasi tidak dapat dibangun/dijalankan             |
+| Tidak ada Python/legendary/`.pyz`/`hydra-epic-process.exe` di installer | **Terbukti statis** (lihat di bawah); isi installer belum diverifikasi   |
+| SmartScreen / Smart App Control / Defender                              | **Tidak diuji** (butuh mesin bersih dan installer)                       |
+
+Bukti statis untuk installer: tidak ada berkas `.py` di repo, tidak ada langkah
+build Python/PyInstaller di `package.json`/CI, dan `bundle.resources` di
+`src-tauri/tauri.conf.json` hanya memuat tray/icon/achievement/linux-game-capture/
+ludusavi/hydra-native. Karena `yarn tauri build` tidak pernah menghasilkan paket,
+klaim "installer bersih" tetap belum diuji pada artefak nyata.
+
+Langkah menutup blokir (mesin dengan Rust, MSVC, WebView2):
+
+```sh
+yarn build:native            # hydra-native.node + VC++ runtime DLL
+yarn check:torrent-resources # harus lulus
+yarn tauri build             # NSIS di src-tauri/target/release/bundle/nsis/
+```
+
+Lalu jalankan checklist §6.1 di Windows 10 dan 11 bersih, ukur ukuran
+`*-setup.exe` dan RAM idle (Task Manager → Details → Working set
+`Sphinx Launcher.exe` + `node.exe`), dan catat di tabel ini.
+
+### Definition of Done (PRD §8)
+
+| #   | Butir                                                                                                         | Status                   | Bukti                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `yarn tauri build` menghasilkan NSIS yang terpasang/berjalan; ukuran installer + RAM idle dicatat             | **BLOKIR**               | `build:native` gagal (Electron dihapus, `hydra-native.node` belum ada); `src-tauri/target/release/bundle/nsis` tidak ada                    |
+| 2   | Checklist §6.1 lulus tanpa regresi                                                                            | **BELUM**                | Membutuhkan installer (butir 1)                                                                                                             |
+| 3   | Acceptance 4.C/4.E/4.F.6                                                                                      | **Sebagian (fase lain)** | `docs/torrent-tauri.md`, `docs/release.md`, tes cloud save; uji mesin bersih tidak diulang                                                  |
+| 4   | Tidak ada Electron/Sentry/analytics/workwonders/login Hydra; Node diizinkan                                   | **LULUS**                | `docs/electron-allowlist.md`; `package.json`/`yarn.lock` bersih; grep hanya kategori sah                                                    |
+| 5   | Logo sphinx terpasang dan disetujui                                                                           | **Sebagian**             | Branding ada; persetujuan manusia terbuka (Fase 2)                                                                                          |
+| 6   | Engine torrent native dari installer tanpa Python; tidak ada Python/legendary/`.pyz`/`hydra-epic-process.exe` | **Sebagian**             | Tidak ada Python di repo/build; `hydra-native.node` belum dibangun → belum diuji dari installer                                             |
+| 7   | `latest.json` + `SHA256SUMS` benar; versi tiga berkas = tag                                                   | **Sebagian**             | Tes unit `make-update-manifest`/`bump-version` lulus; artefak nyata belum ada                                                               |
+| 8   | Dokumen: LICENSE, NOTICE, MIT-hydra, THIRD_PARTY_NOTICES, README, docs/…                                      | **LULUS**                | Berkas ada; `LICENSE` = `daf69d…`; MIT Hydra ada; `docs/upstream-policy.md` diperbarui                                                      |
+| 9   | Tidak ada uji Epic; semua butir §10 tercatat                                                                  | **BELUM**                | Suite Epic **masih ada** (Linux-only; dikecualikan dari run Windows) dan `yarn test` tanpa filter menggantung; bukan "lulus dengan catatan" |
+| 10  | Commit rapi di branch                                                                                         | **Belum**                | Belum di-commit (menunggu persetujuan pengguna)                                                                                             |
+
+### Butir wajib dibuktikan (PRD §10)
+
+| #     | Butir                                                                            | Hasil di Fase 8                                                                  |
+| ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1     | Capability + command kustom; iframe/remote tidak `invoke`                        | Fase 3/4 (`docs/tauri-security.md`); tidak diuji ulang                           |
+| 2     | `on_before_exit`; `download()`/`install()` terpisah                              | `src-tauri/src/updater.rs`; belum E2E (`docs/release.md` §7)                     |
+| 3     | `tauri-action` draft → publish; `latest.json` valid                              | Workflow ada; belum pernah dijalankan                                            |
+| 4     | Opsi NSIS, `installMode`, `signCommand`                                          | Dicek ke schema (`docs/release.md` §5–6); installer belum dibuat                 |
+| 5     | Native module di Node bundel                                                     | `sharp`/`classic-level` lulus Fase 0; `hydra-native` tidak bisa dibangun di sini |
+| 6     | Job object/detached spawn                                                        | Tes crash Fase 4 (game hidup); tutup app/update tidak diuji ulang                |
+| 7     | Perilaku baseline saat quit/crash                                                | `docs/baseline-behavior.md`                                                      |
+| 8     | SmartScreen (browser vs self-update), Smart App Control                          | **Tidak diuji**                                                                  |
+| 9     | Defender false positive                                                          | **Tidak diuji**                                                                  |
+| 10–15 | Drive: ETag, `appProperties`, rate limit, `about.get`, brand verification, kuota | `docs/cloud-save-audit.md` + tes; tidak diverifikasi ulang ke API nyata          |
+| 16    | `needsAuth:false` terhadap API nyata                                             | `docs/account-dependent-features.md`; verifikasi runtime Fase 0/1                |
+| 17    | Aset Epic khusus Epic                                                            | `docs/epic-audit.md`; Fase 8 menghapus build asset-nya dari repo                 |
+| 18    | Python hanya untuk legendary                                                     | Benar; sekarang Python dihapus total dari build/CI                               |
+| 19    | ludusavi mengunduh manifest?                                                     | `docs/network-calls.md`                                                          |
+| 20    | Kunci minisign: cadangan, terpisah dari Authenticode                             | Prosedur `docs/release.md` §1–3; kunci belum dibuat/dicadangkan                  |
+| 21    | Celah playtime saat crash terdokumentasi                                         | `docs/baseline-behavior.md`, README batasan v1                                   |
+
+### Code review diff terhadap `baseline-hydra`
+
+`git diff --stat baseline-hydra`: **513 berkas, +37.757 / −15.499**. Sebaran
+terbesar: `src/main` (105), `src/renderer` (71), branding/aset (48),
+`src/locales` (35), `src-tauri` (19+), `src/sidecar` (18), ditambah penghapusan
+jalur Electron/Python.
+
+Yang diperiksa dan hasilnya:
+
+- **Tidak ada jalur runtime yang masih memanggil API Electron asli.** Renderer
+  memakai `src/tauri-bridge/electron.ts`, sidecar memakai
+  `src/sidecar/electron-shim`. Alias di `vite.config*.ts`,
+  `tsconfig*.json`, dan `scripts/build-sidecar.mjs` menutup ketiganya.
+- **Tidak ada impor modul yang sudah dihapus** (`electron`, `@sentry/*`,
+  `workwonders-sdk`, `legendary/*`, `hydra-python-rpc`). `yarn build:renderer`
+  (yang kini juga memuat Big Picture di `#/big-picture`) dan `build:sidecar`
+  membuktikannya untuk kedua bundel.
+- **Risiko yang tersisa:** (a) shim masih longgar di beberapa tempat
+  (`(...args: any[])` pada listener, `Menu` index signature) — disengaja agar
+  kontrak Electron tetap cocok, diberi komentar; (b) `src/main/services/epic/**`
+  tetap ada di balik flag `false`, sehingga tes Linux-only-nya ikut dijalankan
+  `yarn test` dan menggantung di Windows; (c) `hydra-native` belum dibangun di
+  mesin ini, jadi jalur torrent hanya tervalidasi lewat typecheck/unit test,
+  belum lewat paket.
+- **Bug yang ditemukan review dan sudah diperbaiki:** lockfile basi, tipe shim
+  tidak lengkap, impor logger renderer menunjuk path yang salah, alias
+  `@preload` hilang, dan sisa build asset Epic/Python.
+
+## Remediasi review pasca-Fase 8 (P0/P1/P2)
+
+Daftar temuan lengkap ada di `HANDOFF-sphinx-fixes.md`. Yang sudah dikerjakan dan
+diverifikasi di mesin ini:
+
+| Item  | Perubahan                                                                                                                                                                                       | Bukti                                                             |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| P0-1  | `record_restart` menghitung budget setelah membuang entri di luar jendela; tes aging yang salah diperbaiki (PRD §4.A.4: 3 restart/60 dtk)                                                       | `cargo test` — tes restart lulus                                  |
+| P0-2  | `createIpcEvent` mengisi `senderFrame` dari `sender.mainFrame`; `readDirectory`/`getPathInfo`/`listDrives` menerima sender tepercaya                                                            | `src/sidecar/ipc-event.test.ts`                                   |
+| P0-3  | `bundle.resources` memetakan `../out/sidecar` → `sidecar`, cocok dengan `sidecar/config.rs`                                                                                                     | `cargo test`; isi installer belum diuji                           |
+| P0-4  | Big Picture menjadi route `#/big-picture` di bundel renderer; entry Vite terpisah (`vite.config.big-picture.ts`, `src/big-picture/`) dihapus; `beforeBuildCommand` menjalankan `build:sidecar`  | `yarn build:renderer`; `docs/tauri-security.md` §2                |
+| P1-1  | `window.create` memetakan `x`/`y`, `maxWidth`/`maxHeight`, `minimizable`/`maximizable`/`focusable`, `backgroundColor`, `titleBarStyle` (macOS), `icon`; semua jendela renderer mengirim `label` | `cargo test` — tes `color_from_hex`                               |
+| P1-2  | `setFocusable`, `setProgressBar`, dan `setOpacity` (0 = hide, 1 = show, nilai tengah `not_implemented`) diimplementasikan                                                                       | `cargo test` — tes `progress_bar_state`                           |
+| P1-3  | Label renderer hanya boleh memuat path aplikasi atau origin `devUrl`; URL remote ditolak di `window.create`                                                                                     | `cargo test` — 6 tes `renderer_url_allowed`/`is_renderer_label`   |
+| P1-4  | Skema `local:` hanya melayani berkas gambar absolut tanpa `..`; CORS hanya untuk origin renderer tepercaya                                                                                      | `cargo test` — 3 tes `uri_scheme`                                 |
+| P1-5  | `let _ =` pada hasil fallible diganti penanganan eksplisit (`deliver` di `dialogs.rs`, log di supervisor/tray/platform)                                                                         | `cargo clippy --all-targets --all-features` exit 0                |
+| P1-6  | Binding unit `let _ = done` dihapus                                                                                                                                                             | `cargo clippy` exit 0                                             |
+| P1-7  | `clippy::unreachable` dari ekspansi `#[tauri::command]` disupresi dengan `#![expect(..., reason = ...)]`; `updater` merapikan doc dan memakai `#[derive(Default)]`                              | `cargo clippy` exit 0                                             |
+| P1-8  | `cargo fmt --all` diterapkan hanya di crate `src-tauri`                                                                                                                                         | `cargo fmt --all -- --check` exit 0                               |
+| P1-9  | `script-src 'self'` (tanpa `unsafe-inline`/`unsafe-eval`); `ws:`/`wss:` dihapus dari `connect-src`; `local:` ditambahkan; `<meta>` CSP permisif di `index.html` dihapus                         | bundel produksi tanpa inline script/`eval`; `yarn build:renderer` |
+| P1-10 | `scripts/stage-node-binary.mjs` memakai triple `aarch64`/`x86_64` yang benar dan gagal pada platform tak dikenal                                                                                | skrip dijalankan ulang                                            |
+| P1-11 | Banner status sidecar menampilkan tombol "Coba lagi" saat supervisor menyerah; `sidecar_restart` dipanggil lewat `setSidecarRetry`                                                              | `src/tauri-bridge/reconnect-indicator.test.ts` — 6/6              |
+| P2-1  | Generator allowlist sadar-flag: `feature-flags.json` + peta `channelFlags` dibaca; 83 kanal flag mati tidak masuk tabel Rust/sidecar; paritas diuji                                             | `allowlist.test.ts` — 11/11; `--check` exit 0                     |
+| P2-2  | `use-epic-managed.test.ts` tidak lagi crash: `tsconfig.test.json` memakai `types: ["node", "vite/client"]`, sehingga `import.meta.env` di helper renderer lolos typecheck ts-node               | tes 42/42                                                         |
+| P2-3  | Kegagalan test Windows (symlink `EPERM`, pemisah path, path pendek 8.3, YAML) dikonfirmasi lingkungan dan sudah didokumentasikan                                                                | `docs/windows-environmental-test-failures.md`                     |
+| P2-4  | `crash-recovery.test.ts` memakai `sublevel<string, Record<string, unknown>>(...)`; cast `as Record<string, unknown>` dihapus                                                                    | `tsc --noEmit -p tsconfig.test.json` exit 0                       |
+| P2-5  | Dokumen dikoreksi: bagian build Electron ditandai historis Fase 0; klaim `hydraApiCall` bocor dikoreksi; DoD 9 menjadi **BELUM**                                                                | `docs/MIGRATION_LOG.md`                                           |
+| P2-6  | `publicProfilePath` tetap `C:/Users/Public` dengan komentar: itu path guest Windows di dalam prefix Wine, bukan `%PUBLIC%` host                                                                 | `src/main/constants.ts`                                           |
+| P2-7a | §4.G: `Cargo.toml` `license = "Apache-2.0"`; `bundle.publisher`/`copyright`/`licenseFile`/`category`/`shortDescription` diisi                                                                   | `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`               |
+| P2-7b | §4.E: `allowToChangeInstallationDirectory`/`oneClick` tidak ada di `NsisConfig`, tetapi template NSIS Tauri memuat `MUI_PAGE_DIRECTORY`; dikutip dari template resmi                            | `docs/release.md` §5                                              |
+| P2-7c | §8.4: kunci `setup_install_guide_workwonders` (sisa SDK workwonders) dihapus dari 11 locale                                                                                                     | `grep` bersih                                                     |
+| P2-7d | §4.F.2/§4.F.3: ETag/`If-Match` dicek ke referensi resmi `files.update` — tidak didokumentasikan, jadi desain tidak bergantung padanya                                                           | `docs/cloud-save-audit.md` §8.1                                   |
+| P2-7e | §8.9: `yarn test` tanpa filter menggantung di suite Epic; DoD 9 tidak lagi ditandai lulus                                                                                                       | `docs/MIGRATION_LOG.md`                                           |
+
+Hasil verifikasi terakhir: `cargo test --all-features` 30 lulus; `cargo clippy
+--all-targets --all-features` exit 0; `cargo fmt --all -- --check` exit 0;
+`yarn typecheck` exit 0; `yarn lint` 0 error / 78 warning; `yarn format-check`
+exit 0.
+
+Batasan yang tetap ada: `window.create` tidak membatasi origin untuk label
+non-renderer (jendela auth Epic/Steam memang perlu origin provider apa pun);
+`setOpacity` parsial tidak didukung; CSP `img-src`/`media-src`/`connect-src`
+masih memuat `https: http:` karena URL artwork/trailer berasal dari katalog;
+dan `yarn tauri build` tetap terblokir `build:native`.

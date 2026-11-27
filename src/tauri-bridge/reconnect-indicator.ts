@@ -25,8 +25,24 @@ const TRANSPORT_CODES = new Set([
 const MESSAGES: Record<string, string> = {
   sidecar_restarted: "Menyambung ulang ke layanan latar…",
   sidecar_starting: "Menyalakan layanan latar…",
-  sidecar_unavailable: "Layanan latar berhenti. Buka ulang aplikasi.",
+  sidecar_unavailable: "Layanan latar berhenti.",
   request_timeout: "Layanan latar tidak menjawab. Menyambung ulang…",
+};
+
+/** Restarts the supervisor after it gave up. Supplied by the bridge. */
+type RetryHandler = () => Promise<void>;
+
+let retrySidecar: RetryHandler | null = null;
+
+/**
+ * Registers the retry action shown after the supervisor gives up.
+ *
+ * Set eagerly by the bridge at import time rather than on the first status
+ * event: the first failure a window sees can be `sidecar_unavailable`, which
+ * happens before any status event reaches it.
+ */
+export const setSidecarRetry = (handler: RetryHandler): void => {
+  retrySidecar = handler;
 };
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -100,7 +116,59 @@ const show = (code: string): void => {
   }
 
   const node = element();
-  node.textContent = MESSAGES[code] ?? MESSAGES.sidecar_restarted;
+  node.style.pointerEvents = "none";
+  node.replaceChildren();
+  const label = document.createElement("span");
+  label.textContent = MESSAGES[code] ?? MESSAGES.sidecar_restarted;
+  node.append(label);
+  node.dataset.visible = "true";
+};
+
+/**
+ * The terminal state: the supervisor exhausted its restart budget.
+ *
+ * A banner with a real button is used instead of a native modal so the retry is
+ * available in every renderer window (main and Big Picture) and does not block
+ * the UI that is already on screen. PRD §4.A.4 asks for "Coba lagi"; this is it.
+ */
+const showGaveUp = (): void => {
+  if (typeof document === "undefined" || !document.body) return;
+
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+
+  const node = element();
+  node.style.pointerEvents = "auto";
+  node.replaceChildren();
+
+  const label = document.createElement("span");
+  label.textContent = MESSAGES.sidecar_unavailable;
+
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.textContent = "Coba lagi";
+  retry.style.cssText = [
+    "pointer-events:auto",
+    "cursor:pointer",
+    "border:0",
+    "border-radius:999px",
+    "padding:6px 12px",
+    "font:600 12px/1 system-ui,sans-serif",
+    "background:#e0b341",
+    "color:#1c1c1c",
+  ].join(";");
+  retry.addEventListener("click", () => {
+    if (!retrySidecar) return;
+    retry.disabled = true;
+    show("sidecar_starting");
+    void retrySidecar().catch(() => {
+      showGaveUp();
+    });
+  });
+
+  node.append(label, retry);
   node.dataset.visible = "true";
 };
 
@@ -116,6 +184,10 @@ const hide = (): void => {
 /** Called by the bridge after a failed `invoke`. */
 export const reportBridgeFailure = (code: string | undefined): void => {
   if (!code || !TRANSPORT_CODES.has(code)) return;
+  if (code === "sidecar_unavailable") {
+    showGaveUp();
+    return;
+  }
   show(code);
 };
 
@@ -133,7 +205,7 @@ export const reportSidecarStatus = (status: string | undefined): void => {
   }
 
   if (status === "gave-up") {
-    show("sidecar_unavailable");
+    showGaveUp();
     return;
   }
 

@@ -22,10 +22,10 @@ pub mod notifications;
 pub mod platform;
 pub mod power;
 pub mod shell;
+pub mod sidecar;
 pub mod tray;
 pub mod updater;
 pub mod uri_scheme;
-pub mod sidecar;
 
 use std::sync::Arc;
 
@@ -108,14 +108,18 @@ pub fn run() {
         })
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_size(tauri::LogicalSize::new(
+                if let Err(error) = window.set_size(tauri::LogicalSize::new(
                     MAIN_WINDOW_WIDTH,
                     MAIN_WINDOW_HEIGHT,
-                ));
-                let _ = window.set_min_size(Some(tauri::LogicalSize::new(
+                )) {
+                    eprintln!("[shell] cannot size the main window: {error}");
+                }
+                if let Err(error) = window.set_min_size(Some(tauri::LogicalSize::new(
                     MAIN_WINDOW_MIN_WIDTH,
                     MAIN_WINDOW_MIN_HEIGHT,
-                )));
+                ))) {
+                    eprintln!("[shell] cannot set the main window minimum size: {error}");
+                }
             }
 
             let handle = app.handle().clone();

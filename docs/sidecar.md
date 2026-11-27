@@ -114,8 +114,13 @@ adopt the windows Rust creates (`window-attached`). Without it, `mainWindow` and
 `bigPicture` stay null and every `sendToAppWindows` silently drops.
 
 `getBounds`, `isMinimized`, `isMaximized` and friends return the last state
-reported by the shell. `setOpacity`, `setFocusable` and `setProgressBar` return
-`not_implemented` — pretending to succeed is worse.
+reported by the shell. `setFocusable` and `setProgressBar` map straight onto
+Tauri's `set_focusable` and `set_progress_bar`; `setProgressBar` converts
+Electron's ratio/sentinel contract (below 0 clears, above 1 is indeterminate) to
+Tauri's whole-percent `ProgressBarState`. `setOpacity` has no Tauri equivalent:
+0 hides the window and 1 shows it again, which is what `window-manager.ts` uses
+it for; any intermediate value returns `not_implemented` instead of pretending the
+window is translucent.
 
 Two details a window proxy cannot get right on its own, both found by running
 `yarn tauri dev`:
@@ -124,10 +129,17 @@ Two details a window proxy cannot get right on its own, both found by running
 label, and `capabilities/default.json` grants the IPC commands per label. A
 window the sidecar creates without one gets `sphinx-window-<n>`, which no
 capability covers, so every command in it is rejected. `new BrowserWindow(...)`
-therefore accepts a `label`, and `openBigPictureWindow` passes
-`label: "big-picture"`. `WindowManager` types it as
+therefore accepts a `label`, and every renderer window passes one (`main`,
+`big-picture`, `friends`, `chat`, `retroachievements-connection`,
+`theme-editor-<n>`, `game-launcher`). Provider-auth windows (Epic, Steam) stay
+unlabelled on purpose: they load remote pages and must not hold the capability.
+`WindowManager` types the field as
 `BrowserWindowConstructorOptions & { label?: string }`, because Electron's own
 type has no such field.
+
+The shell enforces the same split from the other side: `window.create` rejects a
+remote URL on a renderer label unless it matches the `devUrl` origin
+(`src-tauri/src/sidecar/rpc.rs`, `renderer_url_allowed`).
 
 **`ready-to-show` has to come from the shell.** Every auxiliary window is created
 with `show: false` and shown from `ready-to-show`. Electron fires that event when
@@ -199,23 +211,20 @@ must not be stopped by it.
 
 ## 7. Verification
 
-| Claim                    | Command                          | Result                                 |
-| ------------------------ | -------------------------------- | -------------------------------------- |
-| Sidecar bundles          | `yarn build:sidecar`             | 7.6 MB, 963 modules, 74 externals      |
-| Sidecar boots and serves | `src/sidecar/rpc.test.ts`        | 12/12 pass                             |
-| Allowlist matches source | `src/sidecar/allowlist.test.ts`  | 9/9 pass                               |
-| Crash behaviour          | `yarn test:crash`                | 4/4 pass                               |
-| Allowlist is current     | `yarn gen:ipc-allowlist --check` | 346 invoke, 71 event, 6 dynamic prefix |
-| Rust compiles            | `cargo check --all-targets`      | clean                                  |
-| Renderer builds          | `yarn build:renderer`            | built                                  |
-| Big Picture builds       | `yarn build:big-picture`         | built                                  |
+| Claim                    | Command                                     | Result                                                               |
+| ------------------------ | ------------------------------------------- | -------------------------------------------------------------------- |
+| Sidecar bundles          | `yarn build:sidecar`                        | 7.6 MB, 963 modules, 74 externals                                    |
+| Sidecar boots and serves | `src/sidecar/rpc.test.ts`                   | 12/12 pass                                                           |
+| Allowlist matches source | `src/sidecar/allowlist.test.ts`             | 11/11 pass                                                           |
+| Crash behaviour          | `yarn test:crash`                           | 4/4 pass                                                             |
+| Allowlist is current     | `yarn gen:ipc-allowlist --check`            | 267 invoke, 72 event, 6 dynamic prefix, 83 excluded by feature flags |
+| Rust compiles            | `cargo clippy --all-targets --all-features` | exit 0                                                               |
+| Renderer builds          | `yarn build:renderer`                       | built                                                                |
+| Big Picture route        | `yarn build:renderer` + `#/big-picture`     | same bundle as the renderer                                          |
 
-`cargo test` compiles the test binary but **cannot run it on this machine**: the
-executable imports `api-ms-win-core-path-l1-1-0.dll`, which this Windows
-installation does not have. The four supervisor tests (`record_restart`,
-`is_stalled`) are pure functions and will run on a standard Windows 10/11
-install; the same class of limitation is recorded in `docs/tauri-shell.md` for
-Fase 3.
+`cargo test --all-features` runs and passes (30 tests) with the Rust toolchain
+installed on this machine. An earlier handoff recorded a missing
+`api-ms-win-core-path-l1-1-0.dll`; that is no longer the case.
 
 ### Test-only hook
 

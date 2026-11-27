@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 
 import { callIgnoringFailure, hostRpc } from "./host.js";
+import { resolveRegisteredUrl } from "./url.js";
 
 /**
  * A `BrowserWindow` that lives in the shell, not in the sidecar.
@@ -77,8 +78,20 @@ export const warnOnce = (key: string, message: string): void => {
  * everything else throws so a future caller notices instead of silently doing
  * nothing.
  */
+/**
+ * The frame identity `src/main` checks before accepting an invoke.
+ *
+ * Electron exposes a `WebFrameMain` object per frame. The shim has one frame
+ * per window, so a stable object is enough: `src/main` only reads `url` and
+ * compares `senderFrame` with `sender.mainFrame`.
+ */
+export interface WebFrameMain {
+  url: string;
+}
+
 export class WebContents extends EventEmitter {
-  public readonly id: number;
+  public id: number;
+  private readonly frame: WebFrameMain = { url: "" };
   public readonly session: {
     webRequest: {
       onBeforeSendHeaders: (listener: unknown) => void;
@@ -87,7 +100,7 @@ export class WebContents extends EventEmitter {
   };
 
   constructor(
-    public readonly windowLabel: string,
+    public windowLabel: string,
     id: number
   ) {
     super();
@@ -113,12 +126,20 @@ export class WebContents extends EventEmitter {
     };
   }
 
+  /** The window's only frame; stable object, like Electron's. */
+  public get mainFrame(): WebFrameMain {
+    this.frame.url = this.getURL();
+    return this.frame;
+  }
+
   /** `webContents.send` → one `sphinx:ipc-event` emit, arguments preserved. */
   public send(channel: string, ...args: unknown[]): void {
     hostRpc().emitEvent(channel, args);
   }
 
-  public setWindowOpenHandler(): void {
+  public setWindowOpenHandler(
+    _handler?: (details: { url: string }) => { action: string }
+  ): void {
     // Tauri owns navigation policy (`window.open` is denied by the shell's
     // capability set), so the handler is not forwarded. See docs/sidecar.md.
     warnOnce(
@@ -127,14 +148,14 @@ export class WebContents extends EventEmitter {
     );
   }
 
-  public openDevTools(): void {
+  public openDevTools(_options?: unknown): void {
     void callIgnoringFailure("window.call", {
       label: this.windowLabel,
       method: "openDevTools",
     });
   }
 
-  public closeDevTools(): void {
+  public closeDevTools(_options?: unknown): void {
     void callIgnoringFailure("window.call", {
       label: this.windowLabel,
       method: "closeDevTools",
@@ -152,12 +173,31 @@ export class WebContents extends EventEmitter {
     return false;
   }
 
+  /**
+   * Electron runs script in the page. Tauri's shell does not expose it, so the
+   * call rejects explicitly instead of resolving to a value that callers would
+   * treat as real DOM output.
+   */
+  // Electron returns `any` here; callers parse the page's own value.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public executeJavaScript<T = any>(
+    _code: string,
+    _userGesture?: boolean
+  ): Promise<T> {
+    return Promise.reject(
+      new Error("NotImplementedInShim: webContents.executeJavaScript")
+    );
+  }
+
   public isDestroyed(): boolean {
     return !BrowserWindow.isLabelAlive(this.windowLabel);
   }
 
   public getURL(): string {
-    return BrowserWindow.getRegisteredUrl(this.windowLabel) ?? "";
+    return resolveRegisteredUrl(
+      BrowserWindow.getRegisteredUrl(this.windowLabel),
+      BrowserWindow.getAppBaseUrl()
+    );
   }
 }
 
@@ -165,6 +205,8 @@ export class BrowserWindow extends EventEmitter {
   private static readonly byWebContentsId = new Map<number, BrowserWindow>();
   private static readonly byLabel = new Map<string, BrowserWindow>();
   private static readonly urls = new Map<string, string>();
+  /** Absolute URL of the adopted `main` window; base for relative routes. */
+  private static appBaseUrl: string | null = null;
   private static aliveLabels = new Set<string>();
   private static nextWebContentsId = 1;
 
@@ -176,7 +218,7 @@ export class BrowserWindow extends EventEmitter {
   constructor(options: WindowOptions = {}) {
     super();
     this.options = options;
-    this.label = `sphinx-window-${nextWindowSequence++}`;
+    this.label = options.label ?? `sphinx-window-${nextWindowSequence++}`;
     this.webContents = new WebContents(
       this.label,
       BrowserWindow.nextWebContentsId++
@@ -221,6 +263,10 @@ export class BrowserWindow extends EventEmitter {
     windowId: number,
     url: string
   ): BrowserWindow {
+    // The adopted window's URL is absolute (the shell reported it), so it is
+    // the base that later bundle-relative routes resolve against.
+    if (label === "main") BrowserWindow.appBaseUrl = url;
+
     const existing = BrowserWindow.byLabel.get(label);
     if (existing) {
       BrowserWindow.urls.set(label, url);
@@ -260,6 +306,11 @@ export class BrowserWindow extends EventEmitter {
     return BrowserWindow.urls.get(label) ?? null;
   }
 
+  /** The adopted `main` window's absolute URL, used to resolve app routes. */
+  public static getAppBaseUrl(): string | null {
+    return BrowserWindow.appBaseUrl;
+  }
+
   /** Fires a window event that the shell reported (`closed`, `focus`, ...). */
   public static dispatchShellEvent(label: string, event: string): void {
     BrowserWindow.byLabel.get(label)?.emit(event);
@@ -269,7 +320,10 @@ export class BrowserWindow extends EventEmitter {
     return this.ensureCreated(url);
   }
 
-  public loadFile(filePath: string): Promise<void> {
+  public loadFile(
+    filePath: string,
+    _options?: { hash?: string; query?: Record<string, string> }
+  ): Promise<void> {
     return this.ensureCreated(filePath);
   }
 
@@ -320,8 +374,28 @@ export class BrowserWindow extends EventEmitter {
     void this.call("setFullScreen", { fullscreen });
   }
 
-  public setAlwaysOnTop(alwaysOnTop: boolean): void {
+  public setAlwaysOnTop(
+    alwaysOnTop: boolean,
+    _level?: string,
+    _relativeLevel?: number
+  ): void {
     void this.call("setAlwaysOnTop", { alwaysOnTop });
+  }
+
+  public setPosition(x: number, y: number, _animate?: boolean): void {
+    void this.call("setPosition", { x, y });
+  }
+
+  public showInactive(): void {
+    void this.call("showInactive");
+  }
+
+  public flashFrame(flag: boolean): void {
+    void this.call("flashFrame", { flag });
+  }
+
+  public setOverlayIcon(overlay: unknown, description: string): void {
+    void this.call("setOverlayIcon", { overlay, description });
   }
 
   public setIgnoreMouseEvents(
@@ -346,7 +420,7 @@ export class BrowserWindow extends EventEmitter {
     void this.call("setOpacity", { opacity });
   }
 
-  public setProgressBar(progress: number): void {
+  public setProgressBar(progress: number, _options?: unknown): void {
     void this.call("setProgressBar", { progress });
   }
 
@@ -354,7 +428,7 @@ export class BrowserWindow extends EventEmitter {
     void this.call("setTitle", { title });
   }
 
-  public setMenu(): void {
+  public setMenu(_menu?: unknown): void {
     // Tauri has no per-window application menu; the shell owns the menu bar.
   }
 
@@ -362,7 +436,7 @@ export class BrowserWindow extends EventEmitter {
     // Same as setMenu.
   }
 
-  public setBounds(bounds: Record<string, number>): void {
+  public setBounds(bounds: Record<string, number>, _animate?: boolean): void {
     void this.call("setBounds", bounds);
   }
 
@@ -414,16 +488,6 @@ export class BrowserWindow extends EventEmitter {
 
   private ensureCreated(url: string): Promise<void> {
     if (this.creation) return this.creation;
-
-    // An explicit label wins: it is the capability boundary in Tauri. The
-    // constructor already registered the generated label, so the map has to be
-    // corrected here or `ready-to-show` and `getAllWindows()` would look under
-    // the wrong name.
-    if (this.options.label && this.options.label !== this.label) {
-      BrowserWindow.byLabel.delete(this.label);
-      this.label = this.options.label;
-      BrowserWindow.byLabel.set(this.label, this);
-    }
 
     this.creation = (async () => {
       const result = (await hostRpc().request("window.create", {

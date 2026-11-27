@@ -90,15 +90,9 @@ pub enum HostMessage<'a> {
         window_label: Option<&'a str>,
     },
     #[serde(rename = "rpc-result")]
-    RpcResult {
-        id: &'a str,
-        result: Value,
-    },
+    RpcResult { id: &'a str, result: Value },
     #[serde(rename = "rpc-error")]
-    RpcError {
-        id: &'a str,
-        error: WireError,
-    },
+    RpcError { id: &'a str, error: WireError },
     Control {
         action: &'a str,
         #[serde(skip_serializing_if = "Option::is_none")]

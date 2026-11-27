@@ -5,38 +5,40 @@ dan apa yang masih terbuka.
 
 ## 1. Yang ditambahkan
 
-| Jalur                                          | Isi                                                                                                                        |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `src-tauri/Cargo.toml`                         | Crate `sphinx-launcher` 0.1.0, `tauri` v2, `tauri-build` v2                                                                |
-| `src-tauri/build.rs`                           | `tauri_build::build()` standar                                                                                             |
-| `src-tauri/src/main.rs`                        | Entrypoint biner + `windows_subsystem = "windows"` untuk rilis                                                             |
-| `src-tauri/src/lib.rs`                         | Builder, hook page-load, pembuat jendela Big Picture                                                                       |
-| `src-tauri/tauri.conf.json`                    | `productName` "Sphinx Launcher", identifier `com.sphinxlauncher.app`, versi 0.1.0                                          |
-| `src-tauri/capabilities/default.json`          | Capability minimal (`core:default`, hanya jendela `main`)                                                                  |
-| `src-tauri/icons/`                             | Hasil `yarn tauri icon branding/png/sphinx-app-icon-1024.png` (desktop saja; `android/` dan `ios/` dari generator dihapus) |
-| `vite.config.ts`                               | Aplikasi Vite biasa untuk renderer (port 5173)                                                                             |
-| `vite.config.big-picture.ts`                   | Aplikasi Vite terpisah untuk Big Picture (port 5174)                                                                       |
-| `src/renderer/src/tauri-placeholder-bridge.ts` | Stub `window.electron` sementara (lihat §4)                                                                                |
+| Jalur                                          | Isi                                                                                                                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/Cargo.toml`                         | Crate `sphinx-launcher` 0.1.0, `tauri` v2, `tauri-build` v2                                                                                                 |
+| `src-tauri/build.rs`                           | `tauri_build::build()` standar                                                                                                                              |
+| `src-tauri/src/main.rs`                        | Entrypoint biner + `windows_subsystem = "windows"` untuk rilis                                                                                              |
+| `src-tauri/src/lib.rs`                         | Builder, hook page-load, pembuat jendela Big Picture                                                                                                        |
+| `src-tauri/tauri.conf.json`                    | `productName` "Sphinx Launcher", identifier `com.sphinxlauncher.app`, versi 0.1.0                                                                           |
+| `src-tauri/capabilities/default.json`          | Capability minimal untuk semua label renderer (`main`, `big-picture`, `friends`, `chat`, `retroachievements-connection`, `game-launcher`, `theme-editor-*`) |
+| `src-tauri/icons/`                             | Hasil `yarn tauri icon branding/png/sphinx-app-icon-1024.png` (desktop saja; `android/` dan `ios/` dari generator dihapus)                                  |
+| `vite.config.ts`                               | Aplikasi Vite biasa untuk renderer (port 5173); Big Picture adalah route `#/big-picture` di bundel yang sama                                                |
+| `src/renderer/src/tauri-placeholder-bridge.ts` | Stub `window.electron` sementara (lihat §4)                                                                                                                 |
 
-`package.json`: `dev` → `tauri dev`, `build` → `tauri build`, plus `dev:renderer`, `build:renderer`,
-`dev:big-picture`, `build:big-picture`. Skrip Electron **tidak dihapus** — dipindah ke `electron:dev`,
-`electron:start`, `electron:build`, `electron:build:win|mac|linux` (dipensiunkan di Fase 8).
+`package.json`: `dev` → `tauri dev`, `build` → `stage:node` + `check:torrent-resources` + `tauri build`,
+plus `dev:renderer`, `build:renderer`. Skrip
+`electron:*`, `electron.vite.config.ts`, `electron-builder.yml`, `build/`, serta
+entry Big Picture terpisah (`vite.config.big-picture.ts`, `dev:big-picture`,
+`build:big-picture`) **dihapus di Fase 8/P0**.
 
-Kode Electron (`src/main`, `src/preload`, `electron.vite.config.ts`, `electron-builder.yml`) tidak disentuh.
+`src/main` dan `src/preload` tetap dipakai apa adanya (PRD A1/A2): esbuild meng-alias `electron` ke
+`src/sidecar/electron-shim`, dan Vite meng-alias spesifier yang sama ke `src/tauri-bridge/electron.ts`.
 
 ## 2. Jendela: pemetaan Electron → Tauri
 
 Sumber perilaku: `docs/baseline-behavior.md` §2–3 dan `src/main/services/window-manager.ts:100-142`.
 
-| Electron (baseline)                       | Tauri v2                                                              | Catatan                                                                                                  |
-| ----------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `width: 1200, height: 860`                | `width: 1200, height: 860`                                            | persis                                                                                                   |
-| `minWidth: 1024, minHeight: 600`          | `minWidth: 1024, minHeight: 600`                                      | persis                                                                                                   |
-| `show: false` + tampil di `ready-to-show` | `visible: false` + `show()` di `on_page_load(Finished)`               | Tauri tidak punya `ready-to-show`; hook page-load adalah padanan terdokumentasi                          |
-| `backgroundColor: "#1c1c1c"`              | `backgroundColor: "#1c1c1c"`                                          | persis                                                                                                   |
-| `titleBarStyle: "hidden"` + overlay 34 px | `decorations: false` + `titleBarStyle: "Overlay"`                     | lihat §5.1 — ada jurang fungsi                                                                           |
-| `sandbox: false`                          | tidak ada padanan                                                     | WebView Tauri selalu terisolasi dari host; ini perbedaan yang menguntungkan, didokumentasikan            |
-| Big Picture: fullscreen, frameless        | `WebviewWindowBuilder` di Rust: `fullscreen(true).decorations(false)` | `window-manager.ts:502-515`; jendela dibuat on-demand, label `big-picture`, URL `big-picture/index.html` |
+| Electron (baseline)                       | Tauri v2                                                              | Catatan                                                                                                                                  |
+| ----------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `width: 1200, height: 860`                | `width: 1200, height: 860`                                            | persis                                                                                                                                   |
+| `minWidth: 1024, minHeight: 600`          | `minWidth: 1024, minHeight: 600`                                      | persis                                                                                                                                   |
+| `show: false` + tampil di `ready-to-show` | `visible: false` + `show()` di `on_page_load(Finished)`               | Tauri tidak punya `ready-to-show`; hook page-load adalah padanan terdokumentasi                                                          |
+| `backgroundColor: "#1c1c1c"`              | `backgroundColor: "#1c1c1c"`                                          | persis                                                                                                                                   |
+| `titleBarStyle: "hidden"` + overlay 34 px | `decorations: false` + `titleBarStyle: "Overlay"`                     | lihat §5.1 — ada jurang fungsi                                                                                                           |
+| `sandbox: false`                          | tidak ada padanan                                                     | WebView Tauri selalu terisolasi dari host; ini perbedaan yang menguntungkan, didokumentasikan                                            |
+| Big Picture: fullscreen, frameless        | `WebviewWindowBuilder` di Rust: `fullscreen(true).decorations(false)` | `window-manager.ts:509-529`; jendela dibuat on-demand, label `big-picture`, route `index.html#/big-picture` di bundel renderer yang sama |
 
 ## 3. Sumber (source-driven)
 
@@ -85,13 +87,13 @@ apa adanya dan meneruskan `invoke`/`send`/`on` ke shell. Lihat `docs/sidecar.md`
 
 Diukur di `yarn tauri dev`, dibandingkan dengan `docs/baseline-behavior.md`:
 
-| Hal                                            | Baseline (Electron)                                                       | Sphinx (Tauri)                                 | Dampak                                                                                         |
-| ---------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Isolated world                                 | `contextBridge` menyembunyikan `electron` dari halaman                    | `window.electron` adalah properti global biasa | Halaman bisa menimpanya; batas pindah ke allowlist Rust + CSP                                  |
-| Muat renderer dari remote                      | `MAIN_VITE_LAUNCHER_SUBDOMAIN` memuat `https://release-v<versi>.<domain>` | dihapus; selalu bundel sendiri                 | Tidak ada eksekusi kode dari konfigurasi                                                       |
-| `setOpacity`, `setFocusable`, `setProgressBar` | bekerja                                                                   | `not_implemented`                              | Main window tidak diredupkan saat Big Picture terbuka; progres unduhan tidak muncul di taskbar |
-| `ready-to-show`                                | dari renderer                                                             | dari `PageLoadEvent::Finished` di Rust         | Setara; jendela tampil setelah halaman pertama selesai                                         |
-| Boot pertama setelah cache Vite dihapus        | ~10 dtk                                                                   | ~2 menit di mesin ini                          | Hanya soal dev (optimasi dependensi Vite), bukan runtime                                       |
+| Hal                                            | Baseline (Electron)                                                       | Sphinx (Tauri)                                   | Dampak                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Isolated world                                 | `contextBridge` menyembunyikan `electron` dari halaman                    | `window.electron` adalah properti global biasa   | Halaman bisa menimpanya; batas pindah ke allowlist Rust + CSP                                                                 |
+| Muat renderer dari remote                      | `MAIN_VITE_LAUNCHER_SUBDOMAIN` memuat `https://release-v<versi>.<domain>` | dihapus; selalu bundel sendiri                   | Tidak ada eksekusi kode dari konfigurasi                                                                                      |
+| `setOpacity`, `setFocusable`, `setProgressBar` | bekerja                                                                   | setara (`setOpacity` memetakan 0/1 ke hide/show) | Transparansi parsial tidak didukung; main window tetap kembali setelah Big Picture ditutup, progres unduhan muncul di taskbar |
+| `ready-to-show`                                | dari renderer                                                             | dari `PageLoadEvent::Finished` di Rust           | Setara; jendela tampil setelah halaman pertama selesai                                                                        |
+| Boot pertama setelah cache Vite dihapus        | ~10 dtk                                                                   | ~2 menit di mesin ini                            | Hanya soal dev (optimasi dependensi Vite), bukan runtime                                                                      |
 
 ## 6. Prasyarat alat (mesin pengembang)
 
@@ -174,9 +176,9 @@ Catatan saat mengulang:
 - `yarn build` menjalankan `tauri build`, yang butuh `frontendDist` (`../out/renderer`);
   `beforeBuildCommand` (`yarn build:renderer`) membuatnya.
 - Jendela Big Picture **tidak** memuat `out/big-picture`. Ia memuat renderer yang sama di rute
-  `#/big-picture` (lihat `src/renderer/src/main.tsx`), jadi `yarn build:big-picture` hanya perlu
-  dijalankan kalau `src/big-picture` dipakai sebagai aplikasi mandiri. Fase 4 memverifikasinya:
-  jendela Big Picture memuat `http://localhost:5173/#/big-picture`.
+  `#/big-picture` (lihat `src/renderer/src/main.tsx`). Entry Vite terpisah sudah dihapus di P0,
+  jadi hanya `yarn build:renderer` yang dijalankan. Fase 4 memverifikasinya: jendela Big Picture
+  memuat `http://localhost:5173/#/big-picture`.
 - Ikon di `src-tauri/icons/` berasal dari `branding/png/sphinx-app-icon-1024.png`; kalau mark berubah,
   jalankan `yarn tauri icon` lagi.
 - `Cargo.lock` sudah di-commit.

@@ -52,13 +52,11 @@ pub fn handle(method: &str, params: &Value) -> Result<Value, WireError> {
             }
         }
 
-        "keychain.delete" => {
-            match entry(params)?.delete_credential() {
-                Ok(()) => Ok(Value::Null),
-                Err(keyring::Error::NoEntry) => Ok(Value::Null),
-                Err(error) => Err(WireError::new("keychain_failed", error.to_string())),
-            }
-        }
+        "keychain.delete" => match entry(params)?.delete_credential() {
+            Ok(()) => Ok(Value::Null),
+            Err(keyring::Error::NoEntry) => Ok(Value::Null),
+            Err(error) => Err(WireError::new("keychain_failed", error.to_string())),
+        },
 
         other => Err(WireError::new(
             "rpc_method_not_allowed",

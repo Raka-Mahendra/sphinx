@@ -3,6 +3,7 @@ import { access, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { platform } from "node:os";
 import { registerEvent } from "../register-event";
+import { TAURI_APP_ORIGINS } from "../renderer-urls";
 
 const FILE_STAT_CONCURRENCY = 32;
 
@@ -35,7 +36,7 @@ function getReleaseRendererOrigin(): string | null {
 }
 
 function getDevRendererOrigin(): string | null {
-  const rendererUrl = process.env["ELECTRON_RENDERER_URL"];
+  const rendererUrl = process.env["SPHINX_RENDERER_URL"];
   if (!rendererUrl) return null;
 
   try {
@@ -59,6 +60,7 @@ function isTrustedRendererUrl(url: string): boolean {
   }
 
   const trustedOrigins = [
+    ...TAURI_APP_ORIGINS,
     getDevRendererOrigin(),
     getReleaseRendererOrigin(),
   ].filter((origin): origin is string => Boolean(origin));

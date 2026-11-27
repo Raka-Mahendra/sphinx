@@ -22,7 +22,7 @@
 //! Source: <https://v2.tauri.app/reference/javascript/api/namespacecore/#convertfilesrc>
 
 use std::borrow::Cow;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager, Runtime, UriSchemeContext};
@@ -32,8 +32,17 @@ use tauri::{AppHandle, Manager, Runtime, UriSchemeContext};
 /// The path arrives percent-encoded because `convertFileSrc` encodes it, and it
 /// may still carry the leading slash Tauri adds. Both are undone here; anything
 /// that does not resolve to a readable file answers 404 instead of guessing.
+///
+/// Two restrictions keep the scheme from becoming a local-file reader for any
+/// page in any webview:
+///
+/// - only image files are served (the scheme exists for artwork, and the crop
+///   modal previews a user-picked source file, so an artwork-root allowlist
+///   would break that flow);
+/// - `Access-Control-Allow-Origin` is echoed only for the app's own renderer
+///   origins, so a remote auth window cannot `fetch` a local image and read it.
 pub fn handle_local<R: Runtime>(
-    _context: UriSchemeContext<'_, R>,
+    context: UriSchemeContext<'_, R>,
     request: Request<Vec<u8>>,
 ) -> Response<Cow<'static, [u8]>> {
     let raw = request.uri().path();
@@ -42,18 +51,85 @@ pub fn handle_local<R: Runtime>(
         return not_found("malformed path");
     };
 
+    if !is_servable_image(&path) {
+        return not_found("not an artwork file");
+    }
+
+    let allowed_origin = request
+        .headers()
+        .get("origin")
+        .and_then(|value| value.to_str().ok())
+        .filter(|origin| is_trusted_origin(context.app_handle(), origin))
+        .map(str::to_string);
+
     match std::fs::read(&path) {
-        Ok(bytes) => Response::builder()
-            .status(StatusCode::OK)
-            .header("content-type", content_type(&path))
-            .header("access-control-allow-origin", "*")
-            .body(Cow::Owned(bytes))
-            .unwrap_or_else(|_| not_found("cannot build the response")),
+        Ok(bytes) => {
+            let mut builder = Response::builder()
+                .status(StatusCode::OK)
+                .header("content-type", content_type(&path))
+                .header("vary", "origin");
+
+            if let Some(origin) = allowed_origin {
+                builder = builder.header("access-control-allow-origin", origin);
+            }
+
+            builder
+                .body(Cow::Owned(bytes))
+                .unwrap_or_else(|_| not_found("cannot build the response"))
+        }
         Err(error) => {
             eprintln!("[local] cannot read {}: {error}", path.display());
             not_found("file not readable")
         }
     }
+}
+
+/// True when `path` is an absolute image path without traversal components.
+///
+/// `..` is rejected rather than resolved: the renderer always sends a path a
+/// producer wrote, so a parent component is a sign of a hand-made URL.
+fn is_servable_image(path: &Path) -> bool {
+    if !path.is_absolute() {
+        return false;
+    }
+
+    if path
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+    {
+        return false;
+    }
+
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .map(str::to_ascii_lowercase)
+        .is_some_and(|extension| is_image_extension(&extension))
+}
+
+fn is_image_extension(extension: &str) -> bool {
+    matches!(
+        extension,
+        "png" | "apng" | "jpg" | "jpeg" | "jfif" | "webp" | "gif" | "svg" | "ico" | "avif" | "bmp"
+    )
+}
+
+/// The renderer origins that may read a `local:` response.
+///
+/// Packaged builds are served from Tauri's own protocol (`tauri://localhost`, or
+/// `http://tauri.localhost` on Windows); development uses the configured dev URL.
+fn is_trusted_origin<R: Runtime>(app: &AppHandle<R>, origin: &str) -> bool {
+    if matches!(
+        origin,
+        "tauri://localhost" | "http://tauri.localhost" | "https://tauri.localhost"
+    ) {
+        return true;
+    }
+
+    app.config()
+        .build
+        .dev_url
+        .as_ref()
+        .is_some_and(|dev_url| dev_url.origin().ascii_serialization() == origin)
 }
 
 fn not_found(reason: &str) -> Response<Cow<'static, [u8]>> {
@@ -174,5 +250,47 @@ mod tests {
             decode_request_path("/home/raka/icon.png"),
             Some(PathBuf::from("/home/raka/icon.png"))
         );
+    }
+
+    #[test]
+    fn image_paths_are_servable() {
+        let root = if cfg!(windows) { "C:/art" } else { "/art" };
+        for name in [
+            "cover.png",
+            "cover.JPG",
+            "poster.webp",
+            "icon.ico",
+            "anim.gif",
+            "vector.svg",
+            "custom.bmp",
+        ] {
+            assert!(
+                is_servable_image(&PathBuf::from(format!("{root}/{name}"))),
+                "{name} should be servable"
+            );
+        }
+    }
+
+    #[test]
+    fn non_image_paths_are_rejected() {
+        let root = if cfg!(windows) { "C:/art" } else { "/art" };
+        for name in ["notes.txt", "keys.json", "id_rsa", "script.mjs"] {
+            assert!(
+                !is_servable_image(&PathBuf::from(format!("{root}/{name}"))),
+                "{name} should not be servable"
+            );
+        }
+    }
+
+    #[test]
+    fn traversal_and_relative_paths_are_rejected() {
+        let traversal = if cfg!(windows) {
+            "C:/art/../secret.png"
+        } else {
+            "/art/../secret.png"
+        };
+
+        assert!(!is_servable_image(&PathBuf::from(traversal)));
+        assert!(!is_servable_image(&PathBuf::from("relative/cover.png")));
     }
 }

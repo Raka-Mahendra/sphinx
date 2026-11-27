@@ -145,7 +145,8 @@ impl Supervisor {
         args: &[Value],
         window_label: Option<&str>,
     ) -> Result<Value, WireError> {
-        self.request_channel(channel, args, window_label, true).await
+        self.request_channel(channel, args, window_label, true)
+            .await
     }
 
     /// Renderer → sidecar, fire and forget.
@@ -232,7 +233,7 @@ impl Supervisor {
 
     /// Asks the sidecar to stop cleanly, then makes sure it is gone.
     pub async fn shutdown(&self, timeout_ms: u64) {
-        let (done, wait) = {
+        let wait = {
             let mut inner = self.inner.lock().await;
             inner.shutting_down = true;
             inner.status = SidecarStatus::Stopped;
@@ -245,10 +246,8 @@ impl Supervisor {
                 eprintln!("[supervisor] cannot send shutdown: {}", error.message);
             }
 
-            ((), receiver)
+            receiver
         };
-
-        let _ = done;
 
         // Give the sidecar its budget, plus a small margin for the last write.
         let budget = Duration::from_millis(timeout_ms) + Duration::from_millis(500);
@@ -284,9 +283,15 @@ impl Supervisor {
 
         if let Some(child) = child.as_mut() {
             // `start_kill` is non-blocking; `wait` reaps the process so the next
-            // spawn cannot race the LevelDB lock.
-            let _ = child.start_kill();
-            let _ = child.wait().await;
+            // spawn cannot race the LevelDB lock. A kill that fails because the
+            // process already exited is the outcome we wanted, so it is reported
+            // rather than propagated as an error.
+            if let Err(error) = child.start_kill() {
+                eprintln!("[supervisor] cannot signal the sidecar: {error}");
+            }
+            if let Err(error) = child.wait().await {
+                eprintln!("[supervisor] cannot reap the sidecar: {error}");
+            }
         }
     }
 
@@ -331,8 +336,7 @@ impl Supervisor {
                 if inner.shutting_down {
                     false
                 } else {
-                    let exhausted =
-                        record_restart(&mut inner.restarts, std::time::Instant::now());
+                    let exhausted = record_restart(&mut inner.restarts, std::time::Instant::now());
 
                     if exhausted {
                         inner.gave_up = true;
@@ -444,8 +448,7 @@ impl Supervisor {
             match child.try_wait() {
                 Ok(Some(status)) => {
                     if !status.success() {
-                        inner.last_error =
-                            Some(format!("sidecar exited with {status}"));
+                        inner.last_error = Some(format!("sidecar exited with {status}"));
                     }
                     inner.child.take();
                     return;
@@ -520,14 +523,18 @@ impl Supervisor {
             SidecarMessage::Result { id, result } => {
                 let sender = self.inner.lock().await.pending.remove(&id);
                 if let Some(sender) = sender {
-                    let _ = sender.send(Ok(result));
+                    if sender.send(Ok(result)).is_err() {
+                        eprintln!("[supervisor] request {id} has no waiting caller");
+                    }
                 }
             }
 
             SidecarMessage::Error { id, error } => {
                 let sender = self.inner.lock().await.pending.remove(&id);
                 if let Some(sender) = sender {
-                    let _ = sender.send(Err(error));
+                    if sender.send(Err(error)).is_err() {
+                        eprintln!("[supervisor] request {id} has no waiting caller");
+                    }
                 }
             }
 
@@ -537,17 +544,22 @@ impl Supervisor {
                     return;
                 }
 
-                let _ = self.app.emit(
+                if let Err(error) = self.app.emit(
                     "sphinx:ipc-event",
                     json!({ "channel": channel, "payload": payload }),
-                );
+                ) {
+                    eprintln!("[supervisor] cannot forward event {channel}: {error}");
+                }
             }
 
             SidecarMessage::Rpc { id, method, params } => {
                 let result = rpc::handle(&self.app, self, &method, params).await;
 
                 let message = match result {
-                    Ok(value) => HostMessage::RpcResult { id: &id, result: value },
+                    Ok(value) => HostMessage::RpcResult {
+                        id: &id,
+                        result: value,
+                    },
                     Err(error) => HostMessage::RpcError { id: &id, error },
                 };
 
@@ -572,7 +584,9 @@ impl Supervisor {
                 eprintln!("[supervisor] sidecar shutdown complete ({reason})");
 
                 if let Some(sender) = self.inner.lock().await.shutdown_done.take() {
-                    let _ = sender.send(());
+                    if sender.send(()).is_err() {
+                        eprintln!("[supervisor] shutdown waiter is gone");
+                    }
                 }
             }
         }
@@ -597,7 +611,10 @@ impl Supervisor {
         for (label, url) in windows {
             let message = HostMessage::window_attached(&label, 0, &url);
             if let Err(error) = write_message(&mut inner, &message).await {
-                eprintln!("[supervisor] cannot announce window {label}: {}", error.message);
+                eprintln!(
+                    "[supervisor] cannot announce window {label}: {}",
+                    error.message
+                );
             }
         }
     }
@@ -606,7 +623,10 @@ impl Supervisor {
         let mut inner = self.inner.lock().await;
         let message = HostMessage::window_attached(label, 0, url);
         if let Err(error) = write_message(&mut inner, &message).await {
-            eprintln!("[supervisor] cannot announce window {label}: {}", error.message);
+            eprintln!(
+                "[supervisor] cannot announce window {label}: {}",
+                error.message
+            );
         }
     }
 
@@ -615,7 +635,10 @@ impl Supervisor {
         let mut inner = self.inner.lock().await;
         let message = HostMessage::update_progress(downloaded, total);
         if let Err(error) = write_message(&mut inner, &message).await {
-            eprintln!("[supervisor] cannot forward update progress: {}", error.message);
+            eprintln!(
+                "[supervisor] cannot forward update progress: {}",
+                error.message
+            );
         }
     }
 
@@ -655,7 +678,10 @@ impl Supervisor {
         let mut inner = self.inner.lock().await;
         let message = HostMessage::second_instance(url, force_big_picture);
         if let Err(error) = write_message(&mut inner, &message).await {
-            eprintln!("[supervisor] cannot forward second instance: {}", error.message);
+            eprintln!(
+                "[supervisor] cannot forward second instance: {}",
+                error.message
+            );
         }
     }
 
@@ -664,7 +690,10 @@ impl Supervisor {
         let mut inner = self.inner.lock().await;
         let message = HostMessage::window_ready(label);
         if let Err(error) = write_message(&mut inner, &message).await {
-            eprintln!("[supervisor] cannot mark window {label} ready: {}", error.message);
+            eprintln!(
+                "[supervisor] cannot mark window {label} ready: {}",
+                error.message
+            );
         }
     }
 
@@ -672,7 +701,10 @@ impl Supervisor {
         let mut inner = self.inner.lock().await;
         let message = HostMessage::window_detached(label);
         if let Err(error) = write_message(&mut inner, &message).await {
-            eprintln!("[supervisor] cannot detach window {label}: {}", error.message);
+            eprintln!(
+                "[supervisor] cannot detach window {label}: {}",
+                error.message
+            );
         }
     }
 
@@ -686,7 +718,11 @@ impl Supervisor {
                 let inner = self.inner.lock().await;
                 let stalled =
                     inner.ready && is_stalled(inner.last_heartbeat, std::time::Instant::now());
-                (inner.ready, self.last_heartbeat_seq.load(Ordering::Relaxed), stalled)
+                (
+                    inner.ready,
+                    self.last_heartbeat_seq.load(Ordering::Relaxed),
+                    stalled,
+                )
             };
 
             if !ready {
@@ -711,7 +747,9 @@ impl Supervisor {
 
     async fn emit_status(&self) {
         let status = self.status().await;
-        let _ = self.app.emit("sphinx:sidecar-status", status);
+        if let Err(error) = self.app.emit("sphinx:sidecar-status", status) {
+            eprintln!("[supervisor] cannot emit status: {error}");
+        }
     }
 }
 
@@ -745,9 +783,8 @@ async fn write_message(inner: &mut Inner, message: &HostMessage<'_>) -> Result<(
         ));
     };
 
-    let mut line = serde_json::to_string(message).map_err(|error| {
-        WireError::new("invalid_message", format!("cannot serialise: {error}"))
-    })?;
+    let mut line = serde_json::to_string(message)
+        .map_err(|error| WireError::new("invalid_message", format!("cannot serialise: {error}")))?;
     line.push('\n');
 
     stdin
@@ -755,17 +792,21 @@ async fn write_message(inner: &mut Inner, message: &HostMessage<'_>) -> Result<(
         .await
         .map_err(|error| WireError::new("sidecar_unavailable", format!("write failed: {error}")))?;
 
-    stdin.flush().await.map_err(|error| {
-        WireError::new("sidecar_unavailable", format!("flush failed: {error}"))
-    })
+    stdin
+        .flush()
+        .await
+        .map_err(|error| WireError::new("sidecar_unavailable", format!("flush failed: {error}")))
 }
 
 fn reject_pending(inner: &mut Inner, code: &str) {
-    for (_, sender) in inner.pending.drain() {
-        let _ = sender.send(Err(WireError::new(
+    for (id, sender) in inner.pending.drain() {
+        let rejected = sender.send(Err(WireError::new(
             code,
             "The background service restarted before the request finished.",
         )));
+        if rejected.is_err() {
+            eprintln!("[supervisor] request {id} has no waiting caller");
+        }
     }
 }
 
@@ -780,8 +821,14 @@ mod tests {
         let mut restarts = VecDeque::new();
 
         assert!(!record_restart(&mut restarts, start));
-        assert!(!record_restart(&mut restarts, start + Duration::from_secs(1)));
-        assert!(record_restart(&mut restarts, start + Duration::from_secs(2)));
+        assert!(!record_restart(
+            &mut restarts,
+            start + Duration::from_secs(1)
+        ));
+        assert!(record_restart(
+            &mut restarts,
+            start + Duration::from_secs(2)
+        ));
     }
 
     #[test]
@@ -790,7 +837,10 @@ mod tests {
         let mut restarts = VecDeque::new();
 
         assert!(!record_restart(&mut restarts, start));
-        assert!(!record_restart(&mut restarts, start + Duration::from_secs(10)));
+        assert!(!record_restart(
+            &mut restarts,
+            start + Duration::from_secs(10)
+        ));
         // Both earlier restarts have aged out by now, so this one starts a new window.
         assert!(!record_restart(
             &mut restarts,
@@ -809,10 +859,7 @@ mod tests {
     fn silence_past_the_timeout_is_stalled() {
         let now = Instant::now();
         assert!(!is_stalled(Some(now), now));
-        assert!(!is_stalled(
-            Some(now - HEARTBEAT_TIMEOUT),
-            now
-        ));
+        assert!(!is_stalled(Some(now - HEARTBEAT_TIMEOUT), now));
         assert!(is_stalled(
             Some(now - HEARTBEAT_TIMEOUT - Duration::from_millis(1)),
             now

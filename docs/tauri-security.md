@@ -26,11 +26,19 @@ AppManifest::new().commands(&[
 ```
 
 With that manifest in place, a window may call a command only if a capability
-grants it. `src-tauri/capabilities/default.json` grants them to exactly two
-window labels:
+grants it. `src-tauri/capabilities/default.json` grants them to the labels that
+load the Sphinx renderer:
 
 ```json
-"windows": ["main", "big-picture"],
+"windows": [
+  "main",
+  "big-picture",
+  "friends",
+  "chat",
+  "retroachievements-connection",
+  "game-launcher",
+  "theme-editor-*"
+],
 "permissions": [
   "core:default",
   "core:event:default",
@@ -41,15 +49,25 @@ window labels:
 ]
 ```
 
+Windows that load provider pages (Epic and Steam auth) are created without a
+label, so the shim gives them a generated `sphinx-window-N` name. That name is
+not in the list, so those windows hold no command capability even though they
+run in the same webview engine.
+
 The permission identifiers are `allow-<kebab-case-command>`; Tauri's own error
 message names them, and a misspelling fails the build rather than silently
 granting access to nothing.
 
+`window.create` also enforces the split at runtime: a renderer label may only
+load an app-relative path or the `devUrl` origin
+(`src-tauri/src/sidecar/rpc.rs`, `renderer_url_allowed`). A remote URL on a
+renderer label is rejected before the window exists.
+
 The same page adds a note that matters for a later phase: "The security
 boundaries are depending on window labels (**not titles**). We recommend to only
 expose of the window creation functionality to higher privileged windows."
-Fase 5 must not add a capability for the theme editor, the game launcher, or any
-window that loads remote content without reviewing that sentence first.
+Provider-auth windows must keep their generated labels; adding them to the
+capability list would hand a remote page the shell's API.
 
 **Code**: `src-tauri/src/lib.rs` registers only these four commands via
 `invoke_handler`. There is no `#[tauri::command]` anywhere else in the crate.
@@ -76,8 +94,8 @@ Access":
 Sphinx has **no** capability with a `remote` block. There is no `remote.urls`
 entry in `src-tauri/capabilities/default.json` and no `app.security.remote`
 section in `src-tauri/tauri.conf.json`. So the only code that can reach
-`ipc_invoke` is the bundled renderer in `out/renderer` and the bundled Big
-Picture in `out/big-picture`.
+`ipc_invoke` is the bundled renderer in `out/renderer`; Big Picture is a route
+in that same bundle (`#/big-picture`), not a second document.
 
 This is the reason the CSP in `tauri.conf.json` keeps `frame-src 'self'`: an
 `<iframe>` pointing at a remote site is refused by the webview, so no remote
@@ -112,25 +130,41 @@ developer controls.
 
 ## 4. CSP
 
-`tauri.conf.json` keeps a strict CSP:
+`tauri.conf.json` sets a strict CSP for the bundled renderer:
 
 ```
 default-src 'self' ipc: http://ipc.localhost;
-script-src 'self' 'unsafe-inline' 'unsafe-eval';
+script-src 'self';
 style-src 'self' 'unsafe-inline';
-img-src 'self' data: blob: https: http: asset: http://asset.localhost;
-media-src 'self' data: blob: https: http: asset: http://asset.localhost;
+img-src 'self' data: blob: https: http: asset: http://asset.localhost local: http://local.localhost;
+media-src 'self' data: blob: https: http: asset: http://asset.localhost local: http://local.localhost;
 font-src 'self' data:;
-connect-src 'self' ipc: http://ipc.localhost https: http: ws: wss:;
+connect-src 'self' ipc: http://ipc.localhost local: http://local.localhost https: http:;
 worker-src 'self' blob:;
 frame-src 'self'
 ```
 
-`'unsafe-inline'` and `'unsafe-eval'` in `script-src` are the price of the
-renderer's existing build: React's runtime injection and Monaco's worker setup
-both need them, and Fase 5's UI audit is the place to remove them. `frame-src
-'self'` is the entry that keeps remote documents out of a window that can
-`invoke`, and it must not be relaxed.
+Tauri applies this as a response header on the `tauri://localhost` (macOS/Linux)
+and `http://tauri.localhost` (Windows) asset responses, so it covers packaged
+builds. In `tauri dev` the page is served by Vite and no header is attached;
+`src/renderer/index.html` deliberately carries no `<meta>` CSP, so development
+is not silently running under a different policy.
+
+`script-src 'self'` is not an aspiration: the built bundle was inspected with
+`yarn build:renderer` and contains no inline `<script>` and no `eval(` /
+`new Function(` in any emitted chunk. Monaco and the other heavy components are
+bundled, not fetched from a CDN, so there is no third-party script to allow.
+
+`style-src 'unsafe-inline'` stays because React and `framer-motion` write inline
+`style` attributes at runtime; a nonce cannot cover those. `img-src` and
+`media-src` keep `https: http:` because game artwork and trailer URLs come from
+the catalog and are not enumerable ahead of time. `connect-src` keeps
+`https: http:` for the same reason: `hls.js` fetches manifests and segments from
+those hosts. `local:` is listed there for the crop modal, which fetches a
+user-picked file through the `local:` scheme.
+
+`frame-src 'self'` is the entry that keeps remote documents out of a window that
+can `invoke`, and it must not be relaxed.
 
 ## 5. The loss of the isolated world
 
@@ -141,16 +175,22 @@ Tauri the bridge runs in the same JS world as the renderer, so any renderer code
 
 What compensates for it, concretely:
 
-1. **Command gating** (§1): only two window labels hold the capability.
+1. **Command gating** (§1): only the renderer labels hold the capability.
 2. **The allowlist** (`src-tauri/src/ipc/allowlist.rs`, generated from
-   `src/main` by `scripts/generate-ipc-allowlist.mjs`): 346 invoke channels,
-   71 event channels, 6 dynamic prefixes. Anything else is rejected by Rust with
-   `channel_not_allowed` before the sidecar sees it, and by the sidecar again.
+   `src/main` by `scripts/generate-ipc-allowlist.mjs`): 267 invoke channels,
+   72 event channels, 6 dynamic prefixes. The generator also reads
+   `feature-flags.json`, so the 83 channels owned by disabled features are not in
+   the table at all. Anything else is rejected by Rust with `channel_not_allowed`
+   before the sidecar sees it, and by the sidecar again.
 3. **No shell capability in the webview**: dialogs, the browser, the clipboard,
    the keychain and the updater are Rust-only, reachable from the sidecar
    through `HOST_RPC_METHODS` — a list that is validated on both sides.
-4. **`hydraApiCall` is gone.** The baseline's arbitrary authenticated API
-   primitive is not carried over; it disappears with the account features.
+4. **`hydraApiCall` is a closed proxy, not the baseline's open primitive.**
+   The channel still exists, but `src/main/events/misc/hydra-api-call.ts` only
+   forwards `needsAuth: false` requests to an explicit path allowlist
+   (`/catalogue`, `/badges`, `/features`, `/users`, `/games`, and
+   `POST /catalogue/search`); anything that needs auth or a subscription is
+   rejected by the feature flags (`docs/feature-flags.md` §4.5).
 
 ## 6. What is not proven here
 
