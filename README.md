@@ -23,6 +23,12 @@
 
 The [v0.1.0 release](https://github.com/Raka-Mahendra/sphinx/releases/tag/v0.1.0) is the first public build. It runs on Windows x64 and covers the core loop: browse the catalogue, open a game page, add it to your library, and download it. Expect rough edges, and read [Limitations in v1](#limitations-in-v1) before you install.
 
+## About the project
+
+Sphinx Launcher is a desktop app for keeping a game library and downloading games from its catalogue. You search for a title, open its page, add it to your library, and the download runs until the files are on disk. Covers and playtime stay with each library entry, and Big Picture gives you the same catalogue in a full-screen layout you can drive with a controller.
+
+It started as a fork of Hydra Launcher. The interface and the download logic come from there. What changed is the shell: the Electron main process, electron-builder and the bundled Epic and Legendary scripts are gone, replaced by a Rust shell on Tauri v2 that supervises a Node.js sidecar. The torrent engine is still the same libtorrent addon. The repo also keeps the migration notes, the PRD, and the baseline behaviour docs in [`docs/`](./docs) so the rewrite can be checked against what the old build did.
+
 ## Install
 
 Download `sphinx-launcher_0.1.0_x64-setup.exe` from [Releases](https://github.com/Raka-Mahendra/sphinx/releases/latest) and run it. The installer is per-user and needs no administrator rights.
