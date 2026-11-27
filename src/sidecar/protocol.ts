@@ -71,8 +71,21 @@ export interface SendMessage {
 export interface RpcResultMessage {
   type: "rpc-result";
   id: string;
-  result?: unknown;
-  error?: WireError;
+  result: unknown;
+}
+
+/**
+ * Shell → sidecar: the request failed.
+ *
+ * Rust sends a distinct message type for failures (`rpc-error`, see
+ * `HostMessage::RpcError`). Handling only `rpc-result` left the pending promise
+ * unresolved forever, so every failed host call surfaced as the renderer's
+ * 120 s request timeout instead of the actual error.
+ */
+export interface RpcErrorMessage {
+  type: "rpc-error";
+  id: string;
+  error: WireError;
 }
 
 /** Shell → sidecar: lifecycle and window bookkeeping, never renderer-driven. */
@@ -108,6 +121,7 @@ export type HostMessage =
   | InvokeMessage
   | SendMessage
   | RpcResultMessage
+  | RpcErrorMessage
   | ControlMessage;
 
 /** Sidecar → shell, first line on stdout. Rust waits for this before use. */

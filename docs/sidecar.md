@@ -43,6 +43,12 @@ The full schema is `src/sidecar/protocol.ts` and `src-tauri/src/sidecar/protocol
 `PROTOCOL_VERSION` is checked on `ready`; a mismatch kills the sidecar instead of
 mis-parsing it.
 
+A host RPC succeeds with `rpc-result` (`result`) and fails with `rpc-error`
+(`error`), matching `HostMessage::RpcError`. Both must be handled: the sidecar
+originally only knew `rpc-result`, so a failed host call — the updater's 404 on a
+repo without releases is the easy reproduction — left the pending promise
+unresolved and the renderer only saw its 120 s timeout.
+
 `webContents.send(channel, ...args)` becomes one `event` message whose `payload`
 is the argument array, so multi-argument sends survive. Rust re-emits it as
 `sphinx:ipc-event`, and the bridge dispatches per channel.
@@ -177,6 +183,15 @@ In development it uses `SPHINX_NODE_BINARY` if set, otherwise `node` from
 
 A hook that throws during shutdown is recorded in `failures` and does not stop
 the remaining hooks: a stuck torrent flush must not prevent LevelDB from closing.
+
+Sidecar-initiated host RPCs (`rpc`) are spawned, not awaited on the read loop.
+`dialog.showOpenDialog` legitimately waits for the user and `updater.check` waits
+for the network; awaiting them inline stopped the heartbeat replies, so the 12 s
+rule killed a healthy sidecar while a folder picker was open. A reply for a
+generation that has already been replaced is dropped instead of being written to
+the new process. `updater.check` additionally sets a 30 s request budget: the
+plugin's default is no timeout at all, and a stalled endpoint otherwise hangs the
+renderer until its own 120 s limit.
 
 The reconnect indicator lives in `src/tauri-bridge/reconnect-indicator.ts`. The
 preload is reused unchanged, so no component knows the sidecar exists; the bridge

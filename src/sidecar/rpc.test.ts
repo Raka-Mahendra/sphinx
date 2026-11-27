@@ -273,7 +273,7 @@ describe("SidecarRpc", () => {
     if (request.type !== "rpc") throw new Error("expected an rpc message");
 
     harness.send({
-      type: "rpc-result",
+      type: "rpc-error",
       id: request.id,
       error: { code: "keychain_failed", message: "locked" },
     });
@@ -283,6 +283,24 @@ describe("SidecarRpc", () => {
       assert.equal(error.code, "keychain_failed");
       return true;
     });
+  });
+
+  it("ignores an rpc-error for a request it never sent", async () => {
+    const harness = create();
+
+    harness.send({
+      type: "rpc-error",
+      id: "not-pending",
+      error: { code: "keychain_failed", message: "locked" },
+    });
+
+    harness.send({ type: "control", action: "ping", seq: 7 });
+
+    const message = await harness.waitFor(
+      (candidate) => candidate.type === "heartbeat"
+    );
+
+    assert.deepEqual(message, { type: "heartbeat", seq: 7 });
   });
 
   it("answers ping with a heartbeat", async () => {

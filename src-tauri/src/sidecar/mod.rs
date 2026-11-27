@@ -553,20 +553,35 @@ impl Supervisor {
             }
 
             SidecarMessage::Rpc { id, method, params } => {
-                let result = rpc::handle(&self.app, self, &method, params).await;
+                // Never await a host RPC on the read loop: `dialog.showOpenDialog`
+                // waits for the user and a slow update check waits for the
+                // network. Awaiting here stopped heartbeats, so the watchdog
+                // killed a sidecar that was only waiting for its shell request.
+                let supervisor = Arc::clone(self);
 
-                let message = match result {
-                    Ok(value) => HostMessage::RpcResult {
-                        id: &id,
-                        result: value,
-                    },
-                    Err(error) => HostMessage::RpcError { id: &id, error },
-                };
+                tauri::async_runtime::spawn(async move {
+                    let result = rpc::handle(&supervisor.app, &supervisor, &method, params).await;
 
-                let mut inner = self.inner.lock().await;
-                if let Err(error) = write_message(&mut inner, &message).await {
-                    eprintln!("[supervisor] cannot answer rpc {method}: {}", error.message);
-                }
+                    let message = match result {
+                        Ok(value) => HostMessage::RpcResult {
+                            id: &id,
+                            result: value,
+                        },
+                        Err(error) => HostMessage::RpcError { id: &id, error },
+                    };
+
+                    let mut inner = supervisor.inner.lock().await;
+
+                    // The generation that asked may already be gone; answering
+                    // its replacement with an id it never sent is just noise.
+                    if inner.generation != generation {
+                        return;
+                    }
+
+                    if let Err(error) = write_message(&mut inner, &message).await {
+                        eprintln!("[supervisor] cannot answer rpc {method}: {}", error.message);
+                    }
+                });
             }
 
             SidecarMessage::Heartbeat { seq } => {

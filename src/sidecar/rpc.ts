@@ -5,6 +5,7 @@ import {
   PROTOCOL_VERSION,
   type ControlMessage,
   type HostMessage,
+  type RpcErrorMessage,
   type RpcResultMessage,
   type SidecarMessage,
   type WireError,
@@ -300,6 +301,7 @@ export class SidecarRpc extends EventEmitter {
         });
         return;
       case "rpc-result":
+      case "rpc-error":
         this.resolveRpc(message);
         return;
       case "control":
@@ -328,12 +330,12 @@ export class SidecarRpc extends EventEmitter {
     this.controlHandler?.(message);
   }
 
-  private resolveRpc(message: RpcResultMessage): void {
+  private resolveRpc(message: RpcResultMessage | RpcErrorMessage): void {
     const pending = this.pendingRpc.get(message.id);
     if (!pending) return;
     this.pendingRpc.delete(message.id);
 
-    if (message.error) {
+    if (message.type === "rpc-error") {
       pending.reject(wireErrorToError(message.error));
       return;
     }

@@ -23,6 +23,7 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
@@ -41,6 +42,15 @@ const SHUTDOWN_TIMEOUT_MS: u64 = 12_000;
 /// Progress events are throttled to this interval; a 100 MB download otherwise
 /// produces thousands of IPC lines.
 const PROGRESS_INTERVAL_MS: u64 = 250;
+
+/// Budget for the update manifest request.
+///
+/// `UpdaterBuilder` defaults to *no* timeout (its own docs say so). Without one
+/// a blackholed endpoint leaves `checkForUpdates()` pending until the shell's
+/// 120 s request budget expires, and the renderer logs an unhandled rejection.
+/// The timeout is attached to the check only: the `Update` it returns carries
+/// `timeout: None`, so a large download is not cut off.
+const UPDATE_CHECK_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Default)]
 pub struct UpdaterState {
@@ -95,6 +105,7 @@ fn build_updater(app: &AppHandle) -> Result<tauri_plugin_updater::Updater, WireE
     let handle = app.clone();
 
     app.updater_builder()
+        .timeout(UPDATE_CHECK_TIMEOUT)
         .on_before_exit(move || {
             // `on_before_exit` is `Fn()`, and blocking the runtime thread would
             // panic if this runs inside it. A short-lived thread keeps the

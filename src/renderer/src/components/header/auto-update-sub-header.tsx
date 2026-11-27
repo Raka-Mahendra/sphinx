@@ -32,9 +32,17 @@ export function AutoUpdateSubHeader() {
       }
     );
 
-    window.electron.checkForUpdates().then((isAutoInstallAvailable) => {
-      setIsAutoInstallAvailable(isAutoInstallAvailable);
-    });
+    window.electron
+      .checkForUpdates()
+      .then((isAutoInstallAvailable) => {
+        setIsAutoInstallAvailable(isAutoInstallAvailable);
+      })
+      .catch(() => {
+        // The shell timed out or restarted. That is not an update and not
+        // something the user needs to see; the baseline also treated a failed
+        // check as "no update available".
+        setIsAutoInstallAvailable(false);
+      });
 
     return () => {
       unsubscribe();
