@@ -41,7 +41,7 @@ The app updates itself from GitHub Releases. An alpha can break between builds, 
 
 - The library keeps the games you own in one list, with covers and playtime. Removing a game does not touch its files.
 - The catalogue shows featured and trending titles and lets you search by name. A game page carries screenshots, a description, the rating, and how long the game takes to beat.
-- The download queue runs on the bundled libtorrent engine and survives a restart of the app. Pause, resume, and watch progress in the Downloads page.
+- The download queue runs on the bundled libtorrent engine and survives a restart of the app. Pause, resume, and watch progress in the Downloads page. The engine is tested at the process level, but no public build has downloaded a real torrent yet.
 - The sidecar watches running games and adds the minutes to the library entry.
 - Big Picture opens a controller-first layout in its own window, with the same catalogue and library.
 - The interface ships with more than 30 languages and picks one from the system locale.
@@ -65,9 +65,16 @@ The app updates itself from GitHub Releases. An alpha can break between builds, 
 
 What was exercised on Windows 11 with the v0.1.0 build: boot, Home, Catalogue, game pages, add and remove from the library, empty library and downloads states, Settings, and Big Picture in a second window. Torrent downloads have automated tests but no clean-machine run yet. Cloud saves could not be exercised because this build has no OAuth client. Linux has no build in this alpha.
 
+The full inventory, including the parts that are in the tree but unfinished and the parts that are not built at all, is in [`docs/feature-status.md`](./docs/feature-status.md). The short version:
+
+- **Done and exercised:** catalogue, game pages, library, Big Picture, playtime tracking, themes, languages, tray, IPC allowlist.
+- **Done in code, not yet run end to end:** torrent downloads (pause, resume, seeding, partial file selection), cloud saves, the installer for the next version, autostart, deep links.
+- **Disabled in this build:** every feature that needs Hydra's server, behind five flags, and cloud saves because the binary has no OAuth client.
+- **Not built:** local achievements, Epic without Hydra, Linux, macOS, a portable build, and Authenticode signing.
+
 ## Build from source
 
-Project notes live in [`docs/`](./docs). Start with [`docs/baseline-behavior.md`](./docs/baseline-behavior.md) for what the app does, and [`docs/MIGRATION_LOG.md`](./docs/MIGRATION_LOG.md) for the migration history.
+Project notes live in [`docs/`](./docs). Start with [`docs/baseline-behavior.md`](./docs/baseline-behavior.md) for what the app does, [`docs/feature-status.md`](./docs/feature-status.md) for what works today, and [`docs/MIGRATION_LOG.md`](./docs/MIGRATION_LOG.md) for the migration history.
 
 ### Requirements
 
@@ -114,6 +121,7 @@ These are deliberate and recorded in the PRD (§2), not bugs:
 - **No portable build.** The updater installs and exits on Windows, so "restart" means relaunch after the installer finishes.
 - **Playtime can be under-counted if the sidecar crashes** while a game runs. The recovery scan resumes the session, but the gap stays.
 - **Windows only.** Linux packaging is planned for a later phase.
+- **Some settings are untested.** Debrid, download sources, and emulation have code but no end-to-end test in this build. They are listed in [`docs/feature-status.md`](./docs/feature-status.md).
 - Sphinx Launcher is an independent fork and does not follow Hydra Launcher releases; upstream fixes are cherry-picked selectively ([`docs/upstream-policy.md`](./docs/upstream-policy.md)).
 
 ## Windows SmartScreen and code signing
