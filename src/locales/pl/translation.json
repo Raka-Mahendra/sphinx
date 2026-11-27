@@ -906,7 +906,6 @@
     "setup_install_aur_note": "Zainstaluj z AUR",
     "setup_install_aur_desc": "Oficjalny pakiet AUR {{name}}.",
     "setup_install_open_releases": "Otwórz stronę wydań",
-    "setup_install_guide_workwonders": "Otwórz przewodnik instalacji Hydry",
     "setup_step_bios": "Dodaj BIOS systemu {{system}}",
     "setup_bios_intro_1": "Emulacja systemu {{system}} wymaga BIOS-u zgranego z własnej konsoli.",
     "setup_bios_intro_2": "Sphinx nie może go dla Ciebie dołączyć ani pobrać.",

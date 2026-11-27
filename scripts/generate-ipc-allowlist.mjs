@@ -33,9 +33,67 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MAIN_DIR = path.join(ROOT, "src", "main");
+const FLAGS_FILE = path.join(ROOT, "src", "shared", "feature-flags.json");
+const CHANNEL_FLAGS_FILE = path.join(
+  ROOT,
+  "src",
+  "main",
+  "feature-flags-core.ts"
+);
 const TS_OUTPUT = path.join(ROOT, "src", "sidecar", "allowlist.generated.ts");
 const RUST_OUTPUT = path.join(ROOT, "src-tauri", "src", "ipc", "allowlist.rs");
 const DOC_OUTPUT = path.join(ROOT, "docs", "ipc-inventory.md");
+
+/**
+ * Channels owned by a feature flag, read from the single map in
+ * `feature-flags-core.ts`. The allowlist is generated at build time from the
+ * build-time flag values, so a channel whose flag is off never enters the
+ * tables — the Rust shell and the sidecar both reject it with
+ * `channel_not_allowed` (PRD §4.A.2, A12). Reading the map instead of a
+ * hand-written list keeps the gate and the allowlist in one source.
+ */
+const readDisabledChannels = () => {
+  const flags = JSON.parse(fs.readFileSync(FLAGS_FILE, "utf8"));
+  const knownFlags = new Set(Object.keys(flags));
+  const enabled = new Set(
+    Object.entries(flags)
+      .filter(([, on]) => on === true)
+      .map(([flag]) => flag)
+  );
+
+  const source = fs.readFileSync(CHANNEL_FLAGS_FILE, "utf8");
+  const start = source.indexOf("const channelFlags");
+  const end = source.indexOf("\n};", start);
+  if (start < 0 || end < 0) {
+    throw new Error(
+      "feature-flags-core.ts: could not find the `channelFlags` map; the allowlist cannot be made flag-aware"
+    );
+  }
+
+  const disabled = new Map();
+  for (const match of source
+    .slice(start, end)
+    .matchAll(/^\s*([A-Za-z_$][\w$]*):\s*"([A-Z0-9_]+)",\s*$/gm)) {
+    const [, channel, flag] = match;
+    if (!knownFlags.has(flag)) {
+      throw new Error(
+        `feature-flags-core.ts: channel \`${channel}\` names unknown flag \`${flag}\``
+      );
+    }
+    if (!enabled.has(flag)) disabled.set(channel, flag);
+  }
+
+  if (disabled.size === 0 && Object.keys(flags).length > 0) {
+    const everyFlagOn = Object.values(flags).every((on) => on === true);
+    if (!everyFlagOn) {
+      throw new Error(
+        "feature-flags-core.ts: no channel mapped to a disabled flag; the map format changed and the flag gate would silently do nothing"
+      );
+    }
+  }
+
+  return disabled;
+};
 
 /** The wrapper itself registers whatever name it is given. */
 const SKIP_FILES = new Set(["src/main/events/register-event.ts"]);
@@ -314,6 +372,21 @@ const collect = () => {
     }
   }
 
+  const disabledChannels = readDisabledChannels();
+  const excluded = [];
+
+  const dropDisabled = (map) => {
+    for (const channel of disabledChannels.keys()) {
+      if (!map.has(channel)) continue;
+      excluded.push({ channel, flag: disabledChannels.get(channel) });
+      map.delete(channel);
+    }
+  };
+
+  dropDisabled(invoke);
+  dropDisabled(send);
+  dropDisabled(events);
+
   return {
     invoke,
     send,
@@ -321,6 +394,7 @@ const collect = () => {
     dynamicPatterns,
     forwarderCallSites,
     problems,
+    excluded: excluded.sort((a, b) => a.channel.localeCompare(b.channel)),
   };
 };
 
@@ -448,9 +522,11 @@ ${[...dynamicPatterns.values()]
 
 const renderRust = ({ invoke, send, events, dynamicPatterns }) => {
   const array = (name, entries) =>
-    `pub const ${name}: &[&str] = &[\n${entries
-      .map((entry) => `    ${JSON.stringify(entry.channel)},`)
-      .join("\n")}\n];`;
+    entries.length === 0
+      ? `pub const ${name}: &[&str] = &[];`
+      : `pub const ${name}: &[&str] = &[\n${entries
+          .map((entry) => `    ${JSON.stringify(entry.channel)},`)
+          .join("\n")}\n];`;
 
   return `// GENERATED FILE — do not edit.
 //
@@ -488,6 +564,7 @@ const renderDoc = ({
   events,
   dynamicPatterns,
   forwarderCallSites,
+  excluded,
 }) => {
   const table = (entries) =>
     entries.length === 0
@@ -523,6 +600,28 @@ both the Rust shell and the sidecar.
 | Sidecar → renderer, static | ${events.size} | \`sphinx:ipc-event\` |
 | Sidecar → renderer, dynamic prefixes | ${dynamicPatterns.size} | \`sphinx:ipc-event\` |
 | Forwarder call sites (channel passed as a parameter) | ${forwarderCallSites.length} | resolved above |
+| Excluded because their feature flag is off | ${excluded.length} | rejected as \`channel_not_allowed\` |
+
+## Channels excluded by feature flags
+
+The generator reads \`src/shared/feature-flags.json\` and the channel→flag map in
+\`src/main/feature-flags-core.ts\`. A channel whose flag is \`false\` is left out of
+the Rust and sidecar tables, so it cannot be invoked and never reaches a handler
+(PRD §4.A.2). Changing a flag and rebuilding changes this table; the parity test
+in \`src/sidecar/allowlist.test.ts\` fails if the two disagree.
+
+${
+  excluded.length === 0
+    ? "_None._\n"
+    : [
+        "| Channel | Feature flag |",
+        "| --- | --- |",
+        ...excluded.map(
+          (entry) => `| \`${entry.channel}\` | \`${entry.flag}\` |`
+        ),
+        "",
+      ].join("\n")
+}
 
 ## Renderer → sidecar channels
 
@@ -616,7 +715,7 @@ const main = () => {
       scan.events.size
     } event, ${scan.dynamicPatterns.size} dynamic prefix, ${
       scan.forwarderCallSites.length
-    } forwarder call sites\n`
+    } forwarder call sites, ${scan.excluded.length} excluded by feature flags\n`
   );
 };
 

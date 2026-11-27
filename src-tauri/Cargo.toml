@@ -3,6 +3,7 @@ name = "sphinx-launcher"
 version = "0.1.0"
 description = "Sphinx Launcher — open-source desktop launcher for your game library"
 authors = ["Raka Mahendra"]
+license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.90"
 

@@ -34,6 +34,11 @@
   },
   "bundle": {
     "active": true,
+    "publisher": "Raka Mahendra",
+    "copyright": "Copyright 2026 Raka Mahendra",
+    "licenseFile": "../LICENSE",
+    "category": "Game",
+    "shortDescription": "Open-source desktop launcher for your game library",
     "targets": ["nsis"],
     "externalBin": ["binaries/node"],
     "icon": [

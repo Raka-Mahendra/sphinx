@@ -906,7 +906,6 @@
     "setup_install_aur_note": "Cài đặt từ AUR",
     "setup_install_aur_desc": "Gói AUR chính thức của {{name}}.",
     "setup_install_open_releases": "Mở trang phát hành",
-    "setup_install_guide_workwonders": "Mở hướng dẫn cài đặt Sphinx",
     "setup_step_bios": "Thêm BIOS của {{system}}",
     "setup_bios_intro_1": "Giả lập {{system}} cần BIOS được trích xuất từ máy console của chính bạn.",
     "setup_bios_intro_2": "Sphinx không thể đính kèm hay tải BIOS thay cho bạn.",

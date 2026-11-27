@@ -10,6 +10,11 @@ import {
   isSendChannelAllowed,
   matchesDynamicEventChannel,
 } from "./allowlist.ts";
+import {
+  featureForChannel,
+  gatedChannels,
+} from "../main/feature-flags-core.ts";
+import { isFeatureEnabled } from "../shared/feature-flags.ts";
 
 /**
  * The allowlist has two jobs: be complete, and be strict.
@@ -59,6 +64,32 @@ describe("generated allowlist", () => {
     assert.equal(isInvokeChannelAllowed("execute-anything"), false);
     assert.equal(isSendChannelAllowed("execute-anything"), false);
     assert.equal(isEventChannelAllowed("on-not-real"), false);
+  });
+});
+
+describe("feature flags", () => {
+  const disabledGatedChannels = gatedChannels().filter((channel) => {
+    const flag = featureForChannel(channel);
+    return flag !== undefined && !isFeatureEnabled(flag);
+  });
+
+  it("has at least one channel gated by a disabled flag", () => {
+    // Guards the test below from passing vacuously if the shipped flag values
+    // change or the channel→flag map is emptied by accident.
+    assert.ok(disabledGatedChannels.length > 0);
+  });
+
+  it("does not allowlist channels whose feature flag is off", () => {
+    // PRD §4.A.2/A12: a channel behind a disabled flag must not be reachable,
+    // so the generated Rust and sidecar tables must not contain it. The
+    // generator reads the same map; this is the parity check.
+    for (const channel of disabledGatedChannels) {
+      assert.equal(
+        isInvokeChannelAllowed(channel),
+        false,
+        `${channel} is gated by an off flag and must not be allowlisted`
+      );
+    }
   });
 });
 

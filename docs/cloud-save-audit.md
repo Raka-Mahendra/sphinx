@@ -240,6 +240,28 @@ flag remains the Hydra off-switch.
 - [ ] Record results in `docs/MIGRATION_LOG.md` before claiming Fase 0 cloud
       save verification.
 
+### 8.1 `ETag` / `If-Match` on `files.update` (PRD §4.F.3, §10 item 10)
+
+**Result: not part of the documented API, so the design does not rely on it.**
+
+The official `files.update` reference defines only path parameters (`fileId`),
+query parameters (`addParents`, `uploadType`, `supportsAllDrives`, …) and a
+`File` request body. It documents **no** `If-Match` request header and no
+precondition/precondition-type parameter:
+<https://developers.google.com/workspace/drive/api/reference/rest/v3/files/update>
+(checked 27 November 2026). Google's Drive v3 REST contract therefore does not
+promise conditional writes; an `If-Match` header sent by a client would not be a
+supported precondition, and no behaviour on mismatch (such as `412`) is
+specified.
+
+Consequence, already reflected in the v2 design: a manifest is never updated in
+place. Manifests are immutable (`<gameKey>/snapshots/<version>.json`); a commit
+writes `version+1`, then re-lists to detect a twin manifest with the same
+version, and a twin is a conflict for the 4.F.5 dialog. Blobs are
+content-addressed and immutable, so no existing object is overwritten either.
+This matches risk R13 in `PRD.md` ("ETag belum terbukti → manifest immutable,
+konkurensi rendah, bukti dokumentasi").
+
 ## 9. Open decisions
 
 1. Does the first Sphinx release ship the Drive provider, or ship with cloud

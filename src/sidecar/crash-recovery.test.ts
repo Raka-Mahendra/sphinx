@@ -358,11 +358,13 @@ const readDownloads = async (
   const db = new ClassicLevel(path.join(userData, "hydra-db"), {
     valueEncoding: "json",
   });
-  const downloads = db.sublevel("downloads", { valueEncoding: "json" });
+  const downloads = db.sublevel<string, Record<string, unknown>>("downloads", {
+    valueEncoding: "json",
+  });
 
   const entries: Record<string, unknown>[] = [];
   for await (const [key, value] of downloads.iterator()) {
-    entries.push({ key, value: value as Record<string, unknown> });
+    entries.push({ key, value });
   }
 
   await db.close();

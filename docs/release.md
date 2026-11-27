@@ -52,8 +52,8 @@ compromised fork cannot publish. Nothing can appear under
 `releases/latest` until the `publish` job runs, so a half-uploaded release can
 never be picked up by the updater.
 
-The Electron workflow (`.github/workflows/release.yml`) is untouched until
-Fase 8 deletes the Electron code path.
+The Electron workflows were deleted in Fase 8; `tauri-release.yml` is the only
+release path in the repository.
 
 ### What lands in the release
 
@@ -151,16 +151,23 @@ Source: <https://v2.tauri.app/distribute/windows-installer/>
 The rest of the installer is matched to the Electron baseline
 (`electron-builder.yml`, `nsis:` block):
 
-| Baseline (electron-builder)                                 | Tauri NSIS                                     | Same?                                                                                     |
-| ----------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `oneClick: false`                                           | NSIS is always a wizard                        | Yes, by construction                                                                      |
-| `allowToChangeInstallationDirectory: true`                  | The default template offers the directory page | Yes                                                                                       |
-| `createDesktopShortcut: always`                             | The default template creates the shortcut      | Yes                                                                                       |
-| per-user install (`perMachine` unset)                       | `installMode: currentUser`                     | Yes                                                                                       |
-| `shortcutName` / `uninstallDisplayName` = `Sphinx Launcher` | `productName` is used for both                 | Yes                                                                                       |
-| `artifactName: ${name}-${version}-setup.exe`                | `sphinx-launcher_<version>_x64-setup.exe`      | Normalized in the `draft` job (removes spaces so GitHub Releases preserves the exact URL) |
-| `include: installer.nsh` (custom NSIS hooks)                | `bundle.windows.nsis.installerHooks`           | Available, not needed yet                                                                 |
-| `portable` target                                           | not shipped                                    | Portable is dropped on purpose (PRD §4.E)                                                 |
+| Baseline (electron-builder)                                 | Tauri NSIS                                     | Same?                                                                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `oneClick: false`                                           | NSIS is always a wizard                        | Yes, by construction: the default template always inserts the MUI welcome/license/directory/install/finish pages            |
+| `allowToChangeInstallationDirectory: true`                  | The default template offers the directory page | Yes: `!insertmacro MUI_PAGE_DIRECTORY` in the bundled `installer.nsi`, skipped only for `/P` passive mode                   |
+| `createDesktopShortcut: always`                             | The default template creates the shortcut      | Yes: `MUI_FINISHPAGE_SHOWREADME_FUNCTION CreateOrUpdateDesktopShortcut`, plus desktop shortcuts for silent/passive installs |
+| per-user install (`perMachine` unset)                       | `installMode: currentUser`                     | Yes                                                                                                                         |
+| `shortcutName` / `uninstallDisplayName` = `Sphinx Launcher` | `productName` is used for both                 | Yes                                                                                                                         |
+| `artifactName: ${name}-${version}-setup.exe`                | `sphinx-launcher_<version>_x64-setup.exe`      | Normalized in the `draft` job (removes spaces so GitHub Releases preserves the exact URL)                                   |
+| `include: installer.nsh` (custom NSIS hooks)                | `bundle.windows.nsis.installerHooks`           | Available, not needed yet                                                                                                   |
+| `portable` target                                           | not shipped                                    | Portable is dropped on purpose (PRD §4.E)                                                                                   |
+
+The "same?" column for the first three rows was checked against the template
+Tauri actually bundles, not inferred from the config schema:
+<https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-bundler/src/bundle/windows/nsis/installer.nsi>
+(checked 27 November 2026). `NsisConfig` itself has no
+`allowToChangeInstallationDirectory` or `oneClick` key; the directory page is
+part of the template, which is why no config field is needed.
 
 `PORTABLE_EXECUTABLE_FILE` logic is removed/disabled across
 `src/main/helpers/shortcut-launch.ts`, `src/main/helpers/hydra-executable-path.ts`,

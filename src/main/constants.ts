@@ -22,6 +22,10 @@ export const windowsStartMenuPath = path.join(
   "Programs"
 );
 
+// The Windows guest's shared profile, used to rewrite save paths found inside a
+// Wine prefix (or the real host). It is a fixed Windows layout, not the host's
+// own %PUBLIC%: on a Linux host with Wine, `process.env.PUBLIC` does not exist
+// and the guest is always `C:\Users\Public`.
 export const publicProfilePath = "C:/Users/Public";
 
 export const levelDatabasePath = path.join(

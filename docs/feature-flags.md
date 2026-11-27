@@ -102,7 +102,7 @@ each gated IPC channel name to its owning flag and exposes:
 - `requireFeatureChannel(channel)` → looks up and enforces the channel's flag
 - `gatedChannels()` → the frozen list of gated channel names
 
-Channel counts per flag (108 gated channels total):
+Channel counts per flag (83 gated channels total):
 
 | Flag                     | Gated channels |
 | ------------------------ | -------------: |
@@ -110,7 +110,7 @@ Channel counts per flag (108 gated channels total):
 | `ACHIEVEMENTS`           |             20 |
 | `STEAM_INTEGRATION`      |              7 |
 | `EPIC_INTEGRATION`       |             16 |
-| `HYDRA_CLOUD_LEGACY`     |             37 |
+| `HYDRA_CLOUD_LEGACY`     |             12 |
 
 `src/main/feature-flags.ts` keeps the logger and public API and delegates to the
 core. Its `requireFeature` logs
@@ -133,6 +133,21 @@ ipcMain.handle(name, async (event, ...args) => {
 Channels that are not in the map are unaffected. A gated channel never runs its
 listener while the flag is off; the renderer receives a rejected invoke.
 
+### 4.2a Allowlist generation is flag-aware
+
+`requireFeatureChannel` is the runtime backstop. The build-time allowlist also
+narrows: `scripts/generate-ipc-allowlist.mjs` reads `feature-flags.json` and the
+`channelFlags` map, and leaves every channel whose flag is `false` out of
+`src-tauri/src/ipc/allowlist.rs`, `src/sidecar/allowlist.generated.ts`, and
+`docs/ipc-inventory.md`. A disabled channel is therefore rejected in Rust with
+`channel_not_allowed` before it reaches the sidecar at all (PRD §4.A.2, A12).
+
+The shipped flags are all `false`, so the generated tables currently omit 83
+channels; the inventory lists them, with their flag, under "Channels excluded by
+feature flags". Flipping a flag and rebuilding changes the table. The parity test
+in `src/sidecar/allowlist.test.ts` reads the same map and fails if the generated
+allowlist still contains a channel whose flag is off, so the two cannot drift.
+
 ### 4.3 Fail-closed account stubs
 
 Chat and friends handlers are not registered through the always-loaded event
@@ -149,8 +164,10 @@ if (accountFeaturesEnabled) {
 ```
 
 `register-disabled-account-events.ts` registers fail-closed stubs for the 18
-chat/friends channels so callers get a consistent `feature_unavailable` error
-instead of a missing-handler error.
+chat/friends channels so a call that somehow bypasses the allowlist still gets a
+`feature_unavailable` error instead of a missing-handler error. With the
+flag-aware allowlist (§4.2a) the stubs are unreachable in practice: the Rust
+shell rejects those channels first.
 
 ### 4.4 Anonymous `HydraApi` client
 

@@ -897,7 +897,6 @@
     "setup_install_aur_note": "Εγκατάσταση από το AUR",
     "setup_install_aur_desc": "Επίσημο πακέτο {{name}} του AUR.",
     "setup_install_open_releases": "Άνοιγμα της σελίδας «Ανακοινώσεις»",
-    "setup_install_guide_workwonders": "Ανοίξτε τον οδηγό εγκατάστασης του Sphinx",
     "setup_step_bios": "Προσθέστε το BIOS {{system}}",
     "setup_bios_intro_1": "Η εξομοίωση {{system}} απαιτεί ένα αντίγραφο του BIOS από τη δική σας κονσόλα.",
     "setup_bios_intro_2": "Το Sphinx δεν μπορεί να το συμπεριλάβει ή να το κατεβάσει για εσάς.",

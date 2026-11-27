@@ -866,7 +866,6 @@
     "setup_install_aur_note": "Instal dari AUR",
     "setup_install_aur_desc": "Paket AUR resmi {{name}}.",
     "setup_install_open_releases": "Buka halaman rilis",
-    "setup_install_guide_workwonders": "Buka panduan instalasi Sphinx",
     "setup_step_bios": "Tambahkan BIOS {{system}}",
     "setup_bios_intro_1": "Emulasi {{system}} memerlukan BIOS yang diambil dari konsol kamu sendiri.",
     "setup_bios_intro_2": "Sphinx tidak dapat menyertakan atau mengunduhnya untuk kamu.",

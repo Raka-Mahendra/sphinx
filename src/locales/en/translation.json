@@ -1244,7 +1244,6 @@
     "setup_install_aur_note": "Install from the AUR",
     "setup_install_aur_desc": "Official {{name}} AUR package.",
     "setup_install_open_releases": "Open releases page",
-    "setup_install_guide_workwonders": "Open the Sphinx install guide",
     "setup_step_bios": "Add the {{system}} BIOS",
     "setup_bios_intro_1": "{{system}} emulation needs a BIOS dumped from your own console.",
     "setup_bios_intro_2": "Sphinx can't include or download it for you.",
