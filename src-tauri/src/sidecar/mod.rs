@@ -49,6 +49,13 @@ const RESTART_WINDOW: Duration = Duration::from_secs(60);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 /// Delay before respawning, so a crash loop does not spin the CPU.
 const RESPAWN_DELAY: Duration = Duration::from_millis(250);
+/// How long a renderer call waits for a starting sidecar before it is rejected.
+/// A cold start on a slow disk can take a second or two; 30 s is generous.
+const READY_WAIT: Duration = Duration::from_secs(30);
+/// Poll interval while waiting for readiness. Readiness lives behind the same
+/// mutex as the request queue, so a short poll avoids a second notification
+/// channel that could miss a wakeup between the check and the wait.
+const READY_POLL: Duration = Duration::from_millis(50);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -168,7 +175,15 @@ impl Supervisor {
         window_label: Option<&str>,
         expects_result: bool,
     ) -> Result<Value, WireError> {
-        let (id, receiver) = {
+        // A cold start races the renderer: the window loads in well under a
+        // second, while the sidecar still has to open LevelDB and announce
+        // `ready`. Rejecting immediately with `sidecar_starting` broke the
+        // first paint in the packaged app, where `main.tsx` awaits
+        // `isStaging()` before it mounts React. Wait for readiness instead,
+        // with a bound so a sidecar that never starts still fails visibly.
+        let deadline = tokio::time::Instant::now() + READY_WAIT;
+
+        let (id, receiver) = loop {
             let mut inner = self.inner.lock().await;
 
             if inner.gave_up {
@@ -179,10 +194,17 @@ impl Supervisor {
             }
 
             if !inner.ready {
-                return Err(WireError::new(
-                    "sidecar_starting",
-                    "The background service is starting.",
-                ));
+                drop(inner);
+
+                if tokio::time::Instant::now() >= deadline {
+                    return Err(WireError::new(
+                        "sidecar_starting",
+                        "The background service is still starting.",
+                    ));
+                }
+
+                tokio::time::sleep(READY_POLL).await;
+                continue;
             }
 
             let id = inner.next_request_id.to_string();
@@ -212,7 +234,7 @@ impl Supervisor {
                 return Err(error);
             }
 
-            (id, receiver)
+            break (id, receiver);
         };
 
         match tokio::time::timeout(REQUEST_TIMEOUT, receiver).await {

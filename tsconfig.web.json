@@ -1,5 +1,4 @@
 {
-  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
     "src/renderer/src/env.d.ts",
     "src/renderer/src/**/*",
@@ -16,31 +15,34 @@
     "src/preload/index.ts"
   ],
   "compilerOptions": {
-    "composite": true,
+    "target": "esnext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "sourceMap": false,
+    "strict": true,
     "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "composite": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "paths": {
-      "@renderer/*": [
-        "src/renderer/src/*"
-      ],
-      "@types": [
-        "src/types/index.ts"
-      ],
-      "@locales": [
-        "src/locales/index.ts"
-      ],
-      "@shared": [
-        "src/shared/index.ts"
-      ],
-      "@preload/*": [
-        "src/preload/*"
-      ],
-      "@tauri-bridge/*": [
-        "src/tauri-bridge/*"
-      ],
-      "@tauri-bridge": [
-        "src/tauri-bridge/index.ts"
-      ]
+      "electron": ["src/tauri-bridge/electron.ts"],
+      "@renderer/*": ["src/renderer/src/*"],
+      "@types": ["src/types/index.ts"],
+      "@locales": ["src/locales/index.ts"],
+      "@shared": ["src/shared/index.ts"],
+      "@preload/*": ["src/preload/*"],
+      "@tauri-bridge/*": ["src/tauri-bridge/*"],
+      "@tauri-bridge": ["src/tauri-bridge/index.ts"]
     }
   }
 }

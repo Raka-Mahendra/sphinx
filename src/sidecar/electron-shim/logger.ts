@@ -51,6 +51,30 @@ const isLevel = (value: string): value is Level =>
 
 const streams = new Map<string, fs.WriteStream>();
 
+/**
+ * The host owns stderr as a pipe. When it exits first, the pipe closes and every
+ * write raises `EPIPE`. Logging that error goes through this same function, so
+ * an unguarded write looped forever: one run filled a 1.7 GB `error.txt` in
+ * minutes while the orphaned sidecar kept retrying. One broken write disables
+ * the console transport for the rest of the process; the file transports keep
+ * working.
+ */
+let stderrBroken = false;
+
+const writeStderr = (line: string): void => {
+  if (stderrBroken) return;
+
+  try {
+    process.stderr.write(line);
+  } catch {
+    stderrBroken = true;
+  }
+};
+
+process.stderr.on("error", () => {
+  stderrBroken = true;
+});
+
 const streamFor = (target: string): fs.WriteStream => {
   const cached = streams.get(target);
   if (cached) return cached;
@@ -58,7 +82,7 @@ const streamFor = (target: string): fs.WriteStream => {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const stream = fs.createWriteStream(target, { flags: "a" });
   stream.on("error", (error) => {
-    process.stderr.write(`[logger] cannot write ${target}: ${error.message}\n`);
+    writeStderr(`[logger] cannot write ${target}: ${error.message}\n`);
   });
   streams.set(target, stream);
   return stream;
@@ -139,7 +163,7 @@ class ScopedLogger {
       this.scopeName ? `(${this.scopeName}) ` : ""
     }${formatData(data)}\n`;
 
-    process.stderr.write(line);
+    writeStderr(line);
 
     const fileTransport = this.transports.file;
     if (fileTransport.level === false) return;
@@ -156,7 +180,7 @@ class ScopedLogger {
         ? fileTransport.resolvePathFn(this.variables, message)
         : path.join(process.cwd(), "sphinx-sidecar.log");
     } catch (error) {
-      process.stderr.write(
+      writeStderr(
         `[logger] resolvePathFn threw: ${
           error instanceof Error ? error.message : String(error)
         }\n`

@@ -62,16 +62,10 @@ export default defineConfig({
         find: /^node:crypto$/,
         replacement: resolve("src/tauri-bridge/crypto.ts"),
       },
-      // `electron-log/renderer` posts to Electron's main process over IPC and
-      // throws in a webview, taking the renderer entry down with it.
-      {
-        find: /^electron-log\/renderer$/,
-        replacement: resolve("src/tauri-bridge/renderer-logger.ts"),
-      },
-      { find: "@preload", replacement: resolve("src/preload") },
       // `install.ts` is the side-effect entry the app entries import first, so
       // it needs its own alias: the bare `@tauri-bridge` alias resolves to the
       // directory's index, and `@tauri-bridge/install` would not.
+      { find: "@preload", replacement: resolve("src/preload") },
       {
         find: "@tauri-bridge/install",
         replacement: resolve("src/tauri-bridge/install.ts"),
@@ -93,7 +87,10 @@ export default defineConfig({
     // "outside of Vite serving allow list" error). `realpathSync` maps the
     // symlink to the path Vite actually checks.
     fs: {
-      allow: [resolve(__dirname), realpathSync(resolve(__dirname, "node_modules"))],
+      allow: [
+        resolve(__dirname),
+        realpathSync(resolve(__dirname, "node_modules")),
+      ],
     },
     port: 5173,
     strictPort: true,

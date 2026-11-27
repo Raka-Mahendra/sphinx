@@ -25,11 +25,22 @@ export class JsonLineTransport {
   private readonly queue: string[] = [];
   private draining = false;
   private closed = false;
+  /**
+   * Set when the host's end of the pipe is gone. Writes then stop instead of
+   * raising `EPIPE` from inside the shutdown path, which would keep the
+   * process alive after the shell has already exited.
+   */
+  private outputBroken = false;
 
   constructor(
     private readonly input: Readable,
     private readonly output: Writable
-  ) {}
+  ) {
+    this.output.on("error", () => {
+      this.outputBroken = true;
+      this.queue.length = 0;
+    });
+  }
 
   /** Feeds every complete line to `onLine`; the remainder stays buffered. */
   public read(onLine: (line: string) => void): void {
@@ -48,7 +59,7 @@ export class JsonLineTransport {
   }
 
   public write(message: SidecarMessage): void {
-    if (this.closed) return;
+    if (this.closed || this.outputBroken) return;
     this.queue.push(`${JSON.stringify(message)}\n`);
     this.flush();
   }
@@ -61,24 +72,43 @@ export class JsonLineTransport {
 
   /** Resolves once every queued line has been handed to the OS. */
   public async flushAndWait(): Promise<void> {
-    if (this.queue.length === 0) return;
+    if (this.queue.length === 0 || this.outputBroken) return;
+
     await new Promise<void>((resolve) => {
-      this.output.write("", () => resolve());
+      let settled = false;
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        this.output.off("error", settle);
+        resolve();
+      };
+
+      // A closed pipe may report the failure instead of calling back, so the
+      // error event has to settle the wait too.
+      this.output.once("error", settle);
+      this.output.write("", settle);
     });
   }
 
   private flush(): void {
-    if (this.draining) return;
+    if (this.draining || this.outputBroken) return;
 
     while (this.queue.length > 0) {
       const line = this.queue.shift() as string;
-      const accepted = this.output.write(line);
-      if (!accepted) {
-        this.draining = true;
-        this.output.once("drain", () => {
-          this.draining = false;
-          this.flush();
-        });
+
+      try {
+        const accepted = this.output.write(line);
+        if (!accepted) {
+          this.draining = true;
+          this.output.once("drain", () => {
+            this.draining = false;
+            this.flush();
+          });
+          return;
+        }
+      } catch {
+        this.outputBroken = true;
+        this.queue.length = 0;
         return;
       }
     }

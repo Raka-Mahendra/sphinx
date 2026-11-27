@@ -19,6 +19,12 @@ crate-type = ["rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+# Off by default. `tauri dev` gets the inspector through `debug_assertions`;
+# a release build keeps the devtools code out unless this feature is requested
+# (`cargo build --release --features devtools`).
+devtools = ["tauri/devtools"]
+
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-dialog = "2"

@@ -478,14 +478,25 @@ async fn call_window(app: &AppHandle, params: &Value) -> Result<Value, WireError
             }
             Ok(Value::Null)
         }
+        // Tauri compiles the devtools API only in debug builds (or with the
+        // `devtools` feature). A release build must still answer the RPC, so the
+        // arms exist in both configurations: `tauri dev` opens the inspector,
+        // the packaged app reports that it is unavailable.
+        #[cfg(any(debug_assertions, feature = "devtools"))]
         "openDevTools" | "toggleDevTools" => {
             window.open_devtools();
             Ok(Value::Null)
         }
+        #[cfg(any(debug_assertions, feature = "devtools"))]
         "closeDevTools" => {
             window.close_devtools();
             Ok(Value::Null)
         }
+        #[cfg(not(any(debug_assertions, feature = "devtools")))]
+        "openDevTools" | "toggleDevTools" | "closeDevTools" => Err(WireError::new(
+            "not_implemented",
+            "devtools are compiled out of release builds",
+        )),
         "setFocusable" => ok(window.set_focusable(bool_param(&call_params, "focusable", true))),
         "setProgressBar" => {
             let progress = number_param(&call_params, "progress").unwrap_or(-1.0);

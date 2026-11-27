@@ -8,7 +8,11 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { describe, test } from "node:test";
 
-import { buildManifest, PLATFORM, sha256File } from "./make-update-manifest.mjs";
+import {
+  buildManifest,
+  PLATFORM,
+  sha256File,
+} from "./make-update-manifest.mjs";
 
 describe("buildManifest", () => {
   test("strips the leading v from the tag for version", () => {

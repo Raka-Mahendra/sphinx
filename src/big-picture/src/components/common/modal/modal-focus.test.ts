@@ -86,12 +86,9 @@ before(async () => {
       {
         name: "test-package-resolution",
         setup(builder) {
-          builder.onResolve(
-            { filter: /^(lodash-es|electron-log)\// },
-            (args) => ({
-              path: require.resolve(args.path),
-            })
-          );
+          builder.onResolve({ filter: /^(lodash-es)\// }, (args) => ({
+            path: require.resolve(args.path),
+          }));
           builder.onResolve({ filter: /^[^./]/ }, (args) => {
             if (isAbsolute(args.path)) return;
             if (/^@(shared|types|renderer|locales)(\/|$)/.test(args.path))

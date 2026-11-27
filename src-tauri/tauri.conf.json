@@ -5,7 +5,7 @@
   "identifier": "com.sphinxlauncher.app",
   "build": {
     "beforeDevCommand": "yarn dev:renderer",
-    "beforeBuildCommand": "yarn build:renderer && yarn build:sidecar",
+    "beforeBuildCommand": "yarn build:renderer && yarn build:sidecar && yarn stage:sidecar-deps",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../out/renderer"
   },
@@ -55,8 +55,6 @@
       "../resources/icon.png": "icon.png",
       "../resources/achievement.wav": "achievement.wav",
       "../resources/linux-game-capture.html": "linux-game-capture.html",
-      "../resources/legendary": "legendary",
-      "../resources/epic": "epic",
       "../ludusavi": "ludusavi",
       "../hydra-native": "hydra-native",
       "../out/sidecar": "sidecar"
@@ -83,7 +81,7 @@
       "endpoints": [
         "https://github.com/Raka-Mahendra/sphinx/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ3QjRFRDk4RjY3M0RBN0UKUldSKzJuUDJtTzIwMTdoRVVwcWt5akVabVBnMmF2NE9EbWZQVUh2aW9yRVFzTlBWUTNVdHFnQjUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk2QzVFNDFDRDA2NTE1NDMKUldSREZXWFFIT1RGbGg1ZDVHMkc5WGVvNEN3Mlk4dFZySGhZNURSMklpcGppdzZYa0hycmp0cVMK",
       "windows": {
         "installMode": "passive"
       }

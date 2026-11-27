@@ -53,7 +53,13 @@ export const PLATFORM = "windows-x86_64";
  * @param {string} [input.pubDate]     ISO timestamp; defaults to now.
  * @returns {object} The manifest object the updater consumes.
  */
-export const buildManifest = ({ tag, signature, bundleBasename, notes = null, pubDate }) => {
+export const buildManifest = ({
+  tag,
+  signature,
+  bundleBasename,
+  notes = null,
+  pubDate,
+}) => {
   const version = tag.replace(/^v/, "");
 
   return {
@@ -140,6 +146,9 @@ const main = async () => {
 };
 
 // Run only when executed as a script, never when imported by a test.
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+) {
   await main();
 }

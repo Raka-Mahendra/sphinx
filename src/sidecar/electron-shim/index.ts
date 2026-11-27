@@ -40,16 +40,32 @@ import {
 } from "./tray.js";
 
 export { BrowserWindow, WebContents } from "./window.js";
+export type { WebFrameMain } from "./window.js";
 
-type IpcListener = (event: IpcInvokeEvent, ...args: unknown[]) => unknown;
+import type { WebFrameMain } from "./window.js";
+
+/**
+ * Electron passes handler arguments through untyped (`...args: any[]`), and
+ * every `registerEvent` listener in `src/main` relies on that: it declares its
+ * own parameter types. Tightening this to `unknown[]` turns hundreds of valid
+ * registrations into contravariance errors without adding safety.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IpcListener = (event: IpcInvokeEvent, ...args: any[]) => unknown;
 
 export interface IpcInvokeEvent {
   sender: WebContents;
-  senderFrame: null;
+  senderFrame: WebFrameMain | null;
   frameId: number;
   processId: number;
   returnValue: unknown;
 }
+
+/** Type used by `src/main` for `ipcMain.handle` callbacks. */
+export type IpcMainInvokeEvent = IpcInvokeEvent;
+
+/** Electron's menu template type; the shim's Menu accepts the same shape. */
+export type MenuItemConstructorOptions = Record<string, unknown>;
 
 /** Thrown for any Electron member the shim does not implement. */
 const notImplemented = (api: string): never => {
@@ -248,18 +264,42 @@ const stripWindowArgument = <T>(args: unknown[]): T | undefined => {
   return (looksLikeWindow ? second : first) as T | undefined;
 };
 
+interface OpenDialogResult {
+  canceled: boolean;
+  filePaths: string[];
+}
+
+interface SaveDialogResult {
+  canceled: boolean;
+  filePath?: string;
+}
+
+interface MessageBoxResult {
+  response: number;
+  checkboxChecked: boolean;
+}
+
 const dialog = {
-  showOpenDialog: async (...args: unknown[]) => {
+  showOpenDialog: async (...args: unknown[]): Promise<OpenDialogResult> => {
     const options = stripWindowArgument<Record<string, unknown>>(args);
-    return hostRpc().request("dialog.showOpenDialog", options ?? {});
+    return (await hostRpc().request(
+      "dialog.showOpenDialog",
+      options ?? {}
+    )) as OpenDialogResult;
   },
-  showSaveDialog: async (...args: unknown[]) => {
+  showSaveDialog: async (...args: unknown[]): Promise<SaveDialogResult> => {
     const options = stripWindowArgument<Record<string, unknown>>(args);
-    return hostRpc().request("dialog.showSaveDialog", options ?? {});
+    return (await hostRpc().request(
+      "dialog.showSaveDialog",
+      options ?? {}
+    )) as SaveDialogResult;
   },
-  showMessageBox: async (...args: unknown[]) => {
+  showMessageBox: async (...args: unknown[]): Promise<MessageBoxResult> => {
     const options = stripWindowArgument<Record<string, unknown>>(args);
-    return hostRpc().request("dialog.showMessageBox", options ?? {});
+    return (await hostRpc().request(
+      "dialog.showMessageBox",
+      options ?? {}
+    )) as MessageBoxResult;
   },
   showErrorBox: (title: string, content: string): void => {
     void callIgnoringFailure("dialog.showErrorBox", { title, content });
@@ -278,6 +318,10 @@ const shell = {
   showItemInFolder: (target: string): void => {
     void callIgnoringFailure("shell.showItemInFolder", { path: target });
   },
+  readShortcutLink: (
+    _shortcutPath: string
+  ): { target: string; args: string[]; cwd: string; description: string } =>
+    notImplemented("shell.readShortcutLink"),
   beep: (): void => undefined,
 };
 
@@ -361,26 +405,38 @@ const nativeTheme = {
   get shouldUseDarkColors(): boolean {
     return process.env.SPHINX_THEME !== "light";
   },
+  get shouldUseDarkColorsForSystemIntegratedUI(): boolean {
+    return this.shouldUseDarkColors;
+  },
   get themeSource(): string {
     return "system";
   },
   set themeSource(_value: string) {
     // Rust owns the theme; the sidecar only reads it.
   },
-  on: (): void => undefined,
-  once: (): void => undefined,
-  removeListener: (): void => undefined,
+  on: (_event: string, _listener: (...args: unknown[]) => void): void =>
+    undefined,
+  once: (_event: string, _listener: (...args: unknown[]) => void): void =>
+    undefined,
+  removeListener: (
+    _event: string,
+    _listener: (...args: unknown[]) => void
+  ): void => undefined,
 };
 
 const powerMonitor = {
-  on: (event: string): void => {
+  on: (event: string, _listener: (...args: unknown[]) => void): void => {
     warnOnce(
       `powerMonitor.on:${event}`,
       `powerMonitor.${event} is not forwarded by the Tauri shell.`
     );
   },
-  once: (): void => undefined,
-  removeListener: (): void => undefined,
+  once: (_event: string, _listener: (...args: unknown[]) => void): void =>
+    undefined,
+  removeListener: (
+    _event: string,
+    _listener: (...args: unknown[]) => void
+  ): void => undefined,
 };
 
 const powerSaveBlocker = {
@@ -388,10 +444,10 @@ const powerSaveBlocker = {
     void callIgnoringFailure("power.setSleepBlocked", { blocked: true, type });
     return 1;
   },
-  stop: (): void => {
+  stop: (_id?: number): void => {
     void callIgnoringFailure("power.setSleepBlocked", { blocked: false });
   },
-  isStarted: (): boolean => false,
+  isStarted: (_id?: number): boolean => false,
 };
 
 // ---------------------------------------------------------------------------
@@ -422,7 +478,13 @@ export class Notification extends EventEmitter {
   private readonly icon?: string;
 
   constructor(
-    options: { title?: string; body?: string; icon?: unknown } = {}
+    options: {
+      title?: string;
+      body?: string;
+      icon?: unknown;
+      silent?: boolean;
+      toastXml?: string;
+    } = {}
   ) {
     super();
     this.title = options.title ?? "";
@@ -457,26 +519,66 @@ export class Notification extends EventEmitter {
 // ---------------------------------------------------------------------------
 
 export class MenuItem {
+  /** Same index signature as `MenuTemplateItem`, so a template may mix both. */
+  [key: string]: unknown;
+
   constructor(public readonly options: Record<string, unknown> = {}) {}
 }
 
-const session = {
-  defaultSession: {
-    webRequest: {
-      onBeforeSendHeaders: (): void =>
-        warnOnce(
-          "session.webRequest.onBeforeSendHeaders",
-          "session.webRequest is not available in the Tauri shell; CORS/UA rewriting is disabled."
-        ),
-      onHeadersReceived: (): void =>
-        warnOnce(
-          "session.webRequest.onHeadersReceived",
-          "session.webRequest is not available in the Tauri shell; response header rewriting is disabled."
-        ),
-    },
-    clearCache: (): Promise<void> => Promise.resolve(),
+/**
+ * The slice of `Session` that `src/main` uses.
+ *
+ * A Tauri webview has one session owned by the shell, so every partition
+ * resolves to this object. Header rewriting is unavailable (documented in
+ * `docs/sidecar.md`); cache/permission/cookie calls are answered locally so the
+ * Epic and Steam windows construct instead of crashing on a missing method.
+ */
+const createSession = () => ({
+  webRequest: {
+    onBeforeSendHeaders: (): void =>
+      warnOnce(
+        "session.webRequest.onBeforeSendHeaders",
+        "session.webRequest is not available in the Tauri shell; CORS/UA rewriting is disabled."
+      ),
+    onHeadersReceived: (): void =>
+      warnOnce(
+        "session.webRequest.onHeadersReceived",
+        "session.webRequest is not available in the Tauri shell; response header rewriting is disabled."
+      ),
   },
-  fromPartition: (): never => notImplemented("session.fromPartition"),
+  clearCache: (): Promise<void> => Promise.resolve(),
+  clearStorageData: (): Promise<void> => Promise.resolve(),
+  clearAuthCache: (): Promise<void> => Promise.resolve(),
+  setUserAgent: (_userAgent: string): void => undefined,
+  setPermissionRequestHandler: (
+    _handler:
+      | ((
+          contents: unknown,
+          permission: unknown,
+          callback: (granted: boolean) => void
+        ) => void)
+      | null
+  ): void => undefined,
+  setPermissionCheckHandler: (
+    _handler: ((...args: unknown[]) => boolean) | null
+  ): void => undefined,
+  on: (
+    _event: string,
+    _listener: (event: { preventDefault(): void }) => void
+  ): void => undefined,
+  cookies: {
+    get: (
+      _filter?: Record<string, unknown>
+    ): Promise<Array<{ name: string; value: string }>> => Promise.resolve([]),
+    remove: (): Promise<void> => Promise.resolve(),
+  },
+});
+
+const defaultSession = createSession();
+
+const session = {
+  defaultSession,
+  fromPartition: (_partition: string) => defaultSession,
 };
 
 const protocol = {
@@ -492,19 +594,42 @@ const crashReporter = {
   },
 };
 
+interface DesktopCapturerSource {
+  id: string;
+  name: string;
+  thumbnail: Electron.NativeImage;
+}
+
 const desktopCapturer = {
-  getSources: (): Promise<never> =>
+  getSources: (_options?: unknown): Promise<DesktopCapturerSource[]> =>
     Promise.reject(
       new Error("NotImplementedInShim: desktopCapturer.getSources")
     ),
 };
 
+/** The subset of Electron's `NativeImage` that `src/main` reads. */
+export interface ShimNativeImage {
+  resize(options: {
+    width?: number;
+    height?: number;
+    quality?: string;
+  }): ShimNativeImage;
+  toBitmap(): Buffer;
+  toPNG(): Buffer;
+  toJPEG(quality?: number): Buffer;
+  toDataURL(): string;
+  getSize(): { width: number; height: number };
+  isEmpty(): boolean;
+}
+
 const nativeImage = {
-  createFromPath: (): never => notImplemented("nativeImage.createFromPath"),
-  createFromBuffer: (): never => notImplemented("nativeImage.createFromBuffer"),
-  createFromDataURL: (): never =>
+  createFromPath: (_filePath: string): ShimNativeImage =>
+    notImplemented("nativeImage.createFromPath"),
+  createFromBuffer: (_buffer: Buffer): ShimNativeImage =>
+    notImplemented("nativeImage.createFromBuffer"),
+  createFromDataURL: (_dataUrl: string): ShimNativeImage =>
     notImplemented("nativeImage.createFromDataURL"),
-  createEmpty: (): never => notImplemented("nativeImage.createEmpty"),
+  createEmpty: (): ShimNativeImage => notImplemented("nativeImage.createEmpty"),
 };
 
 const globalShortcut = {

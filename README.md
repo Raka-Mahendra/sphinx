@@ -2,77 +2,126 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./branding/png/sphinx-symbol-white-1024.png" />
-  <img src="./branding/png/sphinx-symbol-1024.png" width="144" alt="Sphinx Launcher" />
+  <img src="./branding/png/sphinx-symbol-1024.png" width="128" alt="Sphinx Launcher" />
 </picture>
 
-  <h1 align="center">Sphinx Launcher</h1>
+<h1 align="center">Sphinx Launcher</h1>
 
-  <p align="center">
-    <strong>Sphinx Launcher is an open-source desktop launcher for managing your game library and downloading games. It is written in Rust (Tauri) and Node.js (a React/TypeScript sidecar), with libtorrent providing the torrent engine.</strong>
-  </p>
+<p align="center">
+  <strong>A desktop launcher for your game library and downloads. The shell is Rust and Tauri, the application logic runs in a Node.js sidecar, and libtorrent handles the torrents.</strong>
+</p>
 
-[![build](https://img.shields.io/github/actions/workflow/status/Raka-Mahendra/sphinx/build.yml)](https://github.com/Raka-Mahendra/sphinx/actions)
-[![release](https://img.shields.io/github/package-json/v/Raka-Mahendra/sphinx)](https://github.com/Raka-Mahendra/sphinx/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/Raka-Mahendra/sphinx/lint.yml?label=CI)](https://github.com/Raka-Mahendra/sphinx/actions/workflows/lint.yml)
+[![release](https://img.shields.io/github/v/release/Raka-Mahendra/sphinx?include_prereleases&label=release)](https://github.com/Raka-Mahendra/sphinx/releases)
+[![license](https://img.shields.io/github/license/Raka-Mahendra/sphinx?label=license)](LICENSE)
 
-![Sphinx Launcher](./docs/screenshot.png)
+<img src="./docs/screenshots/home.png" alt="Sphinx Launcher home screen with the featured game and the Hot now shelf" />
 
 </div>
 
-## Features
+## Alpha 0.1
 
-- Add games that you own to your library
-- Browse a catalogue with a powerful suggestion algorithm
-- Download games with a built-in torrent engine
-- Keep your saves in the cloud with Cloud Save (Google Drive)
-- Unlock achievements
-- Discover new games that you haven't played before
+The [v0.1.0 release](https://github.com/Raka-Mahendra/sphinx/releases/tag/v0.1.0) is the first public build. It runs on Windows x64 and covers the core loop: browse the catalogue, open a game page, add it to your library, and download it. Expect rough edges, and read [Limitations in v1](#limitations-in-v1) before you install.
 
-## Build from source and contributing
+## Install
 
-Project notes live in [`docs/`](./docs). Start with
-[`docs/baseline-behavior.md`](./docs/baseline-behavior.md) for what the app does,
-and [`docs/MIGRATION_LOG.md`](./docs/MIGRATION_LOG.md) for the migration history.
+Download `sphinx-launcher_0.1.0_x64-setup.exe` from [Releases](https://github.com/Raka-Mahendra/sphinx/releases/latest) and run it. The installer is per-user and needs no administrator rights.
 
-### Local development requirements
+The installer is not Authenticode signed. On first run Windows SmartScreen shows "Windows protected your PC"; choose **More info**, then **Run anyway**. That warning is expected for an unsigned publisher, not a sign of damage. See [Windows SmartScreen and code signing](#windows-smartscreen-and-code-signing) if you want to know what signing would change.
 
-- Node.js + Yarn
-- Rust toolchain (for `hydra-native`)
-- Git and a C++ toolchain (Visual Studio C++ Build Tools on Windows, GCC/Clang on Linux, Xcode command-line tools on macOS). The native build obtains CMake and CTest automatically through vcpkg.
+The app updates itself from GitHub Releases. An alpha can break between builds, so keep the installer around if you need to roll back.
 
-After installing dependencies, `postinstall` builds the Rust native addon automatically (`hydra-native/hydra-native.node`).
+## What it does
 
-The native build includes a Rust wrapper around pinned libtorrent. Development and packaged torrenting no longer require Python.
+- The library keeps the games you own in one list, with covers and playtime. Removing a game does not touch its files.
+- The catalogue shows featured and trending titles and lets you search by name. A game page carries screenshots, a description, the rating, and how long the game takes to beat.
+- The download queue runs on the bundled libtorrent engine and survives a restart of the app. Pause, resume, and watch progress in the Downloads page.
+- The sidecar watches running games and adds the minutes to the library entry.
+- Big Picture opens a controller-first layout in its own window, with the same catalogue and library.
+- The interface ships with more than 30 languages and picks one from the system locale.
 
-On Windows x64 and Linux x64, the libtorrent bridge comes prebuilt from `native/torrent-bridge/prebuilt`, so installs skip compiling libtorrent through vcpkg. Other platforms build it from source. When a branch push changes `native/torrent-bridge` or `scripts/build-torrent-bridge.cjs`, the "Torrent bridge prebuilts" workflow rebuilds the binaries and commits them to that branch; until then, installs build the bridge from source. Set `HYDRA_TORRENT_BRIDGE_FROM_SOURCE=1` to always build it from source.
+## Screenshots
 
-### Brand
+<div align="center">
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/screenshots/catalogue.png" alt="Catalogue with featured titles and genre shelves" /></td>
+    <td width="50%"><img src="./docs/screenshots/game-detail.png" alt="Game page for Grand Theft Auto V with screenshots and system requirements" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./docs/screenshots/big-picture.png" alt="Big Picture game page with Add to Library and Download buttons" /></td>
+    <td width="50%"><img src="./docs/screenshots/library.png" alt="Empty library state with a hint to add games from the catalogue" /></td>
+  </tr>
+</table>
+</div>
 
-The logo, icon set and usage rules are in [`branding/`](./branding/README.md).
+## Status
 
-### Windows SmartScreen and code signing
+What was exercised on Windows 11 with the v0.1.0 build: boot, Home, Catalogue, game pages, add and remove from the library, empty library and downloads states, Settings, and Big Picture in a second window. Torrent downloads have automated tests but no clean-machine run yet. Cloud saves could not be exercised because this build has no OAuth client. Linux has no build in this alpha.
 
-Unsigned releases downloaded from GitHub show **"Windows protected your PC"**
-(SmartScreen) on the browser download. That is expected for every new,
-unsigned publisher and is not a defect — click **More info → Run anyway** to
-install. The in-app self-updater normally does **not** trigger SmartScreen
-because the installer is launched by the already-running app, not the browser.
+## Build from source
 
-To remove the warning entirely you need an Authenticode certificate (OV/EV).
-Signing is opt-in and off by default: the release workflow only signs when the
-`WINDOWS_CERTIFICATE` repository secret is present, so forks and local builds
-produce a working unsigned installer with no extra setup. The updater key
-(minisign) and the Authenticode certificate are **different** credentials — see
-[`docs/release.md`](./docs/release.md) §1, §6 and §8 for the full picture,
-the manual test plan on clean machines, and how to back the keys up.
+Project notes live in [`docs/`](./docs). Start with [`docs/baseline-behavior.md`](./docs/baseline-behavior.md) for what the app does, and [`docs/MIGRATION_LOG.md`](./docs/MIGRATION_LOG.md) for the migration history.
+
+### Requirements
+
+- Node.js 22 and Yarn (the repo uses Corepack)
+- Rust toolchain
+- Git and a C++ toolchain (Visual Studio C++ Build Tools on Windows, GCC/Clang on Linux, Xcode command-line tools on macOS). The native build fetches CMake and CTest through vcpkg.
+
+`postinstall` builds the Rust native addon (`hydra-native/hydra-native.node`). On Windows x64 and Linux x64 the libtorrent bridge comes prebuilt from `native/torrent-bridge/prebuilt`, so installs skip compiling libtorrent. Other platforms build it from source, and `HYDRA_TORRENT_BRIDGE_FROM_SOURCE=1` forces a source build everywhere. When a push changes `native/torrent-bridge` or `scripts/build-torrent-bridge.cjs`, the "Torrent bridge prebuilts" workflow rebuilds the binaries and commits them to that branch.
+
+### Run it locally
+
+```sh
+corepack yarn install          # postinstall builds the native addon
+cp .env.example .env           # then set MAIN_VITE_API_URL
+corepack yarn dev              # tauri dev: Rust shell + Node sidecar + Vite renderer
+```
+
+`.env` is git-ignored and read by `scripts/build-sidecar.mjs`, which replaces `import.meta.env.MAIN_VITE_*` at build time. `MAIN_VITE_API_URL` points at the catalogue API; the other keys in `.env.example` are optional referral and subdomain settings. Leave it empty and the app fails at startup with a `TypeError`, so fill it in first.
+
+The sidecar writes its log next to the app's user data. The IPC allowlist that both Rust and the sidecar enforce is generated by `yarn gen:ipc-allowlist` and checked by `yarn test`.
+
+### Build an installer
+
+```sh
+corepack yarn build
+```
+
+This stages the Node runtime that Tauri bundles as `externalBin`, checks that `hydra-native.node`, the libtorrent bridge and the VC++ runtime DLLs are present, then runs `tauri build`. The NSIS installer lands in `src-tauri/target/release/bundle/nsis/`.
+
+`check:torrent-resources` fails the build when the torrent engine is missing, so an installer that cannot download anything never ships. Updater artifacts need `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, which `docs/release.md` covers along with Authenticode signing and the clean-machine test plan.
+
+### Releasing
+
+Releases come from tags: `git tag v0.1.0 && git push origin v0.1.0`. The `Tauri Release` workflow builds the installer, creates a draft release with `latest.json` and `SHA256SUMS`, then publishes it. The workflow needs the updater key and the OAuth credentials as repository secrets. Until those exist, build and upload the installer from your machine.
+
+## Limitations in v1
+
+These are deliberate and recorded in the PRD (§2), not bugs:
+
+- **Account-bound features are hidden.** Achievements, Steam connection and sync, friends, chat, profiles, reviews, library and download-source sync, legacy Hydra Cloud subscriptions, Epic/Legendary, and the Decky plugin depend on Hydra's login or server, which Sphinx does not ship.
+- **No local achievements.** Achievement definitions come from Hydra's server, so there is nothing to unlock while signed out.
+- **Cloud saves are disabled in this build.** The Google OAuth client is embedded at compile time, and this alpha was built without one. The code and tests are in the tree, and a build with `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set turns the feature on.
+- **The Windows installer is unsigned.** SmartScreen, Smart App Control and Defender may warn.
+- **No portable build.** The updater installs and exits on Windows, so "restart" means relaunch after the installer finishes.
+- **Playtime can be under-counted if the sidecar crashes** while a game runs. The recovery scan resumes the session, but the gap stays.
+- **Windows only.** Linux packaging is planned for a later phase.
+- Sphinx Launcher is an independent fork and does not follow Hydra Launcher releases; upstream fixes are cherry-picked selectively ([`docs/upstream-policy.md`](./docs/upstream-policy.md)).
+
+## Windows SmartScreen and code signing
+
+Unsigned releases downloaded from GitHub show "Windows protected your PC" in the browser. Every new unsigned publisher gets this; click **More info**, then **Run anyway**. The in-app updater usually avoids the warning because the running app launches the installer, not the browser.
+
+Removing the warning needs an Authenticode certificate (OV or EV). Signing is opt-in: the release workflow signs only when the `WINDOWS_CERTIFICATE` secret exists, so forks and local builds produce a working unsigned installer. The updater key (minisign) and the Authenticode certificate are different credentials; [`docs/release.md`](./docs/release.md) §1, §6 and §8 explain the difference, the clean-machine test plan, and how to back up the keys.
+
+## Contributing
+
+Issues and pull requests are welcome. Run `yarn typecheck`, `yarn lint`, `yarn format-check`, `yarn test:crash` and `yarn test:torrent` before sending a change. `yarn test` without a filter hangs on the Epic suites on Windows, which is why the scripts above take explicit file lists.
 
 ## License
 
-Sphinx Launcher is an independent fork of Hydra Launcher. It is not affiliated
-with, endorsed by, sponsored by, or otherwise connected to Hydra Launcher or
-Los Broxas.
+Sphinx Launcher is an independent fork of Hydra Launcher. It is not affiliated with, endorsed by, sponsored by, or otherwise connected to Hydra Launcher or Los Broxas.
 
-Sphinx Launcher is licensed under the [Apache License 2.0](LICENSE),
-Copyright 2026 Raka Mahendra. Hydra Launcher was distributed under the MIT
-License; its complete original license text is preserved verbatim at
-[LICENSES/MIT-hydra.txt](LICENSES/MIT-hydra.txt). See [NOTICE](NOTICE) for the
-required attribution.
+Sphinx Launcher is licensed under the [Apache License 2.0](LICENSE), Copyright 2026 Raka Mahendra. Hydra Launcher was distributed under the MIT License; its original text is preserved verbatim at [LICENSES/MIT-hydra.txt](LICENSES/MIT-hydra.txt). See [NOTICE](NOTICE) for the required attribution.

@@ -29,7 +29,7 @@ dan di beberapa tempat justru **merusak** (lihat §4).
 | `scripts/`   | 17   | nama env, path build, fixture                        | sah                            |
 | `docs/`      | 15   | catatan audit historis                               | sah — arsip                    |
 | `.github/`   | 6    | nama workflow, cache path, project name              | sah                            |
-| `resources/` | 6    | berkas legendary pihak ketiga                        | sah                            |
+| `resources/` | 1    | lisensi UMU Epic (tidak dibundel)                    | sah — arsip                    |
 | `build/`     | 1    | `installer.nsh` membersihkan folder updater lama     | sah — lihat §5                 |
 
 ## 3. Yang tidak diganti di `src/`
@@ -63,7 +63,6 @@ tetap plugin Hydra. **Fitur ini warisan Hydra dan sebaiknya dihapus di §4.B**, 
 | Lokasi                                       | Isi                                                      | Alasan                                                                                                                                                                                      |
 | -------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `build/installer.nsh`                        | `RMDir /r "$LOCALAPPDATA\hydralauncher-updater"`         | Membersihkan folder updater **Hydra** saat uninstall — justru harus tetap "hydralauncher"                                                                                                   |
-| `resources/legendary/managed.py`             | `sys.argv = ["hydra-legendary", ...]`                    | Berkas pihak ketiga (legendary), tidak disentuh                                                                                                                                             |
 | `src/main/services/common-redist-manager.ts` | `github.com/hydralauncher/hydra-common-redist`           | Repo redistribusi pihak ketiga; mengganti = unduhan gagal                                                                                                                                   |
 | `package.json`                               | `steam-shortcut-editor` → `github.com/hydralauncher/...` | Fork paket npm pihak ketiga                                                                                                                                                                 |
 | `.env` / `.env.example`                      | `HYDRA_*`                                                | Kunci konfigurasi; lihat §3                                                                                                                                                                 |
@@ -78,7 +77,7 @@ tetap plugin Hydra. **Fitur ini warisan Hydra dan sebaiknya dihapus di §4.B**, 
    `notifications_page.cloud_gift_*`, `settings.allow_cloud_gifts`, `settings.renew_subscription`,
    `settings.become_subscriber`, `hydra_cloud.subscription_tour_title`,
    `game_details.downloader_requires_hydra_cloud`. Hapus bersama fiturnya, jangan diperbaiki satu per satu.
-2. **`docs/screenshot.png` masih menampilkan UI Hydra** (judul jendela, ikon lama). Perlu diambil ulang setelah
-   aplikasi bisa dijalankan dengan merek baru.
+2. **`docs/screenshot.png`** sudah dihapus pada alpha 0.1. Tangkapan layar baru ada di `docs/screenshots/`
+   (Home, Catalogue, detail game, Big Picture, Library, Downloads) dan diambil dari build Tauri dengan merek Sphinx.
 3. **Wordmark lockup masih berbasis stroke** — lihat `branding/README.md` §7.
 4. **Pemeriksaan merek dagang** untuk "Sphinx" belum dilakukan.

@@ -66,10 +66,17 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
 
+      # `--ignore-scripts` skips `postinstall`, and the installer bundles
+      # `../ludusavi` for cloud saves. Without this step the packaged app has no
+      # ludusavi.exe and every backup fails at runtime.
+      - name: Download ludusavi for the bundle
+        run: node scripts/postinstall.cjs
+
       - name: Build the renderer and the sidecar
         run: |
           yarn build:renderer
           yarn build:sidecar
+          yarn stage:sidecar-deps
 
       - name: Stage the Node binary for bundle.externalBin
         run: yarn stage:node

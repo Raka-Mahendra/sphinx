@@ -134,7 +134,7 @@ export class Tray extends EventEmitter {
     super();
     // `createSystemTray` keeps its own reference, but control messages arrive
     // on the RPC channel and need a way back to this instance.
-    activeTray = this;
+    setActiveTray(this);
   }
 
   public setToolTip(tooltip: string): void {
@@ -187,7 +187,7 @@ export class Tray extends EventEmitter {
       });
   }
 
-  public setImage(): void {
+  public setImage(_image?: unknown): void {
     // Theme-derived in Rust; see `tray_icon()` in src-tauri/src/tray.rs.
     void hostRpc()
       .request("tray.setIcon", {})
@@ -214,6 +214,10 @@ export const dispatchTrayClick = (tray: Tray | null, id: string): boolean =>
 /** Routes a `control tray-event` message to the listeners the baseline added. */
 export const dispatchTrayEvent = (tray: Tray | null, kind: string): void => {
   tray?.emit(kind);
+};
+
+const setActiveTray = (tray: Tray): void => {
+  activeTray = tray;
 };
 
 export const getActiveTray = (): Tray | null => activeTray;

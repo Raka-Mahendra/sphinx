@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { PassThrough } from "node:stream";
+import { PassThrough, Writable } from "node:stream";
 import { afterEach, describe, it } from "node:test";
 
-import { SidecarRpc, type InvokeContext } from "./rpc.ts";
+import { JsonLineTransport, SidecarRpc, type InvokeContext } from "./rpc.ts";
 import type { SidecarMessage } from "./protocol.ts";
 
 /**
@@ -386,5 +386,37 @@ describe("SidecarRpc", () => {
     assert.equal(message.type, "error");
     if (message.type !== "error") return;
     assert.equal(message.error.code, "invalid_message");
+  });
+});
+
+describe("JsonLineTransport when the host pipe closes", () => {
+  /**
+   * Stands in for stdout after the shell exited: every write fails with EPIPE.
+   * Without the transport's error listener this is an unhandled `error` event,
+   * which is what turned a dead host into a sidecar that logged forever.
+   */
+  const brokenOutput = (): Writable =>
+    new Writable({
+      write(_chunk, _encoding, callback) {
+        callback(Object.assign(new Error("EPIPE: broken pipe, write"), {
+          code: "EPIPE",
+        }));
+      },
+    });
+
+  it("absorbs an EPIPE instead of throwing or looping", async () => {
+    const transport = new JsonLineTransport(new PassThrough(), brokenOutput());
+
+    assert.doesNotThrow(() => {
+      transport.write({ type: "heartbeat", seq: 1 });
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.doesNotThrow(() => {
+      transport.write({ type: "heartbeat", seq: 2 });
+    });
+
+    await transport.flushAndWait();
   });
 });

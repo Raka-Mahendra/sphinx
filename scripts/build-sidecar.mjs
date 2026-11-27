@@ -74,9 +74,7 @@ const NATIVE_DEPENDENCIES = new Set([
   "create-desktop-shortcuts",
 ]);
 
-const external = Object.keys(packageJson.dependencies ?? {}).filter(
-  (name) => !name.startsWith("@electron-toolkit/") && name !== "electron-log"
-);
+const external = Object.keys(packageJson.dependencies ?? {});
 
 /** Resolves `@resources/foo.png?asset` to an absolute path string. */
 const assetPlugin = {
@@ -103,9 +101,7 @@ const aliasPlugin = {
   setup(build) {
     const aliases = {
       electron: path.join(SHIM_DIR, "index.ts"),
-      "electron-log": path.join(SHIM_DIR, "logger.ts"),
       "auto-launch": path.join(SHIM_DIR, "auto-launch.ts"),
-      "@electron-toolkit/utils": path.join(SHIM_DIR, "electron-toolkit.ts"),
       "@main": path.join(ROOT, "src", "main"),
       // `src/main` may call the shell, but only through this client; see
       // src/main/services/shell-rpc.ts.

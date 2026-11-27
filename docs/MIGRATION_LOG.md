@@ -886,3 +886,36 @@ non-renderer (jendela auth Epic/Steam memang perlu origin provider apa pun);
 `setOpacity` parsial tidak didukung; CSP `img-src`/`media-src`/`connect-src`
 masih memuat `https: http:` karena URL artwork/trailer berasal dari katalog;
 dan `yarn tauri build` tetap terblokir `build:native`.
+
+## Build alpha 0.1 dan bug packaging sidecar
+
+Installer 0.1.0 dibangun lokal dengan `TAURI_SIGNING_PRIVATE_KEY` (kunci
+minisign baru di `~/.sphinx-updater/`, public key di
+`src-tauri/tauri.conf.json`). `yarn build` sempat gagal dua kali, dan keduanya
+temuan nyata:
+
+| Item  | Masalah                                                                                                                                                                                                                                 | Perbaikan                                                                                                                                                                            |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P2-12 | `rpc.rs` memanggil `window.open_devtools()`/`close_devtools()`, yang hanya dikompilasi Tauri pada debug build. `tauri dev` dan `cargo test` lulus, `yarn build` gagal E0599 di profil release                                                       | Cabang devtools diberi `#[cfg(any(debug_assertions, feature = "devtools"))]`, fitur `devtools` opsional di `Cargo.toml`, dan release menjawab `not_implemented`                          |
+| P2-13 | Sidecar hasil bundel gagal boot dari installer: `ERR_MODULE_NOT_FOUND: Cannot find package 'classic-level'`. `build-sidecar.mjs` sengaja membuat semua dependency produksi external dan menyatakan sidecar "ships with `node_modules`", tetapi tidak ada langkah yang menyalinnya. Di `tauri dev` paket ditemukan dari root repo, jadi celah ini hanya muncul di build terpasang | `scripts/stage-sidecar-deps.mjs` menelusuri specifier bundel, menyalin paket + closure dependency ke `out/sidecar/node_modules`, lalu dijalankan di `beforeBuildCommand` dan workflow rilis |
+| P2-14 | Renderer kalah balapan dengan sidecar saat cold start: `main.tsx` menunggu `isStaging()` sebelum memasang React, sedangkan supervisor langsung menolak dengan `sidecar_starting` selama sidecar belum `ready`. Di build terpasang jendela berhenti di "Menyalakan layanan latar" | `request_channel` menunggu `ready` (poll 50 ms, batas 30 dtk) alih-alih menolak seketika; `cargo test`/`clippy`/`fmt` lulus |
+| P2-15 | Saat host keluar lebih dulu, pipe stderr/stdout tertutup. Logger menulis error `EPIPE` lewat jalur yang sama, memicu `uncaughtException` berulang tanpa henti: satu proses yatim menulis `error.txt` 1,7 GB dalam beberapa menit. Jalur shutdown juga menggantung di `flushAndWait` sehingga sidecar yatim tidak pernah keluar | Logger memakai `writeStderr` dengan flag `stderrBroken` dan listener `error`; `JsonLineTransport` berhenti menulis dan menyelesaikan `flushAndWait` saat output rusak. Tes regresi `rpc.test.ts` (14/14) |
+
+Verifikasi installer 0.1.0: dipasang senyap ke folder sementara
+(`/S /D=...`), isi folder memuat `sphinx-launcher.exe`, `node.exe`, `sidecar/`
+(termasuk `node_modules`), `hydra-native/`, dan `ludusavi/`; `classic-level` dan
+`sharp` dimuat oleh `node.exe` yang dibundel (v24.22.1). Installer terkompresi
+sekitar 60 MB dan folder terpasang sekitar 248 MB karena dependency produksi dan
+source map ikut dibundel.
+
+Menjalankan build terpasang itulah yang menemukan P2-13 sampai P2-15. `tauri dev`
+melewatkan ketiganya: paket ditemukan dari root repo, sidecar sudah siap sebelum
+jendela memuat, dan stderr tetap terbuka. Karena itu uji asap rilis harus memakai
+installer, bukan `tauri dev`.
+
+Build 0.1.0 juga dibuat tanpa `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, karena
+kredensial hanya ada sebagai secret GitHub dan tidak bisa dibaca dari mesin ini.
+`option_env!` menanam nilainya saat kompilasi, jadi cloud save di binary ini mati
+dan shell mencetak peringatan saat boot. README dan catatan rilis menyebutkan
+batasan itu; build berikutnya dengan kedua variabel di environment akan
+mengaktifkannya kembali tanpa perubahan kode.

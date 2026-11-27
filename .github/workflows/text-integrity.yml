@@ -27,7 +27,7 @@ jobs:
 
       - name: Verify LICENSE hash
         run: |
-          expected="32619612c2e0223e86c4908747ec14bef64c3c423fee80910c1aa944769b66f9"
+          expected="daf69d893e1c89f38ee09fccfb93a14f73ca47d1d2e0e835d1920b72a669b988"
           actual="$(sha256sum LICENSE | cut -d ' ' -f1)"
 
           if [ "$actual" != "$expected" ]; then

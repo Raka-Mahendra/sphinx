@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { app } from "electron";
-import { is } from "@electron-toolkit/utils";
+import { is } from "../../sidecar/electron-shim/electron-toolkit.js";
 import { SystemPath } from "./system-path";
 import { logsPath } from "@main/constants";
 import { logger } from "./logger";

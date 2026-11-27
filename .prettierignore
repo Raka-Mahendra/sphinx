@@ -1,6 +1,5 @@
 out
 dist
-/legendary/
 /hydra-native/
 /.cache/
 seeds
@@ -9,10 +8,8 @@ LICENSE.md
 tsconfig.json
 tsconfig.*.json
 .cache/
-legendary/
 hydra-native/
 native/**/target/
-binaries/epic-prerequisite-runner/
 native/epic-prerequisite-runner/tests/*.wxs
 # Rust is formatted by rustfmt, not prettier
 src-tauri/**/*.rs

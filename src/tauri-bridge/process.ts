@@ -47,7 +47,7 @@ const webviewProcess: WebviewProcess = {
   nextTick: (callback) => setTimeout(callback, 0),
 };
 
-const globalObject = globalThis as { process?: WebviewProcess };
+const globalObject = globalThis as unknown as { process?: WebviewProcess };
 
 if (!globalObject.process) {
   globalObject.process = webviewProcess;

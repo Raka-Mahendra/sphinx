@@ -70,6 +70,13 @@ the action can only emit `latest.json` when it uploads the release itself. The
 script and version-alignment helper are verified by unit tests in `scripts/`
 (`scripts/make-update-manifest.test.mjs` and `scripts/bump-version.test.mjs`).
 
+The updater endpoint is `releases/latest/download/latest.json`, and GitHub's
+`latest` route **skips prereleases**. A release marked as a prerelease on GitHub
+therefore makes every installed copy fail its update check with a 404. Publish
+normal releases and put the alpha or beta status in the title and body. If a
+build really must be a GitHub prerelease, point `plugins.updater.endpoints` at
+that tag and accept that it will not roll forward on its own.
+
 ---
 
 ## 3. Backing the keys up
