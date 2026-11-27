@@ -20,7 +20,6 @@ import {
   DownloadManager,
   HydraApi,
   uploadGamesBatch,
-  startMainLoop,
   Ludusavi,
   Lock,
   DeckyPlugin,
@@ -248,7 +247,9 @@ export const loadState = async () => {
 
   WindowManager.sendDownloadsUpdated();
 
-  startMainLoop();
+  // The sidecar entry starts the main loop after the recovery scan. Starting
+  // it here would let the process watcher open a non-resumed session for a
+  // game that is already running before the scan can mark it `resumed`.
 
   if (process.platform === "win32") {
     CommonRedistManager.downloadCommonRedist();

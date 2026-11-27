@@ -189,6 +189,10 @@ disappears on the next success or when the shell reports `ready`.
 
 - `watchProcesses({ resumed: true })` — the baseline's own process scan, marked
   so the log can tell "the user launched this" from "this was already running".
+- The scan runs **before** `startMainLoop()`. `loadState()` no longer starts the
+  main loop: its process watcher ticks immediately, so a game that was already
+  running got a non-resumed session first and the recovery report was empty.
+  A `loadState()` that threw keeps the baseline behaviour (no main loop).
 - `setGamePlaytime` now generates a `sessionId` per session and carries a
   `resumed` flag. Neither is persisted, per the PRD.
 - the download queue is counted and reported; `loadState()` rebuilds it from the
@@ -225,6 +229,10 @@ must not be stopped by it.
 `cargo test --all-features` runs and passes (30 tests) with the Rust toolchain
 installed on this machine. An earlier handoff recorded a missing
 `api-ms-win-core-path-l1-1-0.dll`; that is no longer the case.
+
+`yarn test:crash` passes `--test-concurrency=1`. Both `crash-recovery.test.ts`
+and `torrent-engine.test.ts` bind the single torrent port (5881), so running
+the files in parallel races for it as soon as the native addon is installed.
 
 ### Test-only hook
 

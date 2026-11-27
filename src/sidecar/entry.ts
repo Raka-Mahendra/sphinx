@@ -9,7 +9,9 @@
  *    module load, before anything else is imported;
  * 2. wiring the protocol to the baseline `ipcMain` registry, so the existing
  *    311 `registerEvent` handlers serve the renderer without being rewritten;
- * 3. running the baseline state bootstrap (`loadState`) and the recovery scan;
+ * 3. running the baseline state bootstrap (`loadState`), the recovery scan, and
+ *    only then the main loop, so the scan sees running games before the first
+ *    process watcher tick;
  * 4. the ordered shutdown that the supervisor asks for over RPC.
  */
 import { SidecarRpc } from "./rpc.js";
@@ -160,12 +162,15 @@ rpc.addShutdownHook(
     async () => {
       // Baseline order: cancel debrid preparations, drop the sleep blocker,
       // pause the download so its progress row survives the restart.
-      const [{ DownloadOrchestrator }, { PowerSaveBlockerManager }, { DownloadManager }] =
-        await Promise.all([
-          import("@main/services/download-orchestrator"),
-          import("@main/services/power-save-blocker"),
-          import("@main/services/download/download-manager"),
-        ]);
+      const [
+        { DownloadOrchestrator },
+        { PowerSaveBlockerManager },
+        { DownloadManager },
+      ] = await Promise.all([
+        import("@main/services/download-orchestrator"),
+        import("@main/services/power-save-blocker"),
+        import("@main/services/download/download-manager"),
+      ]);
 
       DownloadOrchestrator.cancelPendingDebridPreparations();
       PowerSaveBlockerManager.reset();
@@ -355,9 +360,12 @@ const boot = async (): Promise<void> => {
     }\n`
   );
 
+  let stateLoaded = false;
+
   try {
     const { loadState } = await import("@main/main");
     await loadState();
+    stateLoaded = true;
   } catch (error) {
     // Baseline behaviour (`src/main/index.ts:183-187`): log and continue so the
     // UI still opens, even when a migration or the network fails.
@@ -378,6 +386,31 @@ const boot = async (): Promise<void> => {
         error instanceof Error ? (error.stack ?? error.message) : String(error)
       }\n`
     );
+  }
+
+  // Start the main loop only after the recovery scan. `loadState()` used to do
+  // it, but its process watcher ticks immediately: a game that was already
+  // running got a non-resumed session before the scan could mark it, so the
+  // recovery report was always empty. The scan must be the first process
+  // watcher pass.
+  //
+  // Keep the baseline failure behaviour too: a `loadState` that threw (for
+  // example, a second sidecar losing the torrent port) never reached
+  // `startMainLoop()` either, and starting it anyway would retry the failed
+  // initialisation.
+  if (stateLoaded) {
+    try {
+      const { startMainLoop } = await import("@main/services/main-loop");
+      await startMainLoop();
+    } catch (error) {
+      process.stderr.write(
+        `[sidecar] startMainLoop failed: ${
+          error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error)
+        }\n`
+      );
+    }
   }
 
   rpc.announceReady();

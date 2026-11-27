@@ -18,7 +18,7 @@
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "test:crash": "yarn build:sidecar && node --import ./scripts/register-ts-node.mjs --test \"src/sidecar/*.test.ts\"",
+    "test:crash": "yarn build:sidecar && node --import ./scripts/register-ts-node.mjs --test --test-concurrency=1 \"src/sidecar/*.test.ts\"",
     "test:torrent": "yarn build:sidecar && node --import ./scripts/register-ts-node.mjs --test \"src/sidecar/torrent-engine.test.ts\"",
     "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\" \"src/**/*.test.cjs\" \"scripts/*.test.mjs\"",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
