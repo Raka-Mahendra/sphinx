@@ -6,7 +6,7 @@ introduced by the Sphinx migration.
 
 ## Summary
 
-Full `src` test suite on this machine (Fase 1 branch `sphinx/tauri-migration`), excluding
+Full `src` test suite on this machine (Fase 1 branch `sphinx/main`), excluding
 `src/main/services/epic/` (Linux-only):
 
 | Metric    | Value |

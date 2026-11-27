@@ -1,7 +1,7 @@
 # Feature Flags — Sphinx Launcher (Fase 1)
 
 Baseline commit: `be492f5e3fc4a37c55d7df2b07faf5f9565c84dd`.
-Implementation branch: `sphinx/tauri-migration`.
+Implementation branch: `sphinx/main`.
 Scope: the runtime feature-flag layer required by `PRD.md` v2.2 §4.B, plus the
 parts of §4.E (Electron updater) and §4.G (Epic runtime assets) that interact
 with flag-gated code.

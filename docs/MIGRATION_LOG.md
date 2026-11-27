@@ -9,7 +9,7 @@ diubah.
 1. [x] Clone penuh `hydralauncher/hydra` ke folder terpisah dan catat versi + SHA.
 2. [x] Bandingkan direktori kerja dengan clone upstream.
 3. [x] Siapkan riwayat upstream, remote `upstream`, tag `baseline-hydra`, dan
-       branch `sphinx/tauri-migration` di repo lokal.
+       branch `sphinx/main` di repo lokal.
 4. [x] Pasang dependensi dan jalankan build Electron asli sebagai pembanding.
        Runtime `dev` belum dijalankan; build produksi sudah lulus.
 5. [ ] Verifikasi `hydra-native.node`, `sharp`, dan `classic-level` di Node LTS.
@@ -36,7 +36,7 @@ diubah.
 | Tag upstream `v4.1.6`                    | `5e5dbcc77fe2638daa7e5365cdafdd6cda3f85fb`               | `git rev-parse v4.1.6`                                 |
 | Commit yang cocok dengan direktori kerja | `be492f5e3fc4a37c55d7df2b07faf5f9565c84dd` (2026-10-20)  | diff clone `be492f5` vs direktori kerja                |
 | Tag lokal `baseline-hydra`               | `be492f5e3fc4a37c55d7df2b07faf5f9565c84dd`               | `git rev-parse baseline-hydra`                         |
-| Branch kerja                             | `sphinx/tauri-migration`                                 | `git branch --show-current`                            |
+| Branch kerja                             | `sphinx/main`                                            | `git branch --show-current`                            |
 | Remote upstream                          | `https://github.com/hydralauncher/hydra.git`             | `git remote -v`                                        |
 
 ### Catatan pemilihan baseline
