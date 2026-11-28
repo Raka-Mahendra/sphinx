@@ -1,6 +1,10 @@
 import type { Game } from "@types";
 
 const TITLE_ID = /^[A-Z]{4}\d{5}$/;
+// Catalogue suffixes are alphabetic edition/region markers (`EXP`, `EUR`).
+// A numeric tail is deliberately not accepted: `BCES01284` followed by a digit
+// could be a longer Title ID, and truncating it to five digits would associate
+// the wrong save.
 const CATALOGUE_TITLE_ID = /^([A-Z]{4}\d{5})[A-Z]*$/;
 
 // Some editions retain the original release's savedata directory ID.

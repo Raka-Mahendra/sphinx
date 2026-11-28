@@ -97,12 +97,45 @@ const windowsPortableDirs = (): string[] => {
   return dirs;
 };
 
+/**
+ * Only fixed disks.
+ *
+ * `searchPortableWindows` lists each directory, and listing the root of a
+ * disconnected mapped network drive, an empty optical drive or a sleeping USB
+ * disk can block the main process for seconds. .NET's `DriveInfo` reports the
+ * type without touching the volume, so only real fixed drives reach
+ * `readdirSync`.
+ */
+const listFixedWindowsDrives = (): string[] => {
+  const result = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      "[System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' } | ForEach-Object { $_.Name.Substring(0, 2) }",
+    ],
+    { encoding: "utf8", shell: false, timeout: 2000, windowsHide: true }
+  );
+
+  if (result.error || result.status !== 0 || !result.stdout) return [];
+
+  return result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim().toUpperCase())
+    .filter((drive) => /^[A-Z]:$/.test(drive));
+};
+
 const windowsDriveRoots = (): string[] => {
-  const systemDrive = (process.env["SystemDrive"] ?? "C:").toUpperCase();
-  const otherDrives = [..."CDEFGHIJKLMNOPQRSTUVWXYZ"]
-    .map((letter) => `${letter}:`)
-    .filter((drive) => drive !== systemDrive);
-  return [systemDrive, ...otherDrives].map((drive) => `${drive}\\`);
+  const systemDrive = (process.env["SystemDrive"] ?? "C:")
+    .trim()
+    .replace(/:$/, "")
+    .toUpperCase();
+  const drives = [
+    systemDrive,
+    ...listFixedWindowsDrives().map((drive) => drive.replace(/:$/, "")),
+  ];
+  return [...new Set(drives)].map((drive) => `${drive}\\`);
 };
 
 const binarySubdirName = (executableName: string): string => {

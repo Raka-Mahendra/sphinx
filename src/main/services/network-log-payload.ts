@@ -135,10 +135,25 @@ const sanitizePayload = (value: unknown, seen: WeakSet<object>): unknown => {
 export const sanitizeNetworkLogPayload = (value: unknown) =>
   sanitizePayload(value, new WeakSet());
 
+/** Default logging keeps at most this much of a raw string body. */
+const MAX_SUMMARY_STRING_CHARS = 512;
+
 export const summarizeNetworkLogPayload = (value: unknown) => {
   if (Array.isArray(value)) return `[Array: ${value.length} items]`;
   if (value !== null && typeof value === "object") {
     return `[Object: ${Object.keys(value).length} keys]`;
+  }
+
+  if (typeof value === "string") {
+    const sanitized = sanitizeNetworkLogPayload(value);
+    // A serialized JSON/form payload sanitizes to an object; do not expand a
+    // large body just because it arrived as text.
+    if (typeof sanitized !== "string") {
+      return `[String payload: ${value.length} chars]`;
+    }
+    return sanitized.length > MAX_SUMMARY_STRING_CHARS
+      ? `${sanitized.slice(0, MAX_SUMMARY_STRING_CHARS)}...[truncated, ${sanitized.length} chars]`
+      : sanitized;
   }
 
   return sanitizeNetworkLogPayload(value);
