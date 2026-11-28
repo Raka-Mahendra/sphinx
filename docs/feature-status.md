@@ -108,21 +108,32 @@ this build.
 
 ### 3.5 Release and quality
 
-- The release workflow has never run. It still needs
+- CI is green on the repository's default branch: `Lint` run
+  [46124329629](https://github.com/Raka-Mahendra/sphinx/actions/runs/46124329629)
+  on `9d4c16a3` — `lint` (full `yarn test` on Ubuntu), `rust (ubuntu-latest)`,
+  `rust (windows-latest)` and `js-windows` all succeed. Before that run no
+  workflow had ever executed for a push to `sphinx/main`: `lint.yml` and
+  `text-integrity.yml` only matched `main`, which does not exist in this repo.
+- The release workflow has never completed. It still needs
   `TAURI_SIGNING_PRIVATE_KEY` and its password; the repo only has Google secrets
   (issue #5). It now fails the build before it compiles anything when the secret
   is missing, naming the fix, instead of a cryptic Tauri error after ~15 minutes.
 - The `0.1.0 → next` update path has never run (issue #2). The code path is
   verified offline in `docs/updater-verification.md`.
-- `yarn test` without a filter hangs on the Epic suites on Windows (issue #1).
-  CI runs the full suite on `ubuntu-latest` and the Windows-safe subset plus the
-  sidecar suites on `windows-latest`; locally use `yarn test:crash` and
+- `yarn test` without a filter hangs on the Epic suites on Windows. CI runs the
+  full suite on `ubuntu-latest` and the Windows-safe subset plus the sidecar
+  suites on `windows-latest`; locally use `yarn test:crash` and
   `yarn test:torrent`.
-- The Windows-environmental test failures were fixed (issue #4); see
-  `docs/windows-environmental-test-failures.md`.
-- The sidecar now logs response summaries by default and only logs full bodies
-  when asked to (issue #3), so `info.txt` no longer grows with every catalogue
-  body.
+- The Windows-environmental test failures are fixed and pass on a real Windows
+  runner (issue #4); see `docs/windows-environmental-test-failures.md`.
+- The sidecar logs response summaries by default and only logs full bodies when
+  asked to (issue #3), so `info.txt` no longer grows with every catalogue body.
+- A sidecar built without a developer `.env` used to boot with **no IPC
+  handlers**: `import.meta.env.MAIN_VITE_API_URL` was undefined,
+  `src/main/constants.ts` threw at module load and the event registration never
+  ran, so every invoke answered `No handler registered`. The bundle now defines
+  every referenced key (`""` when unset), which also makes the release build
+  correct without a `.env`.
 - The Sphinx logo has not had a human sign-off yet (phase 2 gate).
 
 ## 4. Not built

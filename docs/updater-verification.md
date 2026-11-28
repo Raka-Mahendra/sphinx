@@ -74,3 +74,14 @@ workflow cannot sign an updater bundle without `TAURI_SIGNING_PRIVATE_KEY` and
 **before** it compiles anything when that secret is missing, with the two secret
 names and a pointer to `docs/release.md` §§1, 3 and 9, instead of the previous
 cryptic "Signing updater artifacts requires a private key" after ~15 minutes.
+
+The one release run that exists,
+[45978830327](https://github.com/Raka-Mahendra/sphinx/actions/runs/45978830327)
+(tag `v0.1.0`), failed at `Build the bundle` — the step that signs the updater
+artefact — which is consistent with that diagnosis. Its log needs repository
+authentication, so the step name is the evidence, not the message.
+
+The build itself no longer needs a developer `.env`: `scripts/build-sidecar.mjs`
+defines every `MAIN_VITE_*` key the sources read and defaults it to `""` (see
+`docs/release.md` §2). Before that fix a clean build produced a sidecar with no
+IPC handlers at all, which would have made the update silently useless.

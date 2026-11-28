@@ -962,3 +962,57 @@ hal: job Rust di Ubuntu membutuhkan dependensi sistem Tauri (webkit2gtk, gtk,
 appindicator) dan ringkasan log default masih menulis body string tanpa batas.
 Keduanya sudah ditutup; temuan low lainnya (pemindaian drive non-fixed, sufiks
 SKU numerik) ditangani/dijelaskan di komit terkait.
+
+## Verifikasi CI nyata dan kesiapan rilis (28 November 2026)
+
+Putaran ini tidak menambah fitur; tujuannya membuktikan bahwa yang sudah ada
+benar-benar berjalan. CI dijalankan untuk pertama kalinya pada branch ini, dan
+itu langsung memunculkan empat masalah yang tidak terlihat dari tes lokal.
+
+| Temuan                                                                              | Akar masalah                                                                                                                                                                                                 | Perbaikan                                                                                                                                 |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Tidak ada workflow yang pernah berjalan untuk push ke branch ini                    | Branch default repo adalah `sphinx/main`, sedangkan `lint.yml` dan `text-integrity.yml` hanya memfilter `main`                                                                                               | Filter diganti ke `sphinx/main` (`1b04105f2`)                                                                                             |
+| `commitlint --last` gagal di job `lint`                                             | Baris body komit lebih dari 100 karakter                                                                                                                                                                     | Pesan komit dirapikan; HEAD berikutnya lolos (`9d4c16a32`)                                                                                |
+| `cargo clippy` gagal di Ubuntu **dan** Windows                                      | `tauri-build` memvalidasi `bundle.externalBin`, `bundle.resources`, dan `frontendDist` saat kompilasi: `binaries/node-<triple>` dan `../hydra-native` tidak ada di checkout bersih                           | Langkah CI men-stage Node dan membuat placeholder `out/sidecar`, `out/renderer`, `hydra-native`, `ludusavi` (`cfb862a33`, `9d4c16a32`)    |
+| Sidecar hasil build tanpa `.env` boot tetapi **tidak mendaftarkan handler apa pun** | `import.meta.env.MAIN_VITE_API_URL` tidak terdefinisi → `src/main/constants.ts` melempar saat modul dimuat → `src/main/events` tidak pernah jalan → semua invoke menjawab `No handler registered for 'ping'` | `scripts/lib/sidecar-env.mjs` memindai sumber dan mendefinisikan setiap kunci `MAIN_VITE_*`/`RENDERER_VITE_*`, default `""` (`f8ba64a9d`) |
+
+Temuan keempat adalah bug rilis, bukan hanya bug tes: runner rilis tidak punya
+`.env`, jadi build `v0.1.1` akan menghasilkan aplikasi dengan IPC mati. Bug ini
+direproduksi di worktree bersih (tanpa `.env`), lalu diperbaiki dan diuji ulang
+di worktree yang sama: `yarn test:crash` 34/34 dan `yarn test:torrent` 4/4 tanpa
+`.env`, ditambah 6 unit test baru di `scripts/sidecar-env.test.mjs`.
+
+### Bukti CI
+
+| Run                                                                             | Commit                    | Hasil                                                                                                                           |
+| ------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| [46124329629](https://github.com/Raka-Mahendra/sphinx/actions/runs/46124329629) | `9d4c16a3`                | **Semua hijau**: `lint` (Ubuntu, `yarn test` penuh), `rust (ubuntu-latest)`, `rust (windows-latest)`, `js-windows`              |
+| [46123533350](https://github.com/Raka-Mahendra/sphinx/actions/runs/46123533350) | `cfb862a3`                | `lint` dan `js-windows` hijau (termasuk `Windows-sensitive tests`); job Rust gagal di langkah staging yang masih memakai `bash` |
+| [46123533365](https://github.com/Raka-Mahendra/sphinx/actions/runs/46123533365) | `cfb862a3`                | `Text Integrity` hijau                                                                                                          |
+| [46121282629](https://github.com/Raka-Mahendra/sphinx/actions/runs/46121282629) | `1b04105f`                | Run diagnostik pertama: commitlint dan tiga job Rust gagal, memperlihatkan penyebab sebenarnya                                  |
+| [45978830327](https://github.com/Raka-Mahendra/sphinx/actions/runs/45978830327) | `e4239c55` (tag `v0.1.0`) | Satu-satunya run rilis; gagal di `Build the bundle`, langkah yang membutuhkan kunci signing                                     |
+
+Log mentah job memerlukan autentikasi, jadi diagnosis dilakukan dengan
+mereproduksi lingkungan CI secara lokal: worktree bersih di `HEAD`, tanpa `out/`,
+tanpa `.env`, `yarn --frozen-lockfile --ignore-scripts`, lalu `cargo clippy`.
+Pesan galat yang muncul identik dengan kegagalan runner
+(`failed to build the Tauri app manifest: resource path ... doesn't exist`).
+
+### Audit OpenCodeReview
+
+`ocr_health` melaporkan OpenCodeReview v1.14.4 dengan koneksi dan tool-call
+round trip berhasil, tetapi dua percobaan `ocr_review` (`4926f4023..HEAD`, 36
+berkas) berakhir dengan `all 36 file review(s) failed`. Sesi
+`3367eb64-d576-487d-97f7-a2c6924ceb55` (69.831 token) dan
+`e71da4f6-40c0-4208-8043-051c5e5ef45e` (8.959 token, konkurensi 1) sama-sama
+tidak menghasilkan satu komentar pun. Ini kegagalan penyedia model, bukan
+temuan kode; tidak ada hasil review yang diklaim.
+
+### Status issue setelah putaran ini
+
+- **#1, #3, #4 ditutup** dengan komentar berisi tautan run dan nama tes; ketiga
+  kriteria penutupan (job Rust Linux hijau, perilaku logging terverifikasi,
+  CI Windows hijau) terpenuhi oleh run `46124329629`.
+- **#2 tetap terbuka**: butuh rilis kedua yang benar-benar dipublikasikan.
+- **#5 tetap terbuka**: butuh dua secret signing ditambahkan ke repo. Tidak ada
+  nilai secret yang dibaca, dicetak, atau disimpan di repo.

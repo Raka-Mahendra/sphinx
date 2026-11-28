@@ -10,6 +10,12 @@ introduced by the Sphinx migration.
 > archive reader normalises `\`, and the notification-icon test disables the `sharp` cache
 > and retries its cleanup. The baseline rows below are kept as the record of what was
 > wrong and why.
+>
+> **CI evidence (28 November 2026):** in run
+> [46124329629](https://github.com/Raka-Mahendra/sphinx/actions/runs/46124329629) the
+> `js-windows` job passes `Sidecar suites` and `Windows-sensitive tests` on
+> `windows-latest`, and `rust (windows-latest)` passes fmt, clippy, tests and the release
+> check. That is the first time any of this ran on a real Windows runner.
 
 ## Summary
 

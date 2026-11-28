@@ -77,6 +77,17 @@ normal releases and put the alpha or beta status in the title and body. If a
 build really must be a GitHub prerelease, point `plugins.updater.endpoints` at
 that tag and accept that it will not roll forward on its own.
 
+### The build needs no `.env`
+
+The release runner has no `.env`, and it must not need one. `scripts/build-sidecar.mjs`
+defines every `import.meta.env.MAIN_VITE_*`/`RENDERER_VITE_*` key the sources read
+and falls back to an empty string, which is the "not configured" state the
+account features already expect. (Before this, a build without `.env` produced a
+sidecar that booted but registered no IPC handlers at all.)
+
+The only build secrets are the two updater keys in §1 and §3, plus the optional
+Authenticode certificate in §6.
+
 ---
 
 ## 3. Backing the keys up
