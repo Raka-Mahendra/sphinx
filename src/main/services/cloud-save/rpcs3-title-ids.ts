@@ -1,6 +1,7 @@
 import type { Game } from "@types";
 
 const TITLE_ID = /^[A-Z]{4}\d{5}$/;
+const CATALOGUE_TITLE_ID = /^([A-Z]{4}\d{5})[A-Z]*$/;
 
 // Some editions retain the original release's savedata directory ID.
 // These associations apply to savedata only, never to media or savestates.
@@ -12,6 +13,19 @@ export const normalizeRpcs3TitleId = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const normalized = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   return TITLE_ID.test(normalized) ? normalized : null;
+};
+
+/**
+ * Catalogue SKUs may carry a region/edition suffix (`BCES01284EXP`). Keep the
+ * strict Title ID everywhere a disc or savestate is identified, but accept the
+ * suffixed form when reading the shop catalogue.
+ */
+export const normalizeRpcs3CatalogueTitleId = (
+  value: unknown
+): string | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  return CATALOGUE_TITLE_ID.exec(normalized)?.[1] ?? null;
 };
 
 export const rpcs3TitleIdsForGame = (game: Game): string[] =>
@@ -26,7 +40,7 @@ export const expandRpcs3SavedataTitleIds = (
 ): string[] => {
   const ids = new Set(
     [...titleIds]
-      .map(normalizeRpcs3TitleId)
+      .map(normalizeRpcs3CatalogueTitleId)
       .filter((id): id is string => id !== null)
   );
   for (const id of [...ids]) {
