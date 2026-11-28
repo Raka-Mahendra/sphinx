@@ -63,6 +63,28 @@ jobs:
       - name: Check the version sources against the tag
         run: node scripts/bump-version.mjs --check "${{ github.ref_name }}"
 
+      # Issue #5: `bundle.createUpdaterArtifacts` is `true`, so `cargo tauri
+      # build` aborts with "Signing updater artifacts requires a private key"
+      # when `TAURI_SIGNING_PRIVATE_KEY` is unset — but only after the renderer,
+      # sidecar and native addon have all been built (~15 min of wasted runner
+      # time). Fail here instead, naming the two secrets and the doc that
+      # explains how to create them.
+      - name: Require the updater signing secrets
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            Write-Error @"
+          TAURI_SIGNING_PRIVATE_KEY is not set, so the updater bundle cannot be signed.
+          Set TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD as
+          repository secrets before tagging, and make sure the private key matches
+          plugins.updater.pubkey in src-tauri/tauri.conf.json.
+          See docs/release.md sections 1, 3 and 9 (Issue #5).
+          "@
+            exit 1
+          }
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
 
