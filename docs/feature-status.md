@@ -114,10 +114,26 @@ this build.
   `rust (windows-latest)` and `js-windows` all succeed. Before that run no
   workflow had ever executed for a push to `sphinx/main`: `lint.yml` and
   `text-integrity.yml` only matched `main`, which does not exist in this repo.
-- The release workflow has never completed. It still needs
-  `TAURI_SIGNING_PRIVATE_KEY` and its password; the repo only has Google secrets
-  (issue #5). It now fails the build before it compiles anything when the secret
-  is missing, naming the fix, instead of a cryptic Tauri error after ~15 minutes.
+- The release workflow has never completed. The release is designed to use only
+  `TAURI_SIGNING_PRIVATE_KEY`, and the key is passwordless, so
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is intentionally unset (issue #5). The
+  secret's presence could not be verified from this checkout (no authenticated
+  `gh`/API access), so a signed build is the only proof. The workflow still
+  fails before compiling when the key secret is missing. A CI-built signed
+  release has not been produced yet; the public 0.1.0 assets were uploaded
+  outside the failed workflow run, and their bundled `node.exe` is v24.22.1,
+  not the CI-pinned v22.21.0.
+- A manual, non-publishing signing smoke workflow
+  (`.github/workflows/tauri-signing-smoke.yml`) and a verifier
+  (`scripts/verify-updater-signature.mjs`) are prepared. The verifier reproduces
+  the updater's checks and passes against the published `v0.1.0` installer, but
+  the workflow **has not been run**: it is not yet on GitHub, and pushing it
+  requires owner authorization. "GitHub Actions can sign" is therefore still
+  unproven.
+- The release action was migrated from the end-of-life
+  `softprops/action-gh-release@v2` (Node 20, no longer maintained) to `@v3`
+  (Node 24). The inputs and draft/finalize code paths used here are unchanged,
+  but a live publish remains unvalidated until an authorized release.
 - The `0.1.0 → next` update path has never run (issue #2). The code path is
   verified offline in `docs/updater-verification.md`.
 - `yarn test` without a filter hangs on the Epic suites on Windows. CI runs the

@@ -1,0 +1,234 @@
+name: Tauri Signing Smoke
+
+# Proves that GitHub Actions can build the real Windows package and sign its
+# updater artefacts with the project's existing key — without tagging, without
+# creating a release and without touching the published `v0.1.0` assets.
+#
+# This workflow is manual only. `workflow_dispatch` can target any ref, so the
+# job itself refuses to run anywhere except `sphinx/main` in the canonical
+# repository. It never receives `contents: write` and has no release step.
+#
+# Usage (after the workflow file is on `sphinx/main`):
+#   gh workflow run tauri-signing-smoke.yml --ref sphinx/main
+#   gh run watch
+#   gh run download <run-id> -n signing-smoke-evidence
+#
+# Optional hardening: create a `release-signing` environment with required
+# reviewers, then add `environment: release-signing` to the job. It is not set
+# here because referencing an environment that does not exist yet would either
+# create an unprotected one or fail the job — both worse than the explicit
+# ref/repository guards below.
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22.21.0"
+  # The committed public key's display ID. The verifier asserts it.
+  EXPECTED_UPDATER_KEY_ID: "96C5E41CD0651543"
+
+jobs:
+  sign:
+    if: >-
+      github.repository == 'Raka-Mahendra/sphinx' &&
+      github.ref == 'refs/heads/sphinx/main'
+    name: Build and sign (no publish)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # There is no tag in a manual run, so derive the expected version from
+      # `package.json` and assert the other two sources agree with it.
+      - name: Check the version sources agree
+        id: version
+        shell: pwsh
+        run: |
+          $version = (node -p "require('./package.json').version").Trim()
+          node scripts/bump-version.mjs --check "v$version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      # Fail before the ~15-minute build when the secret is absent. This checks
+      # presence only; it never echoes the value. A signed build is the proof
+      # that the key is also usable and belongs to the configured public key.
+      - name: Require the updater signing key
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            Write-Error @"
+          TAURI_SIGNING_PRIVATE_KEY is not set, so the updater bundle cannot be signed.
+          Add it under Settings -> Secrets and variables -> Actions.
+          The updater key is passwordless, so do not set a made-up password.
+          See docs/release.md sections 1, 3, 9 and 11.
+          "@
+            exit 1
+          }
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      # `--ignore-scripts` skips postinstall, and the bundle ships `ludusavi/`.
+      - name: Download ludusavi for the bundle
+        run: node scripts/postinstall.cjs
+
+      - name: Stage the Node binary for bundle.externalBin
+        run: yarn stage:node
+
+      # Build the addon before checking the torrent resources, exactly as the
+      # release build does. `hydra-native/` is git-ignored.
+      - name: Build the native torrent addon
+        run: yarn build:native
+        env:
+          HYDRA_NATIVE_SKIP_LOAD_TEST: "1"
+
+      - name: Verify the torrent resources are packageable
+        run: yarn check:torrent-resources
+
+      # `createUpdaterArtifacts: true` makes this step emit the `.sig` next to
+      # the NSIS installer. The password is an explicit empty string: the key
+      # has none, and Tauri rejects a made-up password.
+      - name: Build and sign the Windows bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
+        run: yarn tauri build
+
+      # Reproduce the release flow's rename and manifest generation, but write
+      # to a dedicated evidence directory instead of a release. No network and
+      # no publication: the manifest URL is the one a real release would use.
+      - name: Normalize names and build the update manifest
+        id: package
+        shell: pwsh
+        run: |
+          $bundles = @(Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe")
+          if ($bundles.Count -ne 1) {
+            throw "Expected exactly one NSIS installer, found $($bundles.Count)"
+          }
+
+          $raw = $bundles[0]
+          if (-not (Test-Path "$($raw.FullName).sig")) {
+            throw "No .sig next to $($raw.Name); the bundle was not signed"
+          }
+
+          $version = "${{ steps.version.outputs.version }}"
+          $outDir = "signing-smoke-evidence"
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+          $bundle = Join-Path $outDir "sphinx-launcher_${version}_x64-setup.exe"
+          Copy-Item $raw.FullName $bundle
+          Copy-Item "$($raw.FullName).sig" "$bundle.sig"
+
+          node scripts/make-update-manifest.mjs `
+            --tag "v$version" `
+            --bundle $bundle `
+            --sig "$bundle.sig" `
+            --out (Join-Path $outDir "latest.json") `
+            --sha256-out (Join-Path $outDir "SHA256SUMS")
+
+          "bundle=$bundle" >> $env:GITHUB_OUTPUT
+
+      # Mirrors tauri-plugin-updater: key ID, Ed25519 over the BLAKE2b-512
+      # prehash (or legacy raw bytes), the global signature over signature +
+      # trusted comment, and the manifest's signature/URL/version.
+      - name: Verify the signature and the manifest
+        shell: pwsh
+        env:
+          BUNDLE: ${{ steps.package.outputs.bundle }}
+        run: |
+          $outDir = "signing-smoke-evidence"
+          node scripts/verify-updater-signature.mjs `
+            --file $env:BUNDLE `
+            --signature "$($env:BUNDLE).sig" `
+            --config "src-tauri/tauri.conf.json" `
+            --expect-key-id "$env:EXPECTED_UPDATER_KEY_ID" `
+            --manifest (Join-Path $outDir "latest.json") `
+            --expect-version "${{ steps.version.outputs.version }}" `
+            --json-out (Join-Path $outDir "signature-verification.json")
+
+      # The upload is an allowlist, not the whole workspace. Refuse to upload if
+      # anything unexpected appeared in the evidence directory (for example a
+      # key file copied there by a future edit).
+      - name: Check the evidence directory contains no secrets
+        id: evidence
+        if: always()
+        shell: pwsh
+        run: |
+          $outDir = "signing-smoke-evidence"
+          if (-not (Test-Path $outDir)) {
+            "safe=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          $version = "${{ steps.version.outputs.version }}"
+          $expected = @(
+            "latest.json",
+            "SHA256SUMS",
+            "signature-verification.json",
+            "sphinx-launcher_${version}_x64-setup.exe",
+            "sphinx-launcher_${version}_x64-setup.exe.sig"
+          )
+          $actual = @(Get-ChildItem $outDir -Recurse -File | ForEach-Object { $_.Name })
+          $unexpected = @($actual | Where-Object { $_ -notin $expected })
+          if ($unexpected.Count -gt 0) {
+            throw "Unexpected files in the evidence directory: $($unexpected -join ', ')"
+          }
+          $sensitive = @($actual | Where-Object { $_ -match '\.(key|pem|p12|env)$' -or $_ -eq '.env' })
+          if ($sensitive.Count -gt 0) {
+            throw "Refusing to upload sensitive-looking files: $($sensitive -join ', ')"
+          }
+          "safe=true" >> $env:GITHUB_OUTPUT
+
+      - name: Write the run summary
+        if: always()
+        shell: pwsh
+        run: |
+          $resultPath = "signing-smoke-evidence/signature-verification.json"
+          if (-not (Test-Path $resultPath)) {
+            "### Signing smoke result`n`nNo verification result was produced." >> $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+          $result = Get-Content $resultPath -Raw | ConvertFrom-Json
+          @"
+          ### Signing smoke result
+
+          - Installer: ``$($result.file)`` ($($result.file_bytes) bytes)
+          - SHA-256: ``$($result.file_sha256)``
+          - Key ID: ``$($result.key_id)`` (expected ``$($result.expected_key_id)``)
+          - Algorithm: ``$($result.algorithm)``
+          - Signature: **$($result.signature_ok)**
+          - Global signature: **$($result.global_signature_ok)**
+          - Manifest: **$($result.manifest.ok)**
+          - Overall: **$($result.ok)**
+          "@ >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload signing evidence
+        if: always() && steps.evidence.outputs.safe == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: signing-smoke-evidence
+          path: signing-smoke-evidence/
+          retention-days: 7
+          if-no-files-found: warn

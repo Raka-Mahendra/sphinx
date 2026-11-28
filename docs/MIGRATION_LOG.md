@@ -953,9 +953,10 @@ Verifikasi akhir putaran ini: `cargo fmt --all -- --check` exit 0;
 Windows + skrip 195 tes (186 lulus, 9 skip).
 
 Yang tetap terbuka dan **tidak** diklaim selesai: Issue #2 butuh rilis kedua
-untuk dijalankan, Issue #5 butuh dua secret ditambahkan ke repo, dan audit
-OpenCodeReview berbasis LLM tertunda karena kuota penyedia model habis (temuan
-manual dicatat di dokumen ini).
+untuk dijalankan, Issue #5 butuh secret signing ditambahkan ke repo (key ini
+ternyata passwordless; lihat bagian 28 November 2026), dan audit OpenCodeReview
+berbasis LLM tertunda karena kuota penyedia model habis (temuan manual dicatat
+di dokumen ini).
 
 Review adversarial konteks-segar atas diff ini menemukan dan memperbaiki dua
 hal: job Rust di Ubuntu membutuhkan dependensi sistem Tauri (webkit2gtk, gtk,
@@ -1014,5 +1015,79 @@ temuan kode; tidak ada hasil review yang diklaim.
   kriteria penutupan (job Rust Linux hijau, perilaku logging terverifikasi,
   CI Windows hijau) terpenuhi oleh run `46124329629`.
 - **#2 tetap terbuka**: butuh rilis kedua yang benar-benar dipublikasikan.
-- **#5 tetap terbuka**: butuh dua secret signing ditambahkan ke repo. Tidak ada
-  nilai secret yang dibaca, dicetak, atau disimpan di repo.
+- **#5 menunggu bukti build**: workflow hanya membutuhkan secret
+  `TAURI_SIGNING_PRIVATE_KEY`; secret password sengaja tidak dibuat karena
+  keypair ini passwordless. Keberadaan secret **belum dapat diverifikasi** dari
+  checkout ini (tidak ada akses `gh`/API terautentikasi), jadi satu-satunya bukti
+  adalah build rilis bertanda tangan yang berhasil. Issue tetap terbuka. Tidak
+  ada nilai secret yang dibaca, dicetak, atau disimpan di repo pada sesi ini.
+
+## Verifikasi key updater tanpa password (28 November 2026)
+
+Keypair updater Sphinx dibuat pada 27 November 2026 16:01 WIB di sesi agen
+sebelumnya dengan:
+
+```powershell
+yarn tauri signer generate -w "$env:USERPROFILE\.sphinx-updater\sphinx-updater.key" --ci
+```
+
+`--ci` melewati prompt password dan tidak ada `-p`, jadi keypair ini
+**passwordless**. Ini bukan password yang hilang: password memang string kosong.
+
+| Pemeriksaan                                                 | Hasil                                    |
+| ----------------------------------------------------------- | ---------------------------------------- |
+| Tanda tangan dengan `TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""` | Berhasil (exit 0)                        |
+| Tanda tangan dengan password salah                          | Gagal: `Wrong password for that key`     |
+| `plugins.updater.pubkey` vs `sphinx-updater.key.pub`        | Cocok                                    |
+| Key ID public key                                           | `96C5E41CD0651543`                       |
+| Key ID signature installer `v0.1.0`                         | `96C5E41CD0651543`                       |
+| Key di Git / commit / dokumentasi                           | Tidak ada; dokumentasi hanya placeholder |
+| Environment variable / Credential Manager / file password   | Tidak ada                                |
+
+Secret yang **diperlukan** hanya `TAURI_SIGNING_PRIVATE_KEY`. Keberadaannya di
+repo belum dapat dibuktikan tanpa autentikasi; pemilik harus memeriksanya di
+_Settings → Secrets and variables → Actions_. `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+sengaja tidak dibuat. Dokumentasi GitHub menyatakan secret yang tidak diset
+dievaluasi menjadi string kosong; Tauri menerima password kosong untuk key tanpa
+password, dan simulasi lokal dengan env password kosong berhasil (exit 0).
+
+### Preflight workflow
+
+Preflight `Require the updater signing key` di `tauri-release.yml` hanya
+memeriksa apakah `TAURI_SIGNING_PRIVATE_KEY` tidak kosong. Simulasi lokal dengan
+nilai kosong menghasilkan exit 1 dan pesan yang menyebut nama secret; simulasi
+dengan nilai dummy non-kosong menghasilkan exit 0 tanpa mencetak nilainya.
+Preflight ini tidak memvalidasi isi key; validasi sebenarnya terjadi saat
+`tauri build`.
+
+### Implikasi keamanan
+
+- Siapa pun yang dapat membaca file key atau repository secret dapat
+  menandatangani update; tidak ada passphrase sebagai faktor kedua.
+- File key hanya dilindungi ACL sistem operasi. Cadangan offline terenkripsi
+  belum ditemukan, dan hanya ada satu salinan di laptop pengembang.
+- `v0.1.0` sudah publik dan installer-nya ditandatangani key ini, sehingga
+  rotasi harus lewat rilis bridge yang ditandatangani key lama dan berisi public
+  key baru. Mengganti `pubkey` sekarang akan memutus update instalasi lama.
+- Tauri CLI tidak mendokumentasikan perintah untuk menambahkan password ke key
+  yang sudah ada; passphrase berarti keypair baru dan rotasi.
+
+### Validasi signing tanpa release
+
+Workflow `workflow_dispatch` bernama `tauri-signing-smoke.yml` sudah disiapkan
+pada putaran ini. Ia hanya berjalan di `sphinx/main` pada repo kanonik, memakai
+`permissions: contents: read`, membangun paket Windows asli, menandatanganinya
+dengan `TAURI_SIGNING_PRIVATE_KEY` (password string kosong), lalu memverifikasi
+`.sig` terhadap `plugins.updater.pubkey` dengan
+`scripts/verify-updater-signature.mjs`. Key ID yang diharapkan:
+`96C5E41CD0651543`. Workflow ini tidak membuat tag, release, atau aset produksi;
+ia hanya mengunggah artifact bukti.
+
+Workflow tersebut **belum dijalankan** pada putaran ini (butuh push yang
+diotorisasi pemilik agar tersedia untuk `workflow_dispatch`), sehingga belum ada
+bukti bahwa GitHub Actions dapat menandatangani. Verifikasi lokal terhadap
+artefak `v0.1.0` yang sudah publik berhasil: signature dan global signature
+valid, key ID cocok, dan manifest konsisten. Itu membuktikan algoritme dan
+keypair, bukan keberadaan secret atau kemampuan runner.
+
+Tidak ada rotasi key, tag, atau release pada putaran ini.

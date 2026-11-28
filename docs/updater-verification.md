@@ -68,18 +68,45 @@ issue and close it.
 
 ## Related: Issue #5 (the signing secrets)
 
-Issue #2 cannot be exercised end to end until Issue #5 is closed: the release
-workflow cannot sign an updater bundle without `TAURI_SIGNING_PRIVATE_KEY` and
-`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. `tauri-release.yml` now fails the build
-**before** it compiles anything when that secret is missing, with the two secret
-names and a pointer to `docs/release.md` §§1, 3 and 9, instead of the previous
-cryptic "Signing updater artifacts requires a private key" after ~15 minutes.
+Issue #2 cannot be exercised end to end until a second release is published. The
+workflow requires only `TAURI_SIGNING_PRIVATE_KEY`, and the key is passwordless,
+so `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is intentionally unset (an unset GitHub
+secret is an empty string, which Tauri accepts for this key). Whether the secret
+is currently present **could not be verified** without repository
+authentication; the preflight only checks that it is non-empty at run time. A
+CI-signed build has not been produced yet, so it is still the missing proof.
+
+`tauri-release.yml` still fails the build **before** it compiles anything when
+the key secret is missing, with a pointer to `docs/release.md` §§1, 3 and 9,
+instead of the previous cryptic "Signing updater artifacts requires a private
+key" after ~15 minutes. That preflight checks presence only; the first real
+proof of the secret is a signed build.
 
 The one release run that exists,
 [45978830327](https://github.com/Raka-Mahendra/sphinx/actions/runs/45978830327)
-(tag `v0.1.0`), failed at `Build the bundle` — the step that signs the updater
-artefact — which is consistent with that diagnosis. Its log needs repository
-authentication, so the step name is the evidence, not the message.
+(tag `v0.1.0`, commit `e4239c55`), failed at `Build the bundle` — the step that
+signs the updater artefact — which is **consistent with** a signing failure but
+not proof of one: the job's sole failure annotation is
+`Command "yarn tauri build" failed with exit code 1`, and the full log needs
+repository authentication. That commit predates the `Require the updater signing
+key` preflight, so the run proves nothing about the secret's presence. The
+`v0.1.0` assets exist anyway, so they were uploaded outside that run; the
+workflow's own signing path has still not succeeded. The published installer
+bundles `node.exe` v24.22.1, not the CI-pinned v22.21.0, which corroborates that
+the public 0.1.0 was built on the developer machine rather than by the workflow.
+
+A non-publishing proof path is prepared:
+`.github/workflows/tauri-signing-smoke.yml` (manual only, `contents: read`,
+`workflow_dispatch` on `sphinx/main`) builds the real Windows package and signs
+it with the existing key, then verifies the result with
+`scripts/verify-updater-signature.mjs`. The verifier mirrors
+`tauri-plugin-updater` (key ID, Ed25519 over the BLAKE2b-512 prehash or legacy
+bytes, and the global signature) and was run against the published `v0.1.0`
+installer: `signature_ok`, `global_signature_ok` and `manifest.ok` are all
+`true`, with key ID `96C5E41CD0651543`. That validates the algorithm and the
+keypair, **not** the secret's presence or the runner's ability to sign. The
+smoke workflow has not run yet; pushing it needs owner authorization. See
+`docs/release.md` §11.
 
 The build itself no longer needs a developer `.env`: `scripts/build-sidecar.mjs`
 defines every `MAIN_VITE_*` key the sources read and defaults it to `""` (see

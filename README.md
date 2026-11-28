@@ -104,7 +104,7 @@ corepack yarn build
 
 This stages the Node runtime that Tauri bundles as `externalBin`, checks that `hydra-native.node`, the libtorrent bridge and the VC++ runtime DLLs are present, then runs `tauri build`. The NSIS installer lands in `src-tauri/target/release/bundle/nsis/`.
 
-`check:torrent-resources` fails the build when the torrent engine is missing, so an installer that cannot download anything never ships. Updater artifacts need `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, which `docs/release.md` covers along with Authenticode signing and the clean-machine test plan.
+`check:torrent-resources` fails the build when the torrent engine is missing, so an installer that cannot download anything never ships. Updater artifacts need `TAURI_SIGNING_PRIVATE_KEY`; this project's key is passwordless, so `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` stays unset. `docs/release.md` covers that, Authenticode signing and the clean-machine test plan.
 
 ### Releasing
 
