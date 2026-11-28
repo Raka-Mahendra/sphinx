@@ -21,12 +21,6 @@ export function assertTrustedEpicSender(
   if (!app.isPackaged && process.env.SPHINX_RENDERER_URL) {
     rendererUrls.push(process.env.SPHINX_RENDERER_URL);
   }
-  const subdomain = import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN;
-  if (subdomain) {
-    rendererUrls.push(
-      `https://release-v${app.getVersion().replaceAll(".", "-")}.${subdomain}`
-    );
-  }
   if (
     !isTrustedEpicSender(
       {
