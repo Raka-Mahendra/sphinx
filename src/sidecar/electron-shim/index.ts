@@ -439,15 +439,49 @@ const powerMonitor = {
   ): void => undefined,
 };
 
+const activePowerSaveBlockers = new Map<number, string>();
+let nextPowerSaveBlockerId = 1;
+
+const hasDisplaySleepBlocker = (): boolean => {
+  for (const type of activePowerSaveBlockers.values()) {
+    if (type === "prevent-display-sleep") return true;
+  }
+  return false;
+};
+
 const powerSaveBlocker = {
   start: (type: string): number => {
-    void callIgnoringFailure("power.setSleepBlocked", { blocked: true, type });
-    return 1;
+    const id = nextPowerSaveBlockerId;
+    nextPowerSaveBlockerId += 1;
+    const wasEmpty = activePowerSaveBlockers.size === 0;
+    const hadDisplay = hasDisplaySleepBlocker();
+    activePowerSaveBlockers.set(id, type);
+    if (wasEmpty || (!hadDisplay && type === "prevent-display-sleep")) {
+      void callIgnoringFailure("power.setSleepBlocked", {
+        blocked: true,
+        type,
+      });
+    }
+    return id;
   },
-  stop: (_id?: number): void => {
-    void callIgnoringFailure("power.setSleepBlocked", { blocked: false });
+  stop: (id?: number): void => {
+    if (id === undefined) {
+      if (activePowerSaveBlockers.size === 0) return;
+      activePowerSaveBlockers.clear();
+    } else if (!activePowerSaveBlockers.delete(id)) {
+      return;
+    }
+
+    if (activePowerSaveBlockers.size === 0) {
+      void callIgnoringFailure("power.setSleepBlocked", { blocked: false });
+    }
   },
-  isStarted: (_id?: number): boolean => false,
+  isStarted: (id?: number): boolean => {
+    if (id === undefined) {
+      return activePowerSaveBlockers.size > 0;
+    }
+    return activePowerSaveBlockers.has(id);
+  },
 };
 
 // ---------------------------------------------------------------------------
