@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import {
+  promises as fs,
+  mkdtempSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+
+const canSymlink = (() => {
+  if (process.platform !== "win32") return true;
+  const dir = mkdtempSync(path.join(os.tmpdir(), "symtest-"));
+  try {
+    writeFileSync(path.join(dir, "t"), "");
+    symlinkSync(path.join(dir, "t"), path.join(dir, "l"));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
 
 import {
   resolveRpcs3ConfigRootStatus,
@@ -65,28 +85,32 @@ describe("RPCS3 configuration root selection", () => {
       ]);
     }));
 
-  it("deduplicates symlinks and binds the selected root", async () =>
-    withFixture(async (root, executable) => {
-      const actual = path.join(root, "actual");
-      const alias = path.join(root, "alias");
-      await validRoot(actual, "00000002");
-      await fs.symlink(actual, alias);
-      const unique = await resolveRpcs3ConfigRootStatus(executable, null, [
-        actual,
-        alias,
-      ]);
-      assert.equal(unique.status.status, "ready");
-      assert.deepEqual(unique.status.candidates, [await fs.realpath(actual)]);
-      const selected = await resolveRpcs3ConfigRootStatus(
-        executable,
-        alias,
-        []
-      );
-      assert.equal(
-        selected.location?.homeRoot,
-        path.join(await fs.realpath(path.join(actual, "dev_hdd0")), "home")
-      );
-    }));
+  it(
+    "deduplicates symlinks and binds the selected root",
+    { skip: !canSymlink && "symlinks require Developer Mode on Windows" },
+    async () =>
+      withFixture(async (root, executable) => {
+        const actual = path.join(root, "actual");
+        const alias = path.join(root, "alias");
+        await validRoot(actual, "00000002");
+        await fs.symlink(actual, alias);
+        const unique = await resolveRpcs3ConfigRootStatus(executable, null, [
+          actual,
+          alias,
+        ]);
+        assert.equal(unique.status.status, "ready");
+        assert.deepEqual(unique.status.candidates, [await fs.realpath(actual)]);
+        const selected = await resolveRpcs3ConfigRootStatus(
+          executable,
+          alias,
+          []
+        );
+        assert.equal(
+          selected.location?.homeRoot,
+          path.join(await fs.realpath(path.join(actual, "dev_hdd0")), "home")
+        );
+      })
+  );
 
   it("never switches an invalid saved choice to another valid folder", async () =>
     withFixture(async (root, executable) => {

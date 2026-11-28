@@ -10,7 +10,13 @@ import { resolveSelectedCustomPathApproval } from "./custom-path-approval-select
 it("binds a remote file to an existing file with a different name", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-file-rebind-"));
   try {
-    const context = { platform: "linux" as const, homeDir: root };
+    const platformName =
+      process.platform === "win32"
+        ? ("windows" as const)
+        : process.platform === "darwin"
+          ? ("mac" as const)
+          : ("linux" as const);
+    const context = { platform: platformName, homeDir: root };
     const rawPath = encodeCloudSaveCustomPath(
       path.join(root, "old.srm"),
       context
@@ -25,7 +31,10 @@ it("binds a remote file to an existing file with a different name", async () => 
       renamed,
       context
     );
-    assert.equal(selected.path, await fs.realpath(renamed));
+    assert.equal(
+      selected.path,
+      (await fs.realpath(renamed)).replaceAll("\\", "/")
+    );
 
     const folder = await resolveSelectedCustomPathApproval(
       rawPath,
@@ -34,7 +43,10 @@ it("binds a remote file to an existing file with a different name", async () => 
       root,
       context
     );
-    assert.equal(folder.path, path.join(await fs.realpath(root), "old.srm"));
+    assert.equal(
+      folder.path,
+      path.join(await fs.realpath(root), "old.srm").replaceAll("\\", "/")
+    );
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
@@ -43,7 +55,13 @@ it("binds a remote file to an existing file with a different name", async () => 
 it("rejects choosing a file for a directory snapshot", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-dir-rebind-"));
   try {
-    const context = { platform: "linux" as const, homeDir: root };
+    const platformName =
+      process.platform === "win32"
+        ? ("windows" as const)
+        : process.platform === "darwin"
+          ? ("mac" as const)
+          : ("linux" as const);
+    const context = { platform: platformName, homeDir: root };
     const file = path.join(root, "state.state1");
     await fs.writeFile(file, "state");
     const rawPath = encodeCloudSaveCustomPath(root, context).rawPath;

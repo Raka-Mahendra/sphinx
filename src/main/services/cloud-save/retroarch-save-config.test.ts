@@ -54,7 +54,7 @@ describe("RetroArch save layout", () => {
     assert.equal(resolve({ savefile_directory: "default" }), null);
     assert.equal(
       resolve({ savefile_directory: "~/saves" }),
-      path.join(homeDir, "saves", "mGBA")
+      path.resolve(path.join(homeDir, "saves", "mGBA"))
     );
     assert.equal(
       resolve({
@@ -62,7 +62,7 @@ describe("RetroArch save layout", () => {
         sort_savefiles_by_content_enable: "true",
         sort_savefiles_enable: "true",
       }),
-      path.join(homeDir, "saves", "gba", "mGBA")
+      path.resolve(path.join(homeDir, "saves", "gba", "mGBA"))
     );
     assert.equal(
       resolve({
@@ -90,7 +90,7 @@ describe("RetroArch save layout", () => {
         coreName: "mGBA",
         kind: "save",
       }),
-      path.join(homeDir, "saves")
+      path.resolve(path.join(homeDir, "saves"))
     );
     assert.equal(
       resolveRetroArchSaveDirectory({
@@ -101,7 +101,7 @@ describe("RetroArch save layout", () => {
         coreName: "mGBA",
         kind: "state",
       }),
-      path.join(homeDir, "states", "gba", "mGBA")
+      path.resolve(path.join(homeDir, "states", "gba", "mGBA"))
     );
     assert.equal(
       resolveRetroArchSaveDirectory({
@@ -278,7 +278,7 @@ describe("RetroArch save layout", () => {
         configPath,
         homeDir
       ),
-      path.join(homeDir, "custom-config")
+      path.resolve(path.join(homeDir, "custom-config"))
     );
     assert.equal(
       shouldLoadRetroArchOverrides({ auto_overrides_enable: "false" }),

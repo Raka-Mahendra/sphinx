@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import {
+  promises as fs,
+  mkdtempSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+
+const canSymlink = (() => {
+  if (process.platform !== "win32") return true;
+  const dir = mkdtempSync(path.join(os.tmpdir(), "symtest-"));
+  try {
+    writeFileSync(path.join(dir, "t"), "");
+    symlinkSync(path.join(dir, "t"), path.join(dir, "l"));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
 
 import type { Game } from "@types";
 
@@ -58,31 +78,37 @@ describe("RPCS3 savestate restore", () => {
     }
   });
 
-  it("rejects a symlinked state directory or destination", async () => {
-    const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
-    try {
-      const outside = path.join(configRoot, "outside");
-      const statesRoot = path.join(configRoot, "savestates");
-      await fs.mkdir(outside);
-      await fs.symlink(outside, statesRoot);
-      const file = { rawPath, relativePath: "BLUS30443_1_0.SAVESTAT.zst" };
-      assert.equal(
-        await resolveRpcs3SavestateRestoreRule(game, file, configRoot),
-        null
+  it(
+    "rejects a symlinked state directory or destination",
+    { skip: !canSymlink && "symlinks require Developer Mode on Windows" },
+    async () => {
+      const configRoot = await fs.mkdtemp(
+        path.join(os.tmpdir(), "hydra-rpcs3-")
       );
-      await fs.unlink(statesRoot);
-      const titleRoot = path.join(statesRoot, "BLUS30443");
-      await fs.mkdir(titleRoot, { recursive: true });
-      await fs.symlink(
-        path.join(configRoot, "outside", "state"),
-        path.join(titleRoot, file.relativePath)
-      );
-      assert.equal(
-        await resolveRpcs3SavestateRestoreRule(game, file, configRoot),
-        null
-      );
-    } finally {
-      await fs.rm(configRoot, { recursive: true, force: true });
+      try {
+        const outside = path.join(configRoot, "outside");
+        const statesRoot = path.join(configRoot, "savestates");
+        await fs.mkdir(outside);
+        await fs.symlink(outside, statesRoot);
+        const file = { rawPath, relativePath: "BLUS30443_1_0.SAVESTAT.zst" };
+        assert.equal(
+          await resolveRpcs3SavestateRestoreRule(game, file, configRoot),
+          null
+        );
+        await fs.unlink(statesRoot);
+        const titleRoot = path.join(statesRoot, "BLUS30443");
+        await fs.mkdir(titleRoot, { recursive: true });
+        await fs.symlink(
+          path.join(configRoot, "outside", "state"),
+          path.join(titleRoot, file.relativePath)
+        );
+        assert.equal(
+          await resolveRpcs3SavestateRestoreRule(game, file, configRoot),
+          null
+        );
+      } finally {
+        await fs.rm(configRoot, { recursive: true, force: true });
+      }
     }
-  });
+  );
 });

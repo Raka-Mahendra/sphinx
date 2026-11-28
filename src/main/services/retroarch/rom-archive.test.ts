@@ -136,7 +136,10 @@ for (const format of ["zip", "7z"]) {
         await rm(input, { recursive: true });
         const entries = await listArchiveEntries(binaryPath, archivePath);
         const rom = selectArchivedRom(entries);
-        assert.deepEqual(rom, { name, size: content.length, platform: "nes" });
+        assert.ok(rom);
+        assert.equal(rom.name.replaceAll("\\", "/"), name);
+        assert.equal(rom.size, content.length);
+        assert.equal(rom.platform, "nes");
         const bytes = await readArchiveEntry(
           binaryPath,
           archivePath,

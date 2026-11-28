@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import {
+  promises as fs,
+  mkdtempSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+
+const canSymlink = (() => {
+  if (process.platform !== "win32") return true;
+  const dir = mkdtempSync(path.join(os.tmpdir(), "symtest-"));
+  try {
+    writeFileSync(path.join(dir, "t"), "");
+    symlinkSync(path.join(dir, "t"), path.join(dir, "l"));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
 
 import type { Game } from "@types";
 
@@ -45,53 +65,57 @@ describe("manual emulator file identity", () => {
     }
   });
 
-  it("allows an explicitly selected N64 Transfer Pak .sav with an arbitrary GB name", async () => {
-    const root = await fs.mkdtemp(
-      path.join(os.tmpdir(), "hydra-transfer-pak-")
-    );
-    try {
-      const rom = path.join(root, "Pokemon Stadium.z64");
-      const transferPakSave = path.join(root, "Pokemon Red.sav");
-      const unrelatedBattery = path.join(root, "Other Game.srm");
-      const link = path.join(root, "linked.sav");
-      await Promise.all([
-        fs.writeFile(rom, "rom"),
-        fs.writeFile(transferPakSave, "save"),
-        fs.writeFile(unrelatedBattery, "other"),
-      ]);
-      await fs.symlink(transferPakSave, link);
-      const selectedGame = game("Nintendo 64", rom);
-      const filter = createRetroArchGameSaveFileFilter([rom], "n64");
-      assert.equal(
-        await isEligibleEmulatorManualFile(
-          selectedGame,
-          transferPakSave,
-          filter
-        ),
-        true
+  it(
+    "allows an explicitly selected N64 Transfer Pak .sav with an arbitrary GB name",
+    { skip: !canSymlink && "symlinks require Developer Mode on Windows" },
+    async () => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "hydra-transfer-pak-")
       );
-      assert.equal(
-        await isEligibleEmulatorManualFile(
-          selectedGame,
-          unrelatedBattery,
-          filter
-        ),
-        false
-      );
-      assert.equal(
-        await isEligibleEmulatorManualFile(selectedGame, link, filter),
-        false
-      );
-      assert.equal(
-        await isEligibleEmulatorManualFile(
-          game("Super Nintendo Entertainment System", rom),
-          transferPakSave,
-          async () => false
-        ),
-        false
-      );
-    } finally {
-      await fs.rm(root, { recursive: true, force: true });
+      try {
+        const rom = path.join(root, "Pokemon Stadium.z64");
+        const transferPakSave = path.join(root, "Pokemon Red.sav");
+        const unrelatedBattery = path.join(root, "Other Game.srm");
+        const link = path.join(root, "linked.sav");
+        await Promise.all([
+          fs.writeFile(rom, "rom"),
+          fs.writeFile(transferPakSave, "save"),
+          fs.writeFile(unrelatedBattery, "other"),
+        ]);
+        await fs.symlink(transferPakSave, link);
+        const selectedGame = game("Nintendo 64", rom);
+        const filter = createRetroArchGameSaveFileFilter([rom], "n64");
+        assert.equal(
+          await isEligibleEmulatorManualFile(
+            selectedGame,
+            transferPakSave,
+            filter
+          ),
+          true
+        );
+        assert.equal(
+          await isEligibleEmulatorManualFile(
+            selectedGame,
+            unrelatedBattery,
+            filter
+          ),
+          false
+        );
+        assert.equal(
+          await isEligibleEmulatorManualFile(selectedGame, link, filter),
+          false
+        );
+        assert.equal(
+          await isEligibleEmulatorManualFile(
+            game("Super Nintendo Entertainment System", rom),
+            transferPakSave,
+            async () => false
+          ),
+          false
+        );
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
     }
-  });
+  );
 });

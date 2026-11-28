@@ -26,7 +26,7 @@ describe("RetroArch configuration paths", () => {
         "/Games/RetroArch/retroarch",
         "darwin",
         home
-      ).includes("/Games/RetroArch/config/retroarch.cfg")
+      ).includes(path.join("/Games/RetroArch", "config", "retroarch.cfg"))
     );
   });
 

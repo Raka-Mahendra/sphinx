@@ -457,10 +457,12 @@ describe("cloud save custom path codec", () => {
   });
 
   it("canonicalizes an existing selected directory", async () => {
-    const directory = await fs.mkdtemp(
-      path.join(
-        process.platform === "darwin" ? os.homedir() : os.tmpdir(),
-        "hydra-custom-path-"
+    const directory = await fs.realpath(
+      await fs.mkdtemp(
+        path.join(
+          process.platform === "darwin" ? os.homedir() : os.tmpdir(),
+          "hydra-custom-path-"
+        )
       )
     );
     const context: CloudSaveCustomPathContext = {
@@ -488,10 +490,12 @@ describe("cloud save custom path codec", () => {
   });
 
   it("keeps an approved missing destination valid when its parent is writable", async () => {
-    const directory = await fs.mkdtemp(
-      path.join(
-        process.platform === "darwin" ? os.homedir() : os.tmpdir(),
-        "hydra-custom-path-"
+    const directory = await fs.realpath(
+      await fs.mkdtemp(
+        path.join(
+          process.platform === "darwin" ? os.homedir() : os.tmpdir(),
+          "hydra-custom-path-"
+        )
       )
     );
     const context: CloudSaveCustomPathContext = {

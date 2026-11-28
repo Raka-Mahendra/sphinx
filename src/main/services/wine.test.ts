@@ -99,7 +99,7 @@ describe("Wine prefix resolution", () => {
 
     assert.deepEqual(getWinePrefixUserProfile(prefix), {
       name: "other-user",
-      path: await fs.promises.realpath(
+      path: fs.realpathSync(
         path.join(prefix, "drive_c", "users", "other-user")
       ),
       windowsPath: "C:/users/other-user",

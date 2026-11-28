@@ -113,9 +113,9 @@ describe("RPCS3 save layout", () => {
     assert.equal(
       resolveRpcs3VfsHdd0(
         root,
-        `"$(EmulatorDir)": "${path.join(path.sep, "rpcs3", "portable")}/"\n"/dev_hdd0/": "$(EmulatorDir)hdd/"\n`
+        `"$(EmulatorDir)": "${path.posix.join("/", "rpcs3", "portable")}/"\n"/dev_hdd0/": "$(EmulatorDir)hdd/"\n`
       ),
-      path.join(path.sep, "rpcs3", "portable", "hdd")
+      path.resolve(path.join(path.sep, "rpcs3", "portable", "hdd"))
     );
     assert.throws(
       () =>

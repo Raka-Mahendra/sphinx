@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import {
+  promises as fs,
+  mkdtempSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+
+const canSymlink = (() => {
+  if (process.platform !== "win32") return true;
+  const dir = mkdtempSync(path.join(os.tmpdir(), "symtest-"));
+  try {
+    writeFileSync(path.join(dir, "t"), "");
+    symlinkSync(path.join(dir, "t"), path.join(dir, "l"));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
 
 import type { Game } from "@types";
 
@@ -250,43 +270,49 @@ describe("RPCS3 Cloud Save scanner", () => {
     }
   });
 
-  it("keeps invalid and symlinked state roots partial", async () => {
-    const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
-    const context = {
-      game,
-      environmentId: "environment",
-      variantId: "variant",
-    };
-    try {
-      const statesRoot = path.join(configRoot, "savestates");
-      await fs.writeFile(statesRoot, "not a directory");
-      assert.equal(
-        (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
-        "partial"
+  it(
+    "keeps invalid and symlinked state roots partial",
+    { skip: !canSymlink && "symlinks require Developer Mode on Windows" },
+    async () => {
+      const configRoot = await fs.mkdtemp(
+        path.join(os.tmpdir(), "hydra-rpcs3-")
       );
+      const context = {
+        game,
+        environmentId: "environment",
+        variantId: "variant",
+      };
+      try {
+        const statesRoot = path.join(configRoot, "savestates");
+        await fs.writeFile(statesRoot, "not a directory");
+        assert.equal(
+          (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
+          "partial"
+        );
 
-      await fs.unlink(statesRoot);
-      await fs.mkdir(path.join(configRoot, "outside"));
-      await fs.symlink(path.join(configRoot, "outside"), statesRoot);
-      assert.equal(
-        (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
-        "partial"
-      );
+        await fs.unlink(statesRoot);
+        await fs.mkdir(path.join(configRoot, "outside"));
+        await fs.symlink(path.join(configRoot, "outside"), statesRoot);
+        assert.equal(
+          (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
+          "partial"
+        );
 
-      await fs.unlink(statesRoot);
-      await fs.mkdir(statesRoot);
-      await fs.symlink(
-        path.join(configRoot, "outside"),
-        path.join(statesRoot, "BLUS30443")
-      );
-      assert.equal(
-        (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
-        "partial"
-      );
-    } finally {
-      await fs.rm(configRoot, { recursive: true, force: true });
+        await fs.unlink(statesRoot);
+        await fs.mkdir(statesRoot);
+        await fs.symlink(
+          path.join(configRoot, "outside"),
+          path.join(statesRoot, "BLUS30443")
+        );
+        assert.equal(
+          (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
+          "partial"
+        );
+      } finally {
+        await fs.rm(configRoot, { recursive: true, force: true });
+      }
     }
-  });
+  );
 
   it("scans Minecraft savedata while its savestate folder is absent", async () => {
     const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));

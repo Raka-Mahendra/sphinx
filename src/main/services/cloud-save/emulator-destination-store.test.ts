@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import {
+  promises as fs,
+  mkdtempSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+
+const canSymlink = (() => {
+  if (process.platform !== "win32") return true;
+  const dir = mkdtempSync(path.join(os.tmpdir(), "symtest-"));
+  try {
+    writeFileSync(path.join(dir, "t"), "");
+    symlinkSync(path.join(dir, "t"), path.join(dir, "l"));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
@@ -117,59 +137,68 @@ describe("manual emulator restore destinations", () => {
     );
   });
 
-  it("requires an existing real directory and rejects symlinks", async () => {
-    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-destination-"));
-    try {
-      const root = path.join(temp, "saves");
-      const link = path.join(temp, "link");
-      await fs.mkdir(root);
-      await fs.symlink(root, link, "dir");
-      assert.equal(await isSafeExistingEmulatorDestination(root), true);
-      assert.equal(await isSafeExistingEmulatorDestination(link), false);
-      const alias = path.join(temp, "alias");
-      await fs.symlink(temp, alias, "dir");
-      assert.equal(
-        await isSameExistingEmulatorDestination(
-          root,
-          path.join(alias, "saves")
-        ),
-        true
+  it(
+    "requires an existing real directory and rejects symlinks",
+    { skip: !canSymlink && "symlinks require Developer Mode on Windows" },
+    async () => {
+      const temp = await fs.mkdtemp(
+        path.join(os.tmpdir(), "hydra-destination-")
       );
-      assert.equal(await isSameExistingEmulatorDestination(link, root), false);
-      const rootStat = await fs.lstat(root);
-      const bound = {
-        path: path.join(alias, "saves"),
-        canonicalPath: await fs.realpath(root),
-        device: rootStat.dev,
-        inode: rootStat.ino,
-      };
-      assert.equal(
-        await isCurrentEmulatorDestinationBinding(
-          bound,
-          path.join(alias, "saves"),
-          path.join(alias, "saves")
-        ),
-        true
-      );
-      const other = path.join(temp, "other");
-      await fs.mkdir(other);
-      await fs.mkdir(path.join(other, "saves"));
-      await fs.rename(alias, path.join(temp, "old-alias"));
-      await fs.symlink(other, alias, "dir");
-      assert.equal(
-        await isCurrentEmulatorDestinationBinding(
-          bound,
-          path.join(alias, "saves"),
-          path.join(alias, "saves")
-        ),
-        false
-      );
-      assert.equal(
-        await isSafeExistingEmulatorDestination(path.join(temp, "missing")),
-        false
-      );
-    } finally {
-      await fs.rm(temp, { recursive: true, force: true });
+      try {
+        const root = path.join(temp, "saves");
+        const link = path.join(temp, "link");
+        await fs.mkdir(root);
+        await fs.symlink(root, link, "dir");
+        assert.equal(await isSafeExistingEmulatorDestination(root), true);
+        assert.equal(await isSafeExistingEmulatorDestination(link), false);
+        const alias = path.join(temp, "alias");
+        await fs.symlink(temp, alias, "dir");
+        assert.equal(
+          await isSameExistingEmulatorDestination(
+            root,
+            path.join(alias, "saves")
+          ),
+          true
+        );
+        assert.equal(
+          await isSameExistingEmulatorDestination(link, root),
+          false
+        );
+        const rootStat = await fs.lstat(root);
+        const bound = {
+          path: path.join(alias, "saves"),
+          canonicalPath: await fs.realpath(root),
+          device: rootStat.dev,
+          inode: rootStat.ino,
+        };
+        assert.equal(
+          await isCurrentEmulatorDestinationBinding(
+            bound,
+            path.join(alias, "saves"),
+            path.join(alias, "saves")
+          ),
+          true
+        );
+        const other = path.join(temp, "other");
+        await fs.mkdir(other);
+        await fs.mkdir(path.join(other, "saves"));
+        await fs.rename(alias, path.join(temp, "old-alias"));
+        await fs.symlink(other, alias, "dir");
+        assert.equal(
+          await isCurrentEmulatorDestinationBinding(
+            bound,
+            path.join(alias, "saves"),
+            path.join(alias, "saves")
+          ),
+          false
+        );
+        assert.equal(
+          await isSafeExistingEmulatorDestination(path.join(temp, "missing")),
+          false
+        );
+      } finally {
+        await fs.rm(temp, { recursive: true, force: true });
+      }
     }
-  });
+  );
 });

@@ -27,13 +27,19 @@ const createSolidImage = (width: number, height: number) =>
   });
 
 before(() => {
+  sharp.cache(false);
   workingDirectory = fs.mkdtempSync(
     path.join(os.tmpdir(), "hydra-notification-icon-test-")
   );
 });
 
 after(() => {
-  fs.rmSync(workingDirectory, { recursive: true, force: true });
+  fs.rmSync(workingDirectory, {
+    recursive: true,
+    force: true,
+    maxRetries: 3,
+    retryDelay: 200,
+  });
 });
 
 describe("buildDownloadFileName", () => {

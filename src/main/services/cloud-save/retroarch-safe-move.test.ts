@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import {
+  promises as fs,
+  mkdtempSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+
+const canSymlink = (() => {
+  if (process.platform !== "win32") return true;
+  const dir = mkdtempSync(path.join(os.tmpdir(), "symtest-"));
+  try {
+    writeFileSync(path.join(dir, "t"), "");
+    symlinkSync(path.join(dir, "t"), path.join(dir, "l"));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
 
 import {
   copyRetroArchFileVerified,
@@ -363,37 +383,41 @@ describe("RetroArch battery replacement transaction", () => {
   }
 
   for (const kind of ["selected", "old"] as const) {
-    it(`rejects a symlink in ${kind} files without modifying its referent`, async () => {
-      const fixture = await createBatteryFixture();
-      const link =
-        kind === "selected" ? fixture.sources[1] : fixture.targets[1];
-      const content =
-        kind === "selected"
-          ? fixture.chosenContents[1]
-          : fixture.oldContents[1];
-      const referent = path.join(fixture.root, "outside.rtc");
-      let commitCount = 0;
-      try {
-        await fs.writeFile(referent, content);
-        await fs.unlink(link);
-        await fs.symlink(referent, link);
-        await assert.rejects(
-          replaceRetroArchBatteryFilesSafely({
-            ...fixture.options,
-            commit: async () => {
-              commitCount += 1;
-            },
-          })
-        );
-        assert.equal(commitCount, 0);
-        assert.equal((await fs.lstat(link)).isSymbolicLink(), true);
-        assert.equal(await fs.readFile(referent, "utf8"), content);
-        await assertContents(fixture.targets, fixture.oldContents);
-        await assertContents(fixture.sources, fixture.chosenContents);
-      } finally {
-        await fs.rm(fixture.root, { recursive: true, force: true });
+    it(
+      `rejects a symlink in ${kind} files without modifying its referent`,
+      { skip: !canSymlink && "symlinks require Developer Mode on Windows" },
+      async () => {
+        const fixture = await createBatteryFixture();
+        const link =
+          kind === "selected" ? fixture.sources[1] : fixture.targets[1];
+        const content =
+          kind === "selected"
+            ? fixture.chosenContents[1]
+            : fixture.oldContents[1];
+        const referent = path.join(fixture.root, "outside.rtc");
+        let commitCount = 0;
+        try {
+          await fs.writeFile(referent, content);
+          await fs.unlink(link);
+          await fs.symlink(referent, link);
+          await assert.rejects(
+            replaceRetroArchBatteryFilesSafely({
+              ...fixture.options,
+              commit: async () => {
+                commitCount += 1;
+              },
+            })
+          );
+          assert.equal(commitCount, 0);
+          assert.equal((await fs.lstat(link)).isSymbolicLink(), true);
+          assert.equal(await fs.readFile(referent, "utf8"), content);
+          await assertContents(fixture.targets, fixture.oldContents);
+          await assertContents(fixture.sources, fixture.chosenContents);
+        } finally {
+          await fs.rm(fixture.root, { recursive: true, force: true });
+        }
       }
-    });
+    );
   }
 
   it("retains durable backups and staging when rollback also fails", async (t) => {
