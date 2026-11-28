@@ -956,3 +956,9 @@ Yang tetap terbuka dan **tidak** diklaim selesai: Issue #2 butuh rilis kedua
 untuk dijalankan, Issue #5 butuh dua secret ditambahkan ke repo, dan audit
 OpenCodeReview berbasis LLM tertunda karena kuota penyedia model habis (temuan
 manual dicatat di dokumen ini).
+
+Review adversarial konteks-segar atas diff ini menemukan dan memperbaiki dua
+hal: job Rust di Ubuntu membutuhkan dependensi sistem Tauri (webkit2gtk, gtk,
+appindicator) dan ringkasan log default masih menulis body string tanpa batas.
+Keduanya sudah ditutup; temuan low lainnya (pemindaian drive non-fixed, sufiks
+SKU numerik) ditangani/dijelaskan di komit terkait.
