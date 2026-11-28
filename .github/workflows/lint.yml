@@ -4,7 +4,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "release/**"
+
+permissions:
+  contents: read
 
 jobs:
   lint:
@@ -37,6 +45,9 @@ jobs:
       - name: Format check
         run: yarn format-check
 
+  # Issue #1: the release profile is compiled for the first time on a tag, so a
+  # Windows PR job catches `cargo check --release` failures that `tauri dev` and
+  # `cargo test` hide (e.g. `window.open_devtools()` behind `#[cfg(debug_assertions)]`).
   rust:
     strategy:
       fail-fast: false
@@ -64,20 +75,23 @@ jobs:
 
       - name: Check formatting
         working-directory: src-tauri
-        run: cargo fmt --check
+        run: cargo fmt --all -- --check
 
       - name: Clippy
         working-directory: src-tauri
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Tests
         working-directory: src-tauri
-        run: cargo test
+        run: cargo test --all-features
 
       - name: Release check
         working-directory: src-tauri
         run: cargo check --release
 
+  # Issue #4: the TypeScript suite has Windows-specific path and symlink cases.
+  # `yarn test` (run above on Linux) hangs on the Epic suites on Windows, so the
+  # Windows job runs the sidecar suites and the Windows-sensitive subset instead.
   js-windows:
     runs-on: windows-latest
 
@@ -102,7 +116,12 @@ jobs:
       - name: Format check
         run: yarn format-check
 
-      - name: Test (safe subset)
+      - name: Sidecar suites
+        run: |
+          yarn test:crash
+          yarn test:torrent
+
+      - name: Windows-sensitive tests
         run: >-
           node --import ./scripts/register-ts-node.mjs
           --test --test-timeout=90000

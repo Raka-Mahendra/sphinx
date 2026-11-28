@@ -4,6 +4,8 @@ import { levelDBService } from "@renderer/services/leveldb.service";
 import type { DownloadSource } from "@types";
 import { useAppDispatch } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
+import { loadCatalogueNames } from "@renderer/helpers/catalogue-names";
+import { logger } from "@renderer/logger";
 
 const SUPPORTED_STEAM_METADATA_LANGUAGES = new Set([
   "en",
@@ -61,15 +63,19 @@ export function useCatalogue() {
   }, [dispatch, i18n.language]);
 
   const getSteamPublishers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/publishers", { needsAuth: false })
-      .then(setSteamPublishers);
+    loadCatalogueNames("publishers")
+      .then(setSteamPublishers)
+      .catch((error) => {
+        logger.error("Failed to load Steam publishers", error);
+      });
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/developers", { needsAuth: false })
-      .then(setSteamDevelopers);
+    loadCatalogueNames("developers")
+      .then(setSteamDevelopers)
+      .catch((error) => {
+        logger.error("Failed to load Steam developers", error);
+      });
   }, []);
 
   const getDownloadSources = useCallback(() => {

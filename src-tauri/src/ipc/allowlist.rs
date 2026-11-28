@@ -4,7 +4,7 @@
 // scan writes `src/sidecar/allowlist.generated.ts`, so the shell and the
 // sidecar can never disagree about which channels exist.
 //
-// Counts: 267 invoke, 0 send, 72 event, 6 dynamic prefix.
+// Counts: 268 invoke, 0 send, 72 event, 6 dynamic prefix.
 
 /// `ipcMain.handle` / `registerEvent` channels, reachable through `ipc_invoke`.
 pub const INVOKE_CHANNELS: &[&str] = &[
@@ -86,6 +86,7 @@ pub const INVOKE_CHANNELS: &[&str] = &[
     "getAllCustomThemes",
     "getAppSessionId",
     "getAvailableDrives",
+    "getCatalogueNames",
     "getClassicsImportStatus",
     "getCloudSaveOverview",
     "getCloudSaveV2FileDetails",

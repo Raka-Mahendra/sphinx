@@ -9,7 +9,7 @@ both the Rust shell and the sidecar.
 
 | Kind | Count | Reaches |
 | --- | ---: | --- |
-| Renderer → sidecar (`ipcMain.handle` / `registerEvent`) | 267 | `ipc_invoke` |
+| Renderer → sidecar (`ipcMain.handle` / `registerEvent`) | 268 | `ipc_invoke` |
 | Renderer → sidecar (`ipcMain.on`) | 0 | `ipc_send` |
 | Sidecar → renderer, static | 72 | `sphinx:ipc-event` |
 | Sidecar → renderer, dynamic prefixes | 6 | `sphinx:ipc-event` |
@@ -193,6 +193,7 @@ in `src/sidecar/allowlist.test.ts` fails if the two disagree.
 | `getAllCustomThemes` | `src/main/events/themes/get-all-custom-themes.ts:8` |
 | `getAppSessionId` | `src/main/events/misc/get-app-session-id.ts:9` |
 | `getAvailableDrives` | `src/main/events/library/get-available-drives.ts:138` |
+| `getCatalogueNames` | `src/main/events/catalogue/get-catalogue-names.ts:53` |
 | `getClassicsImportStatus` | `src/main/events/emulators/get-classics-import-status.ts:6` |
 | `getCloudSaveOverview` | `src/main/events/cloud-save/get-cloud-save-overview.ts:6` |
 | `getCloudSaveV2FileDetails` | `src/main/events/cloud-save/get-cloud-save-v2-file-details.ts:6` |
@@ -232,7 +233,7 @@ in `src/sidecar/allowlist.test.ts` fails if the two disagree.
 | `getLocalNotificationsCount` | `src/main/events/notifications/get-local-notifications-count.ts:8` |
 | `getMemcardRestoreTargets` | `src/main/events/emulators/restore-emulation-save.ts:408` |
 | `getNetworkInterfaces` | `src/main/events/hardware/get-network-interfaces.ts:33` |
-| `getPathInfo` | `src/main/events/misc/file-system.ts:231` |
+| `getPathInfo` | `src/main/events/misc/file-system.ts:215` |
 | `getPendingCloudSaveCustomPathApproval` | `src/main/events/cloud-save/get-pending-cloud-save-custom-path-approval.ts:9` |
 | `getProcessedImage` | `src/main/events/misc/get-processed-image.ts:182` |
 | `getRandomGame` | `src/main/events/catalogue/get-random-game.ts:31` |
@@ -274,7 +275,7 @@ in `src/sidecar/allowlist.test.ts` fails if the two disagree.
 | `leveldbIterator` | `src/main/events/leveldb/leveldb-iterator.ts:18` |
 | `leveldbPut` | `src/main/events/leveldb/leveldb-put.ts:27` |
 | `leveldbValues` | `src/main/events/leveldb/leveldb-values.ts:18` |
-| `listDrives` | `src/main/events/misc/file-system.ts:232` |
+| `listDrives` | `src/main/events/misc/file-system.ts:216` |
 | `listEmulationSaves` | `src/main/events/emulators/emulation-saves.ts:41` |
 | `listEmulatorRoms` | `src/main/events/emulators/list-emulator-roms.ts:65` |
 | `listLocalEmulationSaves` | `src/main/events/emulators/list-local-emulation-saves.ts:99` |
@@ -306,7 +307,7 @@ in `src/sidecar/allowlist.test.ts` fails if the two disagree.
 | `previewRetroArchRomFolder` | `src/main/events/retroarch/preview-retroarch-rom-folder.ts:16` |
 | `previewRomFolder` | `src/main/events/emulators/preview-rom-folder.ts:20` |
 | `publishNewRepacksNotification` | `src/main/events/notifications/publish-new-repacks-notification.ts:33` |
-| `readDirectory` | `src/main/events/misc/file-system.ts:230` |
+| `readDirectory` | `src/main/events/misc/file-system.ts:214` |
 | `refreshLibraryAssets` | `src/main/events/library/refresh-library-assets.ts:10` |
 | `registerRomFolder` | `src/main/events/emulators/register-rom-folder.ts:17` |
 | `removeCloudSaveCustomPath` | `src/main/events/cloud-save/remove-cloud-save-custom-path.ts:10` |

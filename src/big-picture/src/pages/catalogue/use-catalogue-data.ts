@@ -4,6 +4,7 @@ import type {
   DownloadSource,
 } from "@types";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { loadCatalogueNames } from "@renderer/helpers/catalogue-names";
 import { logger } from "@renderer/logger";
 import {
   useCallback,
@@ -395,14 +396,8 @@ export function useCatalogueData() {
           "/catalogue/steam/tags",
           { params: { language: "en" }, needsAuth: false }
         ),
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/developers",
-          { needsAuth: false }
-        ),
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/publishers",
-          { needsAuth: false }
-        ),
+        loadCatalogueNames("developers"),
+        loadCatalogueNames("publishers"),
         globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
           "/catalogue/filters?shop=launchbox",
           { needsAuth: false }

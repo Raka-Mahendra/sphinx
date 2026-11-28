@@ -5,7 +5,7 @@
  * `node scripts/generate-ipc-allowlist.mjs` after adding or removing a channel;
  * `--check` mode fails the build when this file is stale.
  *
- * Counts: 267 invoke, 0 send, 72 event, 6 dynamic prefix.
+ * Counts: 268 invoke, 0 send, 72 event, 6 dynamic prefix.
  */
 
 /** `ipcMain.handle` and `registerEvent` channels. Served by `ipc_invoke`. */
@@ -88,6 +88,7 @@ export const INVOKE_CHANNELS: readonly string[] = [
   "getAllCustomThemes",
   "getAppSessionId",
   "getAvailableDrives",
+  "getCatalogueNames",
   "getClassicsImportStatus",
   "getCloudSaveOverview",
   "getCloudSaveV2FileDetails",
