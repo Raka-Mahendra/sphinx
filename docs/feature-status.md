@@ -18,21 +18,22 @@ machine that did not have Node, Rust, and Visual Studio.
 
 ## 1. Core
 
-| Feature                                                       | State      | Evidence / gap                                                                    |
-| ------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
-| Catalogue: Home shelves, genre rows, search, sort             | Shipped    | CDP run on v0.1.0; `docs/screenshots/home.png`, `catalogue.png`                   |
-| Game page: screenshots, rating, genres, times to beat, specs  | Shipped    | CDP run; `game-detail.png`                                                        |
-| Library: add, remove, covers, playtime, All/PC/Classics, sort | Shipped    | CDP run (add and remove GTA V); `library.png`                                     |
-| Playtime tracking with a recovery scan after a sidecar crash  | Shipped    | `yarn test:crash` 34/34                                                           |
-| Big Picture in a second window (`#/big-picture`)              | Shipped    | CDP run; `docs/screenshots/big-picture.png`                                       |
-| Interface languages (more than 30) picked from the locale     | Shipped    | `src/locales/`, no test per language                                              |
-| Themes: create, import, edit, delete                          | Shipped    | `src/renderer/src/pages/settings/appearance/`, no end-to-end test                 |
-| Tray icon and menu                                            | Unfinished | `src-tauri/src/tray.rs` builds it; menu clicks never exercised                    |
-| Single instance, `sphinx://run`, `--hidden`, `--big-picture`  | Unfinished | `src-tauri/src/platform.rs`; a real deep-link click never tested                  |
-| Autostart at login, start minimised                           | Unfinished | `compute_startup` and the autostart plugin; clean-machine behaviour not verified  |
-| In-app updater: check, download, install                      | Unfinished | Check and download work; the `0.1.0 → next` install never ran (no second release) |
-| OS integration: dialogs, clipboard, open URL/folder, keychain | Shipped    | `src-tauri/src/{dialogs,clipboard,shell,keychain}.rs`, unit tests                 |
-| IPC allowlist, strict CSP, restricted `local:` scheme         | Shipped    | `src-tauri/src/ipc/`, `docs/tauri-security.md`                                    |
+| Feature                                                       | State      | Evidence / gap                                                                                                                             |
+| ------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Catalogue: Home shelves, genre rows, search, sort             | Shipped    | CDP run on v0.1.0; `docs/screenshots/home.png`, `catalogue.png`                                                                            |
+| Catalogue: Steam developer/publisher filter lists (24h cache) | Shipped    | `getCatalogueNames` handler + LevelDB cache; renderer falls back for old preloads                                                          |
+| Game page: screenshots, rating, genres, times to beat, specs  | Shipped    | CDP run; `game-detail.png`                                                                                                                 |
+| Library: add, remove, covers, playtime, All/PC/Classics, sort | Shipped    | CDP run (add and remove GTA V); `library.png`                                                                                              |
+| Playtime tracking with a recovery scan after a sidecar crash  | Shipped    | `yarn test:crash` 34/34                                                                                                                    |
+| Big Picture in a second window (`#/big-picture`)              | Shipped    | CDP run; `docs/screenshots/big-picture.png`                                                                                                |
+| Interface languages (more than 30) picked from the locale     | Shipped    | `src/locales/`, no test per language                                                                                                       |
+| Themes: create, import, edit, delete                          | Shipped    | `src/renderer/src/pages/settings/appearance/`, no end-to-end test                                                                          |
+| Tray icon and menu                                            | Unfinished | `src-tauri/src/tray.rs` builds it; menu clicks never exercised                                                                             |
+| Single instance, `sphinx://run`, `--hidden`, `--big-picture`  | Unfinished | `src-tauri/src/platform.rs`; a real deep-link click never tested                                                                           |
+| Autostart at login, start minimised                           | Unfinished | `compute_startup` and the autostart plugin; clean-machine behaviour not verified                                                           |
+| In-app updater: check, download, install                      | Unfinished | Code path verified end to end offline (`docs/updater-verification.md`); the `0.1.0 → next` install never ran (no second release, issue #2) |
+| OS integration: dialogs, clipboard, open URL/folder, keychain | Shipped    | `src-tauri/src/{dialogs,clipboard,shell,keychain}.rs`, unit tests                                                                          |
+| IPC allowlist, strict CSP, restricted `local:` scheme         | Shipped    | `src-tauri/src/ipc/`, `docs/tauri-security.md`                                                                                             |
 
 ## 2. Behind feature flags
 
@@ -100,9 +101,6 @@ this build.
 
 ### 3.4 Platform gaps
 
-- Sleep blocking is not implemented. `src-tauri/src/power.rs` returns
-  `supported: false` and logs once, so the display can go to sleep during a
-  download. The Electron baseline kept it awake.
 - Playtime is under-counted when the sidecar crashes mid-session. The recovery
   scan resumes the session but cannot rebuild the gap.
 - Closing the app or running an update while a game is running was designed
@@ -110,16 +108,21 @@ this build.
 
 ### 3.5 Release and quality
 
-- The release workflow has never run. It fails without
+- The release workflow has never run. It still needs
   `TAURI_SIGNING_PRIVATE_KEY` and its password; the repo only has Google secrets
-  (issue #5).
-- The `0.1.0 → next` update path has never run (issue #2).
+  (issue #5). It now fails the build before it compiles anything when the secret
+  is missing, naming the fix, instead of a cryptic Tauri error after ~15 minutes.
+- The `0.1.0 → next` update path has never run (issue #2). The code path is
+  verified offline in `docs/updater-verification.md`.
 - `yarn test` without a filter hangs on the Epic suites on Windows (issue #1).
-  Use `yarn test:crash` and `yarn test:torrent`.
-- 21 tests fail on Windows for environmental reasons (symlinks, path casing,
-  archives). They are not regressions (issue #4).
-- The sidecar logs full catalogue bodies, which makes `info.txt` grow fast
-  (issue #3).
+  CI runs the full suite on `ubuntu-latest` and the Windows-safe subset plus the
+  sidecar suites on `windows-latest`; locally use `yarn test:crash` and
+  `yarn test:torrent`.
+- The Windows-environmental test failures were fixed (issue #4); see
+  `docs/windows-environmental-test-failures.md`.
+- The sidecar now logs response summaries by default and only logs full bodies
+  when asked to (issue #3), so `info.txt` no longer grows with every catalogue
+  body.
 - The Sphinx logo has not had a human sign-off yet (phase 2 gate).
 
 ## 4. Not built

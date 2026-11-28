@@ -4,6 +4,13 @@ This document records the tests that fail on this Windows development machine, a
 that they already fail on the untouched Hydra baseline. They are **not** regressions
 introduced by the Sphinx migration.
 
+> **Status: all 21 are fixed (Issue #4).** The tests were made host-agnostic instead of
+> being left red: symlink fixtures skip when the privilege is missing, path assertions go
+> through `path.join`/`resolve`/`realpath`, the YAML fixture uses `path.posix.join`, the
+> archive reader normalises `\`, and the notification-icon test disables the `sharp` cache
+> and retries its cleanup. The baseline rows below are kept as the record of what was
+> wrong and why.
+
 ## Summary
 
 Full `src` test suite on this machine (Fase 1 branch `sphinx/main`), excluding
@@ -24,8 +31,11 @@ Of the 22 failures:
 - **1 is a load-dependent flake** (`umu-launch-monitor.test.ts`, see below) that passes in
   isolation and is unrelated to the migration.
 
-CI does not hit these: `.github/workflows/lint.yml` runs the suite on `ubuntu-latest`
-(the only runner in the repo).
+CI now runs the suite on two runners: `ubuntu-latest` runs the full suite, and
+`windows-latest` runs `typecheck`, `lint`, `format-check`, the sidecar suites
+(`test:crash`, `test:torrent`) and the Windows-sensitive test subset added by Issue #4
+(`.github/workflows/lint.yml`, `js-windows` job). The full Windows suite is still
+filtered because the Epic suites hang on Windows.
 
 ## Baseline proof
 
@@ -161,5 +171,6 @@ node --import ./scripts/register-ts-node.mjs --test --test-timeout=90000 \
 ```
 
 Enabling Windows Developer Mode (or running elevated) removes the `EPERM` group; the
-separator/casing group is a genuine Windows-vs-Linux expectation mismatch in the tests and
-is out of scope for the migration.
+separator/casing group was a genuine Windows-vs-Linux expectation mismatch in the tests.
+Both groups are now handled in the tests themselves (Issue #4), so the file runs green on
+Windows without Developer Mode except for the symlink cases, which skip instead.

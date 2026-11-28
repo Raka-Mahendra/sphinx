@@ -919,3 +919,40 @@ kredensial hanya ada sebagai secret GitHub dan tidak bisa dibaca dari mesin ini.
 dan shell mencetak peringatan saat boot. README dan catatan rilis menyebutkan
 batasan itu; build berikutnya dengan kedua variabel di environment akan
 mengaktifkannya kembali tanpa perubahan kode.
+
+## Hardening pasca-migrasi (Issue #1–#5)
+
+Bab ini mencatat putaran audit dan perbaikan setelah build 0.1.0: lima issue
+GitHub, satu port perilaku upstream, dan tiga perbaikan yang ditemukan saat
+verifikasi. Setiap butir punya komit sendiri; pohon kerja bersih di akhir.
+
+| Butir      | Perubahan                                                                                                                                                                                                                                                                                            | Bukti                                                                       |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Issue #4   | 21 kegagalan tes Windows diperbaiki di dalam tes: symlink di-skip bila privilege tidak ada, assertion path lewat `path.join`/`resolve`/`realpath`, fixture YAML memakai `path.posix.join`, pembaca arsip menormalkan `\`, dan tes ikon notifikasi mematikan cache `sharp` lalu mengulang pembersihan | 123 tes: 114 lulus, 9 skip                                                  |
+| Issue #3   | `hydra-api.ts` mencatat ringkasan (method/url/status/durasi/ukuran) secara default; body penuh hanya dengan `logResponseBody: true` atau `SPHINX_LOG_HTTP_BODIES=1`, dibatasi 8192 karakter                                                                                                          | `hydra-api.test.ts` 8/8                                                     |
+| Issue #1   | `lint.yml` mendapat job `rust` (fmt, clippy `--all-features -D warnings`, `cargo test`, `cargo check --release` di Ubuntu + Windows) dan job `js-windows` (typecheck/lint/format, `test:crash`, `test:torrent`, subset tes sensitif-Windows)                                                         | jalankan lokal: fmt/clippy/test/check exit 0                                |
+| Issue #5   | `tauri-release.yml` gagal **sebelum** mengompilasi apa pun bila `TAURI_SIGNING_PRIVATE_KEY` tidak ada, dengan menyebut dua nama secret dan `docs/release.md` §1/§3/§9                                                                                                                                | YAML valid; tetap butuh secret asli untuk menutup issue                     |
+| Issue #2   | Seluruh jalur check → download → install → `on_before_exit` → `supervisor.shutdown` diverifikasi statis dan didokumentasikan; empat langkah manual yang butuh rilis nyata dicatat                                                                                                                    | `docs/updater-verification.md`                                              |
+| Fase 3     | `power.rs` benar-benar memblokir tidur lewat `keepawake::KeepAwake` di `static GUARD`, bukan lagi `supported: false`                                                                                                                                                                                 | `cargo test` 30/30; clippy/fmt/check release exit 0                         |
+| Port 4.4.x | Target unduhan di root drive (mis. `D:\`) tidak lagi gagal `EPERM`; emulator mendeteksi root drive Windows                                                                                                                                                                                           | `ensure-directory.test.ts`                                                  |
+| Port 4.4.x | SKU katalog RPCS3 dengan sufiks region (`...-USA`, `...-EUR`) diterima saat memetakan save                                                                                                                                                                                                           | `rpcs3-game-identity.test.ts`                                               |
+| Port 4.4.x | Daftar developer/publisher Steam di-cache 24 jam di LevelDB lewat `getCatalogueNames`; renderer memakai helper yang jatuh ke panggilan API lama bila preload belum punya handler (OTA-safe)                                                                                                          | `check-ota-bridge.mjs` exit 0                                               |
+| Keamanan   | Cabang origin tepercaya `MAIN_VITE_LAUNCHER_SUBDOMAIN` (sudah pensiun, berisiko RCE) dihapus dari `window-manager`, `file-system`, dan `assert-trusted-sender`                                                                                                                                       | tidak ada referensi tersisa                                                 |
+| Build      | `scripts/build-native-addon.cjs` memuat-cek addon dengan `node`, bukan `electron`, supaya `--ignore-scripts` tidak menunggu runtime yang tidak ada                                                                                                                                                   | `yarn build:native`; workflow rilis memakai `HYDRA_NATIVE_SKIP_LOAD_TEST=1` |
+| Ketahanan  | Unduhan common-redistributable yang ditolak ditangani, tidak lagi menjadi unhandled rejection saat boot                                                                                                                                                                                              | jelaskan di komit `fix(main)`                                               |
+| Shim       | `powerSaveBlocker` di shim sidecar melacak status, bukan mengembalikan nilai palsu                                                                                                                                                                                                                   | `src/sidecar/electron-shim/index.ts`                                        |
+| UX         | Header pembaruan tidak lagi menampilkan tautan unduh manual selama unduhan otomatis berjalan; status "belum diketahui" dipisahkan dari "tidak bisa auto-install"                                                                                                                                     | `auto-update-sub-header.tsx`; `yarn typecheck`                              |
+
+Verifikasi akhir putaran ini: `cargo fmt --all -- --check` exit 0;
+`cargo clippy --all-targets --all-features -- -D warnings` exit 0;
+`cargo test --all-features` 30 lulus; `cargo check --release` exit 0;
+`yarn typecheck` exit 0; `eslint --quiet` exit 0; `prettier --check .` lulus;
+`node scripts/generate-ipc-allowlist.mjs --check` (268 invoke) exit 0;
+`node scripts/check-ota-bridge.mjs` exit 0; `yarn check:torrent-resources` lulus;
+`yarn test:crash` 34/34; `yarn test:torrent` 4/4; google-drive 43/43; subset
+Windows + skrip 195 tes (186 lulus, 9 skip).
+
+Yang tetap terbuka dan **tidak** diklaim selesai: Issue #2 butuh rilis kedua
+untuk dijalankan, Issue #5 butuh dua secret ditambahkan ke repo, dan audit
+OpenCodeReview berbasis LLM tertunda karena kuota penyedia model habis (temuan
+manual dicatat di dokumen ini).
