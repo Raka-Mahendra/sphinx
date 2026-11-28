@@ -13,7 +13,9 @@
  *   behaviour for no gain, so the sidecar ships with `node_modules` next to it.
  * - **`import.meta.env.MAIN_VITE_*` is replaced at build time.** Those are Vite
  *   env values that the baseline main process reads; without a define, the
- *   bundle would fail on `import.meta` in CJS output.
+ *   bundle would fail on `import.meta` in CJS output. Every key the source
+ *   reads gets a define, and a checkout without `.env` gets `""` (see
+ *   `scripts/lib/sidecar-env.mjs`), so a clean build still boots.
  * - **`?asset` imports resolve to an absolute path string.** The baseline uses
  *   them for tray/window icons, which the shim ignores.
  */
@@ -24,33 +26,56 @@ import { fileURLToPath } from "node:url";
 
 import esbuild from "esbuild";
 
+import {
+  buildEnvDefines,
+  collectEnvKeys,
+  parseEnvFile,
+} from "./lib/sidecar-env.mjs";
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "out", "sidecar");
 const SHIM_DIR = path.join(ROOT, "src", "sidecar", "electron-shim");
 
 const readEnvFile = () => {
   const file = path.join(ROOT, ".env");
-  const values = {};
 
-  if (!fs.existsSync(file)) return values;
+  if (!fs.existsSync(file)) return {};
 
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-    if (!match) continue;
-    values[match[1]] = match[2].replace(/^["']|["']$/g, "");
+  return parseEnvFile(fs.readFileSync(file, "utf8"));
+};
+
+/**
+ * Contents of every source file the bundle may include.
+ *
+ * Scanning beats a hand-kept key list: a new `import.meta.env.X` in `src/main`
+ * cannot silently reintroduce the "no handlers registered" boot failure.
+ */
+const readSourceFiles = (directory) => {
+  const sources = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const full = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules") continue;
+      sources.push(...readSourceFiles(full));
+      continue;
+    }
+
+    if (/\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(entry.name)) {
+      sources.push(fs.readFileSync(full, "utf8"));
+    }
   }
 
-  return values;
+  return sources;
 };
 
 const env = readEnvFile();
 
-const envDefines = Object.fromEntries(
-  Object.entries(env).map(([key, value]) => [
-    `import.meta.env.${key}`,
-    JSON.stringify(value),
-  ])
-);
+const envDefines = buildEnvDefines({
+  keys: collectEnvKeys(readSourceFiles(path.join(ROOT, "src"))),
+  env,
+});
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(ROOT, "package.json"), "utf8")
