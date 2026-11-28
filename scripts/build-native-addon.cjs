@@ -10,7 +10,6 @@ const {
 const execFile = util.promisify(childProcess.execFile);
 const MAX_COMMAND_OUTPUT_BYTES = 10 * 1024 * 1024;
 const NATIVE_LOAD_TIMEOUT_MS = 30_000;
-const ELECTRON_INSTALL_TIMEOUT_MS = 10 * 60_000;
 
 const projectRoot = process.cwd();
 const manifestPath = path.join(
@@ -94,38 +93,6 @@ const copySidecarLibrariesOnWindows = async () => {
   }
 };
 
-// Yarn runs this postinstall alongside Electron's, which downloads the
-// runtime and then writes path.txt. Wait for it before loading the addon.
-const waitForElectron = async () => {
-  if (
-    process.env.ELECTRON_SKIP_BINARY_DOWNLOAD ||
-    process.env.ELECTRON_OVERRIDE_DIST_PATH
-  ) {
-    return;
-  }
-
-  const pathFile = path.join(
-    path.dirname(require.resolve("electron/package.json")),
-    "path.txt"
-  );
-  if (fs.existsSync(pathFile)) return;
-
-  const deadline = Date.now() + ELECTRON_INSTALL_TIMEOUT_MS;
-  await new Promise((resolve, reject) => {
-    const timer = setInterval(() => {
-      if (fs.existsSync(pathFile)) {
-        clearInterval(timer);
-        resolve();
-      } else if (Date.now() > deadline) {
-        clearInterval(timer);
-        reject(
-          new Error("Timed out waiting for Electron to finish installing")
-        );
-      }
-    }, 1000);
-  });
-};
-
 const build = async () => {
   const sourceLibraryName = sourceLibraryNameByPlatform[process.platform];
 
@@ -180,30 +147,22 @@ const build = async () => {
   await copySidecarLibrariesOnWindows();
   await ensureDepsResolvableOnLinux();
 
-  // CI builds the addon with `yarn install --ignore-scripts`, so Electron's
-  // binary is never downloaded and the check below would wait ten minutes for
-  // a runtime that is not coming. The clean-machine test plan in
-  // `docs/torrent-tauri.md` (not a skipped check) is what proves the addon
-  // loads. Set only by the release workflow.
+  // CI release builds that cross-compile or stage separately may set
+  // HYDRA_NATIVE_SKIP_LOAD_TEST=1; otherwise verify with Node.js (the
+  // sidecar's actual runtime) before the user opens the download UI.
   if (process.env.HYDRA_NATIVE_SKIP_LOAD_TEST === "1") {
-    console.log(
-      "Skipping the Electron load test (HYDRA_NATIVE_SKIP_LOAD_TEST=1)."
-    );
+    console.log("Skipping the Node load test (HYDRA_NATIVE_SKIP_LOAD_TEST=1).");
     return;
   }
 
-  // Verify with the actual application runtime, not a potentially incompatible
-  // system Node.js. Fail installation before the user opens the download UI.
-  await waitForElectron();
   await run(
-    require("electron"),
+    process.execPath,
     [
       "-e",
-      "try { require(process.argv[1]); } catch (error) { console.error('Electron cannot load the native addon:', error.message); process.exit(1); }",
+      "try { require(process.argv[1]); } catch (error) { console.error('Node cannot load the native addon:', error.message); process.exit(1); }",
       outputNodePath,
     ],
     {
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
       timeout: NATIVE_LOAD_TIMEOUT_MS,
       windowsHide: true,
     }
