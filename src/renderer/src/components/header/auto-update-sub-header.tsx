@@ -11,7 +11,13 @@ export const releasesPageUrl =
 export function AutoUpdateSubHeader() {
   const [isReadyToInstall, setIsReadyToInstall] = useState(false);
   const [newVersion, setNewVersion] = useState<string | null>(null);
-  const [isAutoInstallAvailable, setIsAutoInstallAvailable] = useState(false);
+  // `null` = the check has not resolved yet. `checkForUpdates()` only resolves
+  // after the update has finished downloading, so a `false` default would show
+  // the "download from the releases page" link for the whole download even
+  // though the app is already downloading it.
+  const [isAutoInstallAvailable, setIsAutoInstallAvailable] = useState<
+    boolean | null
+  >(null);
 
   const { t } = useTranslation("header");
 
@@ -51,7 +57,7 @@ export function AutoUpdateSubHeader() {
 
   if (!newVersion) return null;
 
-  if (!isAutoInstallAvailable) {
+  if (isAutoInstallAvailable === false) {
     return (
       <header className="auto-update-sub-header">
         <Link
@@ -68,7 +74,7 @@ export function AutoUpdateSubHeader() {
     );
   }
 
-  if (isReadyToInstall) {
+  if (isAutoInstallAvailable === true && isReadyToInstall) {
     return (
       <header className="auto-update-sub-header">
         <button
