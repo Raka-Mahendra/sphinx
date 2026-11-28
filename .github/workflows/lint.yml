@@ -62,6 +62,13 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
+      # Pinned like the other jobs: `scripts/stage-node-binary.mjs` uses
+      # `import.meta.dirname`, which older runner Node versions lack.
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -91,13 +98,12 @@ jobs:
       # lints and type-checks the shell; the release job builds the real sidecar,
       # addon, ludusavi and renderer. Stage the Node runtime exactly as the
       # release does, then create empty stand-ins for the packaged artefacts.
-      - name: Stage the bundle inputs the manifest needs
-        shell: bash
-        run: |
-          node scripts/stage-node-binary.mjs
-          mkdir -p out/sidecar out/renderer hydra-native
-          [ -f ludusavi ] || : > ludusavi
-          [ -f out/renderer/index.html ] || printf '<!doctype html><title>ci</title>\n' > out/renderer/index.html
+      # Both steps are plain Node so they behave the same on every runner shell.
+      - name: Stage the sidecar Node binary
+        run: node scripts/stage-node-binary.mjs
+
+      - name: Create placeholder bundle inputs
+        run: node scripts/stage-bundle-placeholders.mjs
 
       - name: Cache Cargo registry & target
         uses: actions/cache@v4
