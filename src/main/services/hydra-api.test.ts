@@ -14,7 +14,7 @@ interface RecordedRequest {
   authorization: unknown;
 }
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, responseData: unknown = { ok: true }) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-api-public-"));
   const key = "__hydraPublicTest" + Math.random().toString(36).slice(2);
   const globals = globalThis as unknown as Record<string, unknown>;
@@ -35,7 +35,7 @@ async function fixture(t: TestContext) {
             ?.Authorization ?? null,
       });
       return {
-        data: { ok: true },
+        data: responseData,
         status: 200,
         statusText: "OK",
         headers: {},
@@ -209,4 +209,69 @@ test("auth-surface methods are inert no-ops", async (t) => {
   f.api.persistUserCache();
   f.api.updateUserSubscription();
   assert.equal(f.requests.length, 0);
+});
+
+const responseLog = (logs: unknown[][]) =>
+  logs.find((entry) => typeof entry[0] === "number");
+
+test("summarizes large response bodies by default", async (t) => {
+  const f = await fixture(t, {
+    catalogue: Array.from({ length: 500 }).fill(1),
+  });
+
+  await f.api.get("/catalogue/steam", undefined, { needsAuth: false });
+
+  const log = responseLog(f.logs);
+  assert.ok(log, "the response interceptor must log");
+  assert.equal(log[0], 200);
+  // A summary marker, never the serialized catalogue itself.
+  assert.ok(
+    log.some(
+      (part) => typeof part === "string" && /^\[Object: \d+ keys\]$/.test(part)
+    ),
+    `expected a summary marker, got ${JSON.stringify(log)}`
+  );
+  assert.ok(
+    !log.some(
+      (part) => typeof part === "string" && part.includes('"catalogue"')
+    ),
+    "body contents must not leak into the default log"
+  );
+});
+
+test("logs the full sanitized body on logResponseBody: true", async (t) => {
+  const f = await fixture(t, { ok: true, token: "super-secret" });
+
+  await f.api.get("/profile/me", undefined, {
+    needsAuth: false,
+    logResponseBody: true,
+  });
+
+  const log = responseLog(f.logs);
+  assert.ok(log);
+  const body = log.find(
+    (part): part is string => typeof part === "string" && part.includes("ok")
+  );
+  assert.ok(body, "the opted-in body should be logged");
+  assert.ok(!body.includes("super-secret"), "secrets stay redacted");
+  assert.ok(body.includes("[REDACTED]"));
+});
+
+test("SPHINX_LOG_HTTP_BODIES=1 opts every request into bodies", async (t) => {
+  process.env.SPHINX_LOG_HTTP_BODIES = "1";
+  t.after(() => {
+    delete process.env.SPHINX_LOG_HTTP_BODIES;
+  });
+  const f = await fixture(t, { markers: "visible-when-opted-in" });
+
+  await f.api.get("/games/steam/620", undefined, { needsAuth: false });
+
+  const log = responseLog(f.logs);
+  assert.ok(
+    log?.some(
+      (part) =>
+        typeof part === "string" && part.includes("visible-when-opted-in")
+    ),
+    `expected the full body, got ${JSON.stringify(log)}`
+  );
 });

@@ -14,6 +14,8 @@ import type { HydraApiAuthContext } from "./hydra-auth-context";
 declare module "axios" {
   interface AxiosRequestConfig {
     logResponseBody?: boolean;
+    /** Millisecond timestamp set by the request interceptor for duration logging. */
+    logStartedAt?: number;
   }
 }
 
@@ -28,6 +30,47 @@ export interface HydraApiOptions {
   timeout?: number;
   authContext?: HydraApiAuthContext;
 }
+
+/**
+ * Catalogue responses are large, so bodies stay out of the log unless a caller
+ * explicitly opts in per request (`logResponseBody: true`) or a developer sets
+ * `SPHINX_LOG_HTTP_BODIES=1`. Even then the payload is capped so one giant
+ * response cannot fill the log or hang stderr.
+ */
+const MAX_LOGGED_BODY_CHARS = 8 * 1024;
+
+const shouldLogResponseBody = (configured?: boolean) =>
+  configured === true || process.env.SPHINX_LOG_HTTP_BODIES === "1";
+
+const payloadByteLength = (value: unknown) => {
+  if (value === null || value === undefined) return 0;
+  try {
+    return Buffer.byteLength(
+      typeof value === "string" ? value : JSON.stringify(value)
+    );
+  } catch {
+    return 0;
+  }
+};
+
+const describeResponseBody = (value: unknown, includeBody: boolean) => {
+  if (!includeBody) return summarizeNetworkLogPayload(value);
+
+  const sanitized = sanitizeNetworkLogPayload(value);
+  let serialized: string;
+  try {
+    serialized =
+      typeof sanitized === "string" ? sanitized : JSON.stringify(sanitized);
+  } catch {
+    return summarizeNetworkLogPayload(value);
+  }
+
+  if (typeof serialized !== "string") return sanitized;
+
+  return serialized.length > MAX_LOGGED_BODY_CHARS
+    ? `${serialized.slice(0, MAX_LOGGED_BODY_CHARS)}…[truncated, ${serialized.length} chars]`
+    : serialized;
+};
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -78,11 +121,12 @@ export class HydraApi {
     if (this.ADD_LOG_INTERCEPTOR) {
       this.instance.interceptors.request.use(
         (request) => {
+          request.logStartedAt = Date.now();
           logger.log(" ---- REQUEST -----");
           logger.log(
             request.method,
             request.url,
-            sanitizeNetworkLogPayload({
+            summarizeNetworkLogPayload({
               params: request.params ?? null,
               data: request.data ?? null,
             })
@@ -97,13 +141,19 @@ export class HydraApi {
       this.instance.interceptors.response.use(
         (response) => {
           logger.log(" ---- RESPONSE -----");
+          const durationMs = response.config.logStartedAt
+            ? Date.now() - response.config.logStartedAt
+            : undefined;
           logger.log(
             response.status,
             response.config.method,
             response.config.url,
-            response.config.logResponseBody === false
-              ? summarizeNetworkLogPayload(response.data)
-              : sanitizeNetworkLogPayload(response.data)
+            durationMs === undefined ? "" : `${durationMs}ms`,
+            `${payloadByteLength(response.data)} bytes`,
+            describeResponseBody(
+              response.data,
+              shouldLogResponseBody(response.config.logResponseBody)
+            )
           );
           return response;
         },
@@ -115,7 +165,7 @@ export class HydraApi {
             config.method,
             config.baseURL,
             config.url,
-            sanitizeNetworkLogPayload({
+            summarizeNetworkLogPayload({
               headers: config.headers ?? null,
               data: config.data ?? null,
             })
@@ -124,7 +174,10 @@ export class HydraApi {
             logger.error(
               "Response error:",
               error.response.status,
-              sanitizeNetworkLogPayload(error.response.data)
+              describeResponseBody(
+                error.response.data,
+                shouldLogResponseBody(config.logResponseBody)
+              )
             );
 
             return Promise.reject(error as Error);
