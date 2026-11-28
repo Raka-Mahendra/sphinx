@@ -64,6 +64,23 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      # Tauri's Linux build scripts locate webkit2gtk/gtk/appindicator through
+      # pkg-config, so a stock ubuntu-latest runner cannot even run `cargo
+      # clippy` without them. Source: https://v2.tauri.app/start/prerequisites/
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libxdo-dev \
+            patchelf
+
       - name: Cache Cargo registry & target
         uses: actions/cache@v4
         with:
