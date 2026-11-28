@@ -252,7 +252,9 @@ export const loadState = async () => {
   // game that is already running before the scan can mark it `resumed`.
 
   if (process.platform === "win32") {
-    CommonRedistManager.downloadCommonRedist();
+    CommonRedistManager.downloadCommonRedist().catch((error) => {
+      logger.error("Failed to download CommonRedist:", error);
+    });
   }
 
   SystemPath.checkIfPathsAreAvailable();
