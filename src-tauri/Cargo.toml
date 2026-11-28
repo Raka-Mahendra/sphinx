@@ -41,6 +41,7 @@ arboard = "3"
 # `v1` restores the familiar Entry API (new / set_password / get_password /
 # delete_credential) on top of the v4 credential-store ecosystem.
 keyring = { version = "4", features = ["v1"] }
+keepawake = "0.6"
 
 [profile.release]
 codegen-units = 1
