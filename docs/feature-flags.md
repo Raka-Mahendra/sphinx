@@ -327,9 +327,8 @@ Flag `true`/`false` matrix:
 The baseline main process reads `import.meta.env.MAIN_VITE_API_URL` at import
 time (`src/main/constants.ts:15`, `isStaging`). With no `.env`, the app crashes
 at load with `Cannot read properties of undefined (reading 'includes')`. `.env`
-is git-ignored; copy `.env.example` and set, at minimum,
-`MAIN_VITE_API_URL` (empty is enough for a local boot) and
-`MAIN_VITE_LAUNCHER_SUBDOMAIN` (empty loads local renderer assets).
+is git-ignored; copy `.env.example` and set, at minimum, `MAIN_VITE_API_URL`
+(empty is enough for a local boot).
 
 The anonymous run also logs two environment-only failures that are unrelated to
 the flags: `ludusavi.exe` is absent (Ludusavi binary not built) and

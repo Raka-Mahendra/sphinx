@@ -32,7 +32,12 @@ These values are injected at build time, not hardcoded in the repository:
 | `MAIN_VITE_EXTERNAL_RESOURCES_URL`     | Declared for the main process; no baseline call site found | `src/main/vite-env.d.ts:8`                                           |
 | `RENDERER_VITE_EXTERNAL_RESOURCES_URL` | Remote `bundle.js` injected into renderer                  | `src/renderer/src/app.tsx:333-337`                                   |
 | `RENDERER_VITE_SENTRY_DSN`             | Sentry browser DSN                                         | `src/renderer/src/main.tsx:61-69`; `.github/workflows/build.yml:107` |
-| `MAIN_VITE_LAUNCHER_SUBDOMAIN`         | Launcher subdomain config                                  | `.env.example:5`                                                     |
+| `MAIN_VITE_LAUNCHER_SUBDOMAIN`         | Launcher subdomain config                                  | `.env.example:5` (removed in the migration)                          |
+
+> The baseline rows above are kept as the audit record. `MAIN_VITE_LAUNCHER_SUBDOMAIN`
+> was removed with the remote-renderer branch; the variable is gone from
+> `.env.example` and from `src/main/vite-env.d.ts`. See `docs/tauri-shell.md` and
+> `docs/tauri-security.md`.
 
 Observed runtime behavior on 2026-10-23:
 
