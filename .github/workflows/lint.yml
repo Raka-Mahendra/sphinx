@@ -84,6 +84,21 @@ jobs:
             libxdo-dev \
             patchelf
 
+      # tauri-build validates `bundle.externalBin`, `bundle.resources` and
+      # `frontendDist` while compiling, so a clean checkout cannot even run
+      # `cargo clippy`: the manifest build stops at the first missing path
+      # (observed: `binaries/node-<triple>` and `../hydra-native`). This job only
+      # lints and type-checks the shell; the release job builds the real sidecar,
+      # addon, ludusavi and renderer. Stage the Node runtime exactly as the
+      # release does, then create empty stand-ins for the packaged artefacts.
+      - name: Stage the bundle inputs the manifest needs
+        shell: bash
+        run: |
+          node scripts/stage-node-binary.mjs
+          mkdir -p out/sidecar out/renderer hydra-native
+          [ -f ludusavi ] || : > ludusavi
+          [ -f out/renderer/index.html ] || printf '<!doctype html><title>ci</title>\n' > out/renderer/index.html
+
       - name: Cache Cargo registry & target
         uses: actions/cache@v4
         with:
