@@ -1062,8 +1062,9 @@ Preflight ini tidak memvalidasi isi key; validasi sebenarnya terjadi saat
 
 ### Implikasi keamanan
 
-- Siapa pun yang dapat membaca file key atau repository secret dapat
-  menandatangani update; tidak ada passphrase sebagai faktor kedua.
+- Siapa pun yang dapat membaca file key atau secret GitHub (disarankan di scope
+  environment `release-signing`) dapat menandatangani update; tidak ada
+  passphrase sebagai faktor kedua.
 - File key hanya dilindungi ACL sistem operasi. Cadangan offline terenkripsi
   belum ditemukan, dan hanya ada satu salinan di laptop pengembang.
 - `v0.1.0` sudah publik dan installer-nya ditandatangani key ini, sehingga
@@ -1074,14 +1075,24 @@ Preflight ini tidak memvalidasi isi key; validasi sebenarnya terjadi saat
 
 ### Validasi signing tanpa release
 
-Workflow `workflow_dispatch` bernama `tauri-signing-smoke.yml` sudah disiapkan
-pada putaran ini. Ia hanya berjalan di `sphinx/main` pada repo kanonik, memakai
-`permissions: contents: read`, membangun paket Windows asli, menandatanganinya
-dengan `TAURI_SIGNING_PRIVATE_KEY` (password string kosong), lalu memverifikasi
-`.sig` terhadap `plugins.updater.pubkey` dengan
+Workflow `workflow_dispatch` bernama `tauri-signing-smoke.yml` sudah disiapkan.
+Ia hanya berjalan di `sphinx/main` pada repo kanonik, memakai
+`permissions: contents: read`, dan kini berjalan di GitHub Environment
+`release-signing` sehingga eksekusi berhenti menunggu persetujuan reviewer
+sebelum langkah apa pun. Setelah disetujui, ia membangun paket Windows asli,
+menandatanganinya dengan `TAURI_SIGNING_PRIVATE_KEY` (password string kosong),
+lalu memverifikasi `.sig` terhadap `plugins.updater.pubkey` dengan
 `scripts/verify-updater-signature.mjs`. Key ID yang diharapkan:
 `96C5E41CD0651543`. Workflow ini tidak membuat tag, release, atau aset produksi;
-ia hanya mengunggah artifact bukti.
+ia hanya mengunggah artifact bukti (retensi 3 hari).
+
+Environment `release-signing` **belum dibuat**. Pemilik harus membuat dan
+melindunginya (required reviewer, batasi deployment ke branch `sphinx/main` dan
+tag `v*` — tag diperlukan agar rilis berbasis tag tidak diblokir, nonaktifkan
+bypass
+admin bila didukung) **sebelum** workflow di-push, karena workflow yang merujuk
+environment yang belum ada dapat membuat GitHub membuatnya tanpa proteksi.
+Lihat `docs/release.md` §12.
 
 Workflow tersebut **belum dijalankan** pada putaran ini (butuh push yang
 diotorisasi pemilik agar tersedia untuk `workflow_dispatch`), sehingga belum ada

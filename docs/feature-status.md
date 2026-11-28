@@ -130,6 +130,12 @@ this build.
   the workflow **has not been run**: it is not yet on GitHub, and pushing it
   requires owner authorization. "GitHub Actions can sign" is therefore still
   unproven.
+- Both signing jobs now run in the `release-signing` GitHub Environment, so a
+  run (smoke or tag) stops for a required reviewer before any step executes. The
+  environment is **not created yet**: the owner must create and protect it
+  before the workflow is pushed, because a workflow that references an unknown
+  environment can make GitHub auto-create it without protection
+  (`docs/release.md` §12).
 - The release action was migrated from the end-of-life
   `softprops/action-gh-release@v2` (Node 20, no longer maintained) to `@v3`
   (Node 24). The inputs and draft/finalize code paths used here are unchanged,

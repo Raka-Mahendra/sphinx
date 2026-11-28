@@ -29,11 +29,17 @@ env:
 jobs:
   # ---------------------------------------------------------------------------
   # Build. No release permissions; signing secrets are scoped to this job, so a
-  # fork pull request (which cannot push a tag anyway) cannot publish.
+  # fork pull request (which cannot push a tag anyway) cannot publish. The job
+  # runs in the `release-signing` environment, so a tag cannot be built or
+  # signed until a required reviewer approves. `draft`/`publish` keep
+  # `contents: write` but never receive the signing key.
   # ---------------------------------------------------------------------------
   build:
     if: github.repository == 'Raka-Mahendra/sphinx'
     name: Build (${{ matrix.target }})
+    # Approval gate before any signing-capable step runs.
+    environment:
+      name: release-signing
     permissions:
       contents: read
     runs-on: windows-latest
@@ -44,10 +50,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
@@ -56,6 +62,8 @@ jobs:
         run: corepack enable
 
       - name: Install Rust
+        # Deliberately not pinned to a SHA: the ref after `@` selects the
+        # toolchain (`stable`) because no `with: toolchain` is given.
         uses: dtolnay/rust-toolchain@stable
 
       # Fails the build before any artefact exists if the three version sources
@@ -162,7 +170,7 @@ jobs:
           "args=--config $signConfigPath" >> $env:GITHUB_OUTPUT
 
       - name: Build the bundle
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Updater signing (minisign). Different key type from Authenticode:
@@ -187,7 +195,7 @@ jobs:
           retryAttempts: 2
 
       - name: Publish the bundles as workflow artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-bundles
           retention-days: 7
@@ -208,15 +216,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Download the bundles
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: release-bundles
           path: bundles
@@ -256,7 +264,7 @@ jobs:
       # the draft/finalize code paths this workflow uses are unchanged.
       # Checked 28 November 2026 against v3.0.4.
       - name: Create the draft release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           draft: true
           tag_name: ${{ github.ref_name }}
@@ -280,7 +288,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish the draft release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           draft: false
           # The updater reads `releases/latest/download/latest.json`, so this

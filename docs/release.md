@@ -12,21 +12,22 @@ upstream.
 
 ## 1. Two kinds of key — they are not interchangeable
 
-|                | Updater key (minisign)                                                                                                                                                            | Authenticode certificate                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| What it signs  | The update _bundle_ (`.sig` next to the installer)                                                                                                                                | The installer and the binaries inside it                                                     |
-| What it proves | "This update was produced by whoever holds the updater key"                                                                                                                       | "This installer was produced by whoever holds the certificate"                               |
-| Created with   | `yarn tauri signer generate -w ~/.sphinx-updater/sphinx-updater.key --ci` (passwordless)                                                                                          | A CA (a paid OV/EV certificate, or `signtool` + a self-signed cert for testing)              |
-| Where it lives | `TAURI_SIGNING_PRIVATE_KEY` must be a repository secret (see the note below). This key is passwordless, so the password secret is intentionally unset (§9).                       | `WINDOWS_CERTIFICATE` (base64 `.p12`) + `WINDOWS_CERTIFICATE_PASSWORD` as repository secrets |
-| Losing it      | **Existing installs can never be auto-updated again** — the app verifies every update against the public key baked into `tauri.conf.json`, so users need a manual reinstall (§10) | You cannot sign future releases; users keep seeing SmartScreen                               |
-| Used in v1     | **Yes**                                                                                                                                                                           | **No** (opt-in, see §6)                                                                      |
+|                | Updater key (minisign)                                                                                                                                                                            | Authenticode certificate                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| What it signs  | The update _bundle_ (`.sig` next to the installer)                                                                                                                                                | The installer and the binaries inside it                                                     |
+| What it proves | "This update was produced by whoever holds the updater key"                                                                                                                                       | "This installer was produced by whoever holds the certificate"                               |
+| Created with   | `yarn tauri signer generate -w ~/.sphinx-updater/sphinx-updater.key --ci` (passwordless)                                                                                                          | A CA (a paid OV/EV certificate, or `signtool` + a self-signed cert for testing)              |
+| Where it lives | `TAURI_SIGNING_PRIVATE_KEY`, scoped to the `release-signing` environment (recommended) or the repository (see §12). This key is passwordless, so the password secret is intentionally unset (§9). | `WINDOWS_CERTIFICATE` (base64 `.p12`) + `WINDOWS_CERTIFICATE_PASSWORD` as repository secrets |
+| Losing it      | **Existing installs can never be auto-updated again** — the app verifies every update against the public key baked into `tauri.conf.json`, so users need a manual reinstall (§10)                 | You cannot sign future releases; users keep seeing SmartScreen                               |
+| Used in v1     | **Yes**                                                                                                                                                                                           | **No** (opt-in, see §6)                                                                      |
 
 Both credentials live outside the repository and must be backed up offline (§3),
 but they are different credentials for different purposes. Rotating one says
 nothing about the other.
 
 The updater key for this project is **passwordless**. Only
-`TAURI_SIGNING_PRIVATE_KEY` is required as a repository secret;
+`TAURI_SIGNING_PRIVATE_KEY` is required — preferably as an environment secret on
+`release-signing` (§12), not repository-wide;
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is intentionally unset. GitHub evaluates an
 unset secret to an empty string, and Tauri accepts an empty password for a key
 that has none. Never invent a password for this key.
@@ -35,21 +36,24 @@ that has none. Never invent a password for this key.
 
 These are different claims and must not be collapsed into "signing works":
 
-| Claim                                           | Status               | Evidence                                                                                                                                                |
-| ----------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugins.updater.pubkey` matches the keypair    | **Verified locally** | Public key file and config decode to the same 42-byte blob; key ID `96C5E41CD0651543`                                                                   |
-| The key is passwordless                         | **Verified locally** | Signing succeeds with no password and with an explicit empty string; a wrong password fails with `Wrong password for that key`                          |
-| The published `v0.1.0` signature is valid       | **Verified locally** | `scripts/verify-updater-signature.mjs` verifies the installer's `.sig` and global signature against the committed public key                            |
-| `TAURI_SIGNING_PRIVATE_KEY` exists in GitHub    | **Unverified**       | A repository secret cannot be read back; this checkout has no authenticated `gh`/API access. Confirm it in _Settings → Secrets and variables → Actions_ |
-| GitHub Actions can build **and sign**           | **Not yet proven**   | Run the manual smoke workflow in §11; no run has happened yet                                                                                           |
-| A production release was built and signed by CI | **Not yet**          | The only release run failed at `Build the bundle`; the public 0.1.0 bundles `node.exe` 24.22.1, not the CI-pinned 22.21.0                               |
-| A clean machine installs and runs the app       | **Not run**          | §8                                                                                                                                                      |
-| The updater works end to end (`0.1.0 → next`)   | **Not run**          | Issue #2                                                                                                                                                |
+| Claim                                           | Status                 | Evidence                                                                                                                                  |
+| ----------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.updater.pubkey` matches the keypair    | **Verified locally**   | Public key file and config decode to the same 42-byte blob; key ID `96C5E41CD0651543`                                                     |
+| The key is passwordless                         | **Verified locally**   | Signing succeeds with no password and with an explicit empty string; a wrong password fails with `Wrong password for that key`            |
+| The published `v0.1.0` signature is valid       | **Verified locally**   | `scripts/verify-updater-signature.mjs` verifies the installer's `.sig` and global signature against the committed public key              |
+| `TAURI_SIGNING_PRIVATE_KEY` exists in GitHub    | **Unverified**         | A secret cannot be read back; this checkout has no authenticated `gh`/API access. Confirm it in the `release-signing` environment (§12)   |
+| `release-signing` environment is protected      | **Not yet configured** | Both signing workflows declare it, but the owner must create it with a required reviewer and `sphinx/main` rule before any push (see §12) |
+| GitHub Actions can build **and sign**           | **Not yet proven**     | Run the manual smoke workflow in §11 (after §12); no run has happened yet                                                                 |
+| A production release was built and signed by CI | **Not yet**            | The only release run failed at `Build the bundle`; the public 0.1.0 bundles `node.exe` 24.22.1, not the CI-pinned 22.21.0                 |
+| A clean machine installs and runs the app       | **Not run**            | §8                                                                                                                                        |
+| The updater works end to end (`0.1.0 → next`)   | **Not run**            | Issue #2                                                                                                                                  |
 
 > **Verification status.** The workflow's `Require the updater signing key`
 > step checks non-emptiness only. Local signatures prove the key and the
 > verification algorithm; they do **not** prove the GitHub secret exists or that
-> Actions can use it. Only §11 (or a real signed release) proves that.
+> Actions can use it. The `release-signing` environment must also exist with a
+> required reviewer before any push (§12). Only a smoke run in §11 (or a real
+> signed release) proves that CI can sign.
 
 ---
 
@@ -362,9 +366,11 @@ yarn tauri signer generate -w ~/.sphinx-updater/sphinx-updater.key --ci
 key (ID `96C5E41CD0651543`) is the value in `tauri.conf.json` →
 `plugins.updater.pubkey`; it is committed. The private key is not.
 
-The only repository secret this project requires is
-`TAURI_SIGNING_PRIVATE_KEY`. Its presence cannot be proven from the repository
-(see the verification note in §1); a signed build in Actions is the proof.
+The only signing secret this project requires is
+`TAURI_SIGNING_PRIVATE_KEY`. Scope it to the `release-signing` environment (§12)
+rather than the repository, so only workflows that declare that environment can
+read it. Its presence cannot be proven from the repository (see the verification
+note in §1); a signed build in Actions is the proof.
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is intentionally **unset**: GitHub returns
 an empty string for a missing secret
 ([GitHub docs](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)),
@@ -375,11 +381,12 @@ key`.
 
 ### What passwordless means for security
 
-- Anyone who can read the key file, or obtain the repository secret, can sign an
-  update. There is no passphrase as a second factor.
-- Repository administrators can replace the secret, and a workflow that receives
-  it can use it. Protect `sphinx/main` and review workflow changes; masking in
-  logs does not stop a malicious workflow from using a secret.
+- Anyone who can read the key file, or obtain the environment secret, can sign
+  an update. There is no passphrase as a second factor.
+- Repository administrators can replace the secret, and a workflow that declares
+  the `release-signing` environment (and is approved) can use it. Protect
+  `sphinx/main` and review workflow changes; masking in logs does not stop a
+  malicious workflow from using a secret.
 - The file is protected by the operating system ACL only. Keep it outside the
   repository, out of cloud-sync folders, and backed up on an encrypted medium.
 - GitHub masks the secret in logs, but never echo it or pass it on a command
@@ -419,7 +426,8 @@ There is no bridge release when the old private key is gone: bridge rotation
 A holder of the key can sign an update that every existing install accepts.
 Treat this as a supply-chain incident, not a password reset.
 
-1. Remove the repository secret and disable the release workflow immediately.
+1. Remove the environment (and any repository) secret and disable the release
+   workflow immediately.
 2. Do **not** publish anything signed with the compromised key except a
    deliberately reviewed bridge release, and only if you still control the
    signing path. If the attacker can also publish releases, assume they can
@@ -457,6 +465,7 @@ It is deliberately separate from the release pipeline:
 | Trigger                      | `workflow_dispatch` only                                  | `v*` tag                                          |
 | Allowed ref                  | `sphinx/main` in `Raka-Mahendra/sphinx` only              | tag in `Raka-Mahendra/sphinx`                     |
 | Permissions                  | `contents: read`                                          | `contents: read` build, `write` for draft/publish |
+| Environment                  | `release-signing`, required reviewer                      | `release-signing`, required reviewer              |
 | Signing secret               | `TAURI_SIGNING_PRIVATE_KEY` only, empty password          | same                                              |
 | Builds the real NSIS package | yes                                                       | yes                                               |
 | Creates a tag or release     | **no**                                                    | yes                                               |
@@ -465,6 +474,9 @@ It is deliberately separate from the release pipeline:
 
 ### What it does
 
+0. The job enters the `release-signing` environment and **waits for a required
+   reviewer's approval** before any step runs. Nothing is checked out, installed
+   or signed until that approval is granted.
 1. Checks out `sphinx/main` and asserts the three version sources agree.
 2. Fails before the build if `TAURI_SIGNING_PRIVATE_KEY` is empty; it never
    echoes the value.
@@ -481,21 +493,27 @@ It is deliberately separate from the release pipeline:
    the manifest's version/URL/signature. It asserts the key ID is
    `96C5E41CD0651543`.
 7. Refuses to upload anything outside the five evidence files, then uploads them
-   as the `signing-smoke-evidence` Actions artifact (7 days).
+   as the `signing-smoke-evidence` Actions artifact (3 days).
 
 The workflow has no `contents: write`, no release action, no `tauri-action`, and
 no tag step.
 
 ### How to run it
 
-1. The owner confirms `TAURI_SIGNING_PRIVATE_KEY` exists under
-   _Settings → Secrets and variables → Actions_. Do not paste the key into this
-   repository, an issue, or a chat.
+The order matters: the `release-signing` environment must exist **with
+protection rules** before the workflow file reaches `sphinx/main`. Otherwise the
+push itself would let GitHub auto-create an unprotected environment (see §12).
+
+1. **Owner creates and protects the `release-signing` environment** exactly as
+   described in §12, then adds the environment secret
+   `TAURI_SIGNING_PRIVATE_KEY`. Do not paste the key into this repository, an
+   issue, or a chat.
 2. The workflow file must exist on `sphinx/main`. Pushing it requires owner
    authorization; the file being on a local branch is not enough for
    `workflow_dispatch`.
 3. Run it from the Actions UI: **Tauri Signing Smoke → Run workflow → branch
-   `sphinx/main`**. Or, with an authenticated `gh`:
+   `sphinx/main`**. The run then waits in **Review pending deployments** until a
+   required reviewer approves it. Or, with an authenticated `gh`:
 
    ```sh
    gh workflow run tauri-signing-smoke.yml --ref sphinx/main
@@ -549,3 +567,92 @@ It does **not** prove:
 Never upload the smoke run's `latest.json` to a release. Its URL points at
 `v0.1.0`, and replacing the production manifest is exactly the kind of change
 this workflow exists to avoid.
+
+---
+
+## 12. Protecting the signing environment
+
+Both signing jobs (`tauri-release.yml` → `build`, `tauri-signing-smoke.yml` →
+`sign`) declare:
+
+```yaml
+environment:
+  name: release-signing
+```
+
+An environment is an approval gate: the job is created, then it pauses at
+**Review pending deployments** until a listed reviewer approves it. No step —
+checkout, install, build or signing — runs before that approval. It is the one
+place where a human confirms "yes, sign with this key now".
+
+### Why the environment must exist before the workflow is pushed
+
+A workflow that references a GitHub Environment by name can make GitHub
+**create** that environment on first use, and a freshly auto-created environment
+has no protection rules. In that case the job would run immediately and the
+approval gate would silently not exist. The order is therefore not optional:
+
+1. Create and protect `release-signing` (below).
+2. Confirm `TAURI_SIGNING_PRIVATE_KEY` is available in that scope.
+3. **Then** authorise the push that puts the workflow files on `sphinx/main`.
+
+### Create and protect the environment
+
+In `Raka-Mahendra/sphinx` → **Settings** → **Environments** → **New
+environment**:
+
+| Setting                             | Value                                                                                                                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name                                | `release-signing`                                                                                                                            |
+| Required reviewers                  | at least one trusted reviewer (the owner, and ideally a second person)                                                                       |
+| Prevent self-review                 | **on** once a second trusted reviewer exists; leave off while the owner is the only reviewer, or the owner could never approve their own run |
+| Deployment branches and tags        | **Selected branches and tags** → branch `sphinx/main` **and** tag pattern `v*` (see the note below)                                          |
+| Wait timer                          | 0 (optional; a delay is not a substitute for review)                                                                                         |
+| Administrator bypass / bypass rules | **disable where the plan supports it**; if it cannot be disabled, record that admins can still bypass                                        |
+
+The deployment rule must allow **both** `sphinx/main` and `v*` tags:
+
+- the smoke workflow runs on the `sphinx/main` branch;
+- the release workflow runs on a `v*` tag, so restricting the environment to the
+  branch alone would make every tag build fail at the environment gate. That
+  would break the existing tag-triggered release architecture.
+
+Allowing `v*` does not weaken the gate: a tag still needs the required reviewer's
+approval, and `tauri-release.yml` only runs on tags in this repository. Each
+workflow also keeps its own `if:` ref check, so an approval cannot be reused for
+a different ref.
+
+### Move the signing secret into the environment scope
+
+Prefer an **environment secret** over a repository secret: only workflows that
+declare the environment can read it, so the set of workflows that can reach the
+key is explicit and small. The key itself does not change — no rotation, no new
+public key.
+
+Safe migration (the key never leaves GitHub):
+
+1. In the new environment → **Environment secrets** → **Add secret** →
+   `TAURI_SIGNING_PRIVATE_KEY`, pasting the existing key. **Do not** create
+   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; this key is passwordless and the
+   workflow passes an explicit empty string.
+2. Keep the existing repository-level secret for now. An environment secret with
+   the same name takes precedence for jobs that declare the environment, so the
+   value is unambiguous.
+3. Run the smoke workflow (§11) once and confirm `signature-verification.json`
+   shows `ok: true` — that proves the environment secret works.
+4. Only after a green smoke run, **delete** the repository-level
+   `TAURI_SIGNING_PRIVATE_KEY`, leaving the key reachable solely through
+   `release-signing`.
+
+Until step 3 passes, do not delete the repository secret: removing the only
+working copy would leave no way to sign until it is re-added.
+
+### What the environment does and does not protect
+
+- **Does:** require a human approval before any step of a signing job runs;
+  restrict which branch/tag may consume the environment; scope the secret so only
+  environment-declaring workflows can read it.
+- **Does not:** protect against a malicious edit to a workflow file that still
+  names the environment — a reviewer must read the diff before approving. It also
+  adds no passphrase: the key is passwordless, so anyone who can read the secret
+  can sign. Protect `sphinx/main` and review workflow changes for that reason.

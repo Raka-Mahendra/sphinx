@@ -8,16 +8,18 @@ name: Tauri Signing Smoke
 # job itself refuses to run anywhere except `sphinx/main` in the canonical
 # repository. It never receives `contents: write` and has no release step.
 #
-# Usage (after the workflow file is on `sphinx/main`):
+# The `sign` job declares `environment: release-signing`, so a run stops for the
+# environment's required reviewers before any checkout, dependency install or
+# signing step begins. That environment MUST be created with protection rules
+# *before* this file is pushed to `sphinx/main`: a workflow that references an
+# unknown environment can make GitHub create it with no protection at all. See
+# docs/release.md §12 and the sign-off list in docs/release-readiness-audit.md.
+#
+# Usage (after the file is on `sphinx/main` **and** `release-signing` exists with
+# a required reviewer):
 #   gh workflow run tauri-signing-smoke.yml --ref sphinx/main
 #   gh run watch
 #   gh run download <run-id> -n signing-smoke-evidence
-#
-# Optional hardening: create a `release-signing` environment with required
-# reviewers, then add `environment: release-signing` to the job. It is not set
-# here because referencing an environment that does not exist yet would either
-# create an unprotected one or fail the job — both worse than the explicit
-# ref/repository guards below.
 
 on:
   workflow_dispatch:
@@ -41,15 +43,22 @@ jobs:
     name: Build and sign (no publish)
     runs-on: windows-latest
     timeout-minutes: 60
+    # Approval gate. The job pauses here until a required reviewer approves,
+    # *before* any dependency install or signing step runs. If the environment
+    # does not exist yet, GitHub may auto-create it without protection, so the
+    # owner must create and protect `release-signing` before this file is
+    # pushed. See docs/release.md §12.
+    environment:
+      name: release-signing
     permissions:
       contents: read
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
@@ -58,6 +67,9 @@ jobs:
         run: corepack enable
 
       - name: Install Rust
+        # Deliberately not pinned to a SHA: the ref after `@` selects the
+        # toolchain (`stable`) because no `with: toolchain` is given, so a commit
+        # pin would change which toolchain is installed.
         uses: dtolnay/rust-toolchain@stable
 
       # There is no tag in a manual run, so derive the expected version from
@@ -226,9 +238,11 @@ jobs:
 
       - name: Upload signing evidence
         if: always() && steps.evidence.outputs.safe == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: signing-smoke-evidence
           path: signing-smoke-evidence/
-          retention-days: 7
+          # Short retention: this is signing proof for an unpublished smoke run,
+          # not a product artifact.
+          retention-days: 3
           if-no-files-found: warn

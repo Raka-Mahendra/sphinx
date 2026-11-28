@@ -97,16 +97,17 @@ the public 0.1.0 was built on the developer machine rather than by the workflow.
 
 A non-publishing proof path is prepared:
 `.github/workflows/tauri-signing-smoke.yml` (manual only, `contents: read`,
-`workflow_dispatch` on `sphinx/main`) builds the real Windows package and signs
-it with the existing key, then verifies the result with
-`scripts/verify-updater-signature.mjs`. The verifier mirrors
+`environment: release-signing`, `workflow_dispatch` on `sphinx/main`) builds the
+real Windows package and signs it with the existing key, then verifies the
+result with `scripts/verify-updater-signature.mjs`. The verifier mirrors
 `tauri-plugin-updater` (key ID, Ed25519 over the BLAKE2b-512 prehash or legacy
 bytes, and the global signature) and was run against the published `v0.1.0`
 installer: `signature_ok`, `global_signature_ok` and `manifest.ok` are all
 `true`, with key ID `96C5E41CD0651543`. That validates the algorithm and the
 keypair, **not** the secret's presence or the runner's ability to sign. The
-smoke workflow has not run yet; pushing it needs owner authorization. See
-`docs/release.md` §11.
+smoke workflow has not run yet, and the `release-signing` environment it requires
+does not exist yet; pushing it needs owner authorization **after** the
+environment is protected. See `docs/release.md` §§11–12.
 
 The build itself no longer needs a developer `.env`: `scripts/build-sidecar.mjs`
 defines every `MAIN_VITE_*` key the sources read and defaults it to `""` (see
