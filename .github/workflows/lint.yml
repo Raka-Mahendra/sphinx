@@ -6,9 +6,12 @@ concurrency:
 
 on:
   pull_request:
+  # The repository's default branch is `sphinx/main` (the Hydra fork keeps
+  # `main` free for upstream tracking), so a bare `main` filter meant pushes to
+  # the working branch started no workflow at all.
   push:
     branches:
-      - main
+      - sphinx/main
       - "release/**"
 
 permissions:

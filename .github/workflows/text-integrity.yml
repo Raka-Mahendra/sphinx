@@ -2,9 +2,11 @@ name: Text Integrity
 
 on:
   pull_request:
+  # Keep this in sync with lint.yml: the default branch is `sphinx/main`, not
+  # `main`, so filtering on `main` alone disabled the check on every push.
   push:
     branches:
-      - main
+      - sphinx/main
       - "release/**"
 
 jobs:
